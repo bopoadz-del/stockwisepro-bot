@@ -1,7 +1,7 @@
 import { Context, Markup } from 'telegraf';
 import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
-import { db, getUserWeights } from '../db';
+import { getUserWeights } from '../db';
 import { userSafeError } from '../utils/logger';
 import { validateTicker } from '../utils/validation';
 

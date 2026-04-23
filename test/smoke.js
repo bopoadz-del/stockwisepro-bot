@@ -106,9 +106,10 @@ for (const f of commandFiles) {
 console.log('✅ no command files import logEvent');
 
 // --- Verify experiment gate uses exp: prefix ---
+const chatSrc = fs.readFileSync('dist/commands/chat.js', 'utf8');
 const indexSrc = fs.readFileSync('dist/commands/index.js', 'utf8');
-assert.ok(!indexSrc.includes("text.includes('=')"), 'experiment gate should not use loose operators');
-assert.ok(indexSrc.includes("startsWith('exp:')"), 'experiment gate should require exp: prefix');
+assert.ok(!chatSrc.includes("text.includes('=')"), 'experiment gate should not use loose operators');
+assert.ok(chatSrc.includes("startsWith('exp:')"), 'experiment gate should require exp: prefix');
 console.log('✅ experiment.ts gated behind exp: prefix');
 
 // --- Verify Dockerfile is multi-stage ---
@@ -184,5 +185,57 @@ const weightsSrc2 = fs.readFileSync('dist/commands/weights.js', 'utf8');
 assert.ok(weightsSrc2.includes('weightsSetCommand'), 'weights should export weightsSetCommand');
 assert.ok(weightsSrc2.includes('setUserWeight'), 'weightsSet should call setUserWeight');
 console.log('✅ weights_set command verified');
+
+// --- Verify chat.ts natural language handler exists ---
+assert.ok(chatSrc.includes('handleChatMessage'), 'chat.ts should export handleChatMessage');
+assert.ok(chatSrc.includes('extractTickerCandidates'), 'chat.ts should extract tickers from text');
+assert.ok(chatSrc.includes('isTickerOnly'), 'chat.ts should detect ticker-only messages');
+assert.ok(chatSrc.includes('recordIntent'), 'chat.ts should record intents to DB');
+assert.ok(chatSrc.includes('correct_intent:score:'), 'chat.ts fallback should offer score correction');
+assert.ok(chatSrc.includes('correct_intent:news:'), 'chat.ts fallback should offer news correction');
+console.log('✅ chat.ts natural language handler verified');
+
+// --- Verify learning.ts admin commands exist ---
+const learningSrc = fs.readFileSync('dist/commands/learning.js', 'utf8');
+assert.ok(learningSrc.includes('adminLearningCommand'), 'learning.ts should export adminLearningCommand');
+assert.ok(learningSrc.includes('adminExportMissedCommand'), 'learning.ts should export adminExportMissedCommand');
+assert.ok(learningSrc.includes('handleCorrectIntentCallback'), 'learning.ts should export handleCorrectIntentCallback');
+assert.ok(learningSrc.includes('getLearningStats'), 'learning.ts should call getLearningStats');
+assert.ok(learningSrc.includes('getMissedIntents'), 'learning.ts should call getMissedIntents');
+assert.ok(learningSrc.includes('correctChatIntent'), 'learning.ts should call correctChatIntent');
+console.log('✅ learning.ts admin commands verified');
+
+// --- Verify learning report service exists ---
+const learningServiceSrc = fs.readFileSync('dist/services/learning.js', 'utf8');
+assert.ok(learningServiceSrc.includes('startLearningReportService'), 'learning service should export startLearningReportService');
+assert.ok(learningServiceSrc.includes("0 0 * * 6"), 'learning service should run Saturdays at midnight');
+assert.ok(learningServiceSrc.includes('getLearningStats'), 'learning service should call getLearningStats');
+assert.ok(learningServiceSrc.includes('getMissedIntents'), 'learning service should call getMissedIntents');
+console.log('✅ learning report service verified');
+
+// --- Verify commands/index.ts registers learning commands ---
+const indexSrc3 = fs.readFileSync('dist/commands/index.js', 'utf8');
+assert.ok(indexSrc3.includes("bot.command('admin_learning'"), 'commands index should register /admin_learning');
+assert.ok(indexSrc3.includes("bot.command('admin_export_misses'"), 'commands index should register /admin_export_misses');
+assert.ok(indexSrc3.includes('handleCorrectIntentCallback'), 'commands index should register correct_intent callback');
+assert.ok(indexSrc3.includes('correct_intent:'), 'commands index should have correct_intent action regex');
+console.log('✅ learning commands registered');
+
+// --- Verify DB has nl_logs migration and learning functions ---
+const dbSrc2 = fs.readFileSync('dist/db.js', 'utf8');
+assert.ok(dbSrc2.includes('nl_logs'), 'db should define nl_logs table');
+assert.ok(dbSrc2.includes('logChatIntent'), 'db should export logChatIntent');
+assert.ok(dbSrc2.includes('getLearningStats'), 'db should export getLearningStats');
+assert.ok(dbSrc2.includes('getMissedIntents'), 'db should export getMissedIntents');
+assert.ok(dbSrc2.includes('correctChatIntent'), 'db should export correctChatIntent');
+assert.ok(dbSrc2.includes('saveChatFeedback'), 'db should export saveChatFeedback');
+assert.ok(dbSrc2.includes('exportMissedIntentsCsv'), 'db should export exportMissedIntentsCsv');
+console.log('✅ DB learning layer verified');
+
+// --- Verify index.ts starts learning report service ---
+const mainSrc = fs.readFileSync('dist/index.js', 'utf8');
+assert.ok(mainSrc.includes('startLearningReportService'), 'index.ts should import startLearningReportService');
+assert.ok(mainSrc.includes('learningTask.stop'), 'index.ts should stop learningTask on shutdown');
+console.log('✅ learning service lifecycle wired');
 
 console.log('\n🎉 All smoke tests passed');

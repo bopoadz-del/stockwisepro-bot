@@ -4,7 +4,7 @@ import { stockwise } from '../api/stockwise';
 import { brave } from '../api/brave';
 import { yahooSearch } from '../api/yahoo';
 import { userSafeError } from '../utils/logger';
-import { validateTicker } from '../utils/validation';
+
 
 export async function searchCommand(ctx: Context) {
   const text = ctx.message && 'text' in ctx.message ? ctx.message.text : '';

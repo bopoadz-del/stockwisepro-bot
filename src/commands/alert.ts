@@ -7,7 +7,7 @@ import { validateTicker } from '../utils/validation';
 
 export async function alertCommand(ctx: Context) {
   const text = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
-  const args = text.replace('/alert', '').trim().split(/\s+/);
+  const args = text.replace(/^\/alerts?/, '').trim().split(/\s+/);
   const telegramId = ctx.from?.id || 0;
 
   // Show current alerts if no args
