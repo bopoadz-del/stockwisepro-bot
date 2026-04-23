@@ -2,6 +2,7 @@ import { Telegraf } from 'telegraf';
 import { BotContext } from '../types';
 import { startCommand } from './start';
 import { helpCommand } from './help';
+import { newsCommand } from './news';
 import { searchCommand } from './search';
 import { scoreCommand } from './score';
 import { watchlistCommand, watchlistAddCommand, watchlistRemoveCommand } from './watchlist';
@@ -14,6 +15,7 @@ import { adminCommand, adminExportCommand } from './admin';
 export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('start', startCommand);
   bot.command('help', helpCommand);
+  bot.command('news', newsCommand);
   bot.command('search', searchCommand);
   bot.command('score', scoreCommand);
   bot.command('watchlist', watchlistCommand);

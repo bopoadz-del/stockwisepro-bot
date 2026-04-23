@@ -7,6 +7,7 @@ export const config = {
   telegramToken: process.env.TELEGRAM_BOT_TOKEN || '',
   stockwiseApiBaseUrl: process.env.STOCKWISE_API_BASE_URL || 'http://localhost:3001',
   stockwiseApiKey: process.env.STOCKWISE_API_KEY || '',
+  braveApiKey: process.env.BRAVE_API_KEY || '',
   dataDir: process.env.DATA_DIR || './data',
   adminTelegramIds: (process.env.BOT_ADMIN_TELEGRAM_IDS || '').split(',').map(id => id.trim()).filter(Boolean),
   alertCheckIntervalMinutes: parseInt(process.env.ALERT_CHECK_INTERVAL_MINUTES || '5', 10),
