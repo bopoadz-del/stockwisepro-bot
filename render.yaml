@@ -20,6 +20,8 @@ services:
         sync: false
       - key: STOCKWISE_BOT_USER_PASSWORD
         sync: false
+      - key: BRAVE_API_KEY
+        sync: false
     disk:
       name: bot-data
       mountPath: /app/data

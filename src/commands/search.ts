@@ -1,8 +1,10 @@
 import { Context } from 'telegraf';
+import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
 import { brave } from '../api/brave';
 import { yahooSearch } from '../api/yahoo';
 import { userSafeError } from '../utils/logger';
+import { validateTicker } from '../utils/validation';
 
 export async function searchCommand(ctx: Context) {
   const text = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
@@ -17,9 +19,9 @@ export async function searchCommand(ctx: Context) {
   await ctx.replyWithChatAction('typing');
 
   // 1. Try StockWisePro backend first
-  const { data, duration, error } = await stockwise.searchStocks(query);
-  (ctx as any).state = { ticker: query, apiDuration: duration, success: !error };
-  if (error) (ctx as any).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
+  const { data, duration, error } = await stockwise.searchStocks(query, telegramId);
+  (ctx as BotContext).state = { ticker: query, apiDuration: duration, success: !error };
+  if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   let stocks = [] as any[];
   if (!error && data) {

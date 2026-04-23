@@ -42,8 +42,17 @@ export function registerCommands(bot: Telegraf<BotContext>) {
     const match = ctx.match as RegExpExecArray;
     const eventId = parseInt(match[1], 10);
     const rating = parseInt(match[2], 10);
-    const { saveFeedback } = await import('../db');
-    saveFeedback(ctx.from?.id || 0, eventId, rating);
+    const telegramId = ctx.from?.id || 0;
+    const { saveFeedback, db } = await import('../db');
+
+    // Verify the event belongs to the user submitting feedback
+    const eventRow = db.prepare('SELECT telegram_id FROM analytics_events WHERE id = ?').get(eventId) as { telegram_id: number } | undefined;
+    if (!eventRow || eventRow.telegram_id !== telegramId) {
+      await ctx.answerCbQuery('⛔ Unable to submit feedback.');
+      return;
+    }
+
+    saveFeedback(telegramId, eventId, rating);
     await ctx.answerCbQuery('Thanks for your feedback!');
     await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
   });

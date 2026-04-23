@@ -25,6 +25,11 @@ COPY package*.json ./
 # Create data directory for SQLite
 RUN mkdir -p /app/data
 
+# Run as non-root user
+RUN groupadd -r botuser && useradd -r -g botuser botuser \
+    && chown -R botuser:botuser /app/data
+USER botuser
+
 ENV NODE_ENV=production
 
 CMD ["node", "dist/index.js"]

@@ -1,4 +1,5 @@
 import { Context } from 'telegraf';
+import { BotContext } from '../types';
 import { brave } from '../api/brave';
 import { userSafeError } from '../utils/logger';
 
@@ -17,8 +18,8 @@ export async function newsCommand(ctx: Context) {
   const searchQuery = `${query} stock`;
   const { data, duration, error } = await brave.newsSearch(searchQuery, 5);
 
-  (ctx as any).state = { ticker: query, apiDuration: duration, success: !error };
-  if (error) (ctx as any).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
+  (ctx as BotContext).state = { ticker: query, apiDuration: duration, success: !error };
+  if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error) {
     await ctx.reply(userSafeError());

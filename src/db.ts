@@ -4,81 +4,114 @@ import { logger } from './utils/logger';
 import fs from 'fs';
 import path from 'path';
 
-// Ensure data directory exists
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+let db: DatabaseType;
 
-const db: DatabaseType = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
+function ensureDb() {
+  if (!db) {
+    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+    db = new Database(DB_PATH);
+    db.pragma('journal_mode = WAL');
+  }
+  return db;
+}
+
+const MIGRATIONS: Array<{ version: number; sql: string }> = [
+  {
+    version: 1,
+    sql: `
+      CREATE TABLE IF NOT EXISTS users (
+        telegram_id INTEGER PRIMARY KEY,
+        username TEXT,
+        first_name TEXT,
+        last_name TEXT,
+        linked_stockwise_user_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS analytics_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        telegram_id INTEGER NOT NULL,
+        command TEXT NOT NULL,
+        ticker TEXT,
+        raw_input TEXT,
+        api_response_time_ms INTEGER,
+        success INTEGER NOT NULL DEFAULT 1,
+        error_message TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_events_telegram_id ON analytics_events(telegram_id);
+      CREATE INDEX IF NOT EXISTS idx_events_command ON analytics_events(command);
+      CREATE INDEX IF NOT EXISTS idx_events_created_at ON analytics_events(created_at);
+
+      CREATE TABLE IF NOT EXISTS feedback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        telegram_id INTEGER NOT NULL,
+        event_id INTEGER,
+        rating INTEGER CHECK(rating BETWEEN -1 AND 1),
+        comment TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (event_id) REFERENCES analytics_events(id)
+      );
+
+      CREATE TABLE IF NOT EXISTS price_alerts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        telegram_id INTEGER NOT NULL,
+        ticker TEXT NOT NULL,
+        target_price REAL NOT NULL,
+        condition TEXT NOT NULL CHECK(condition IN ('above', 'below')),
+        is_active INTEGER NOT NULL DEFAULT 1,
+        triggered_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_alerts_active ON price_alerts(is_active);
+
+      CREATE TABLE IF NOT EXISTS user_weights (
+        telegram_id INTEGER PRIMARY KEY,
+        valuation INTEGER NOT NULL DEFAULT 75,
+        profitability INTEGER NOT NULL DEFAULT 85,
+        growth INTEGER NOT NULL DEFAULT 70,
+        financial_health INTEGER NOT NULL DEFAULT 80,
+        momentum INTEGER NOT NULL DEFAULT 50,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (telegram_id) REFERENCES users(telegram_id)
+      );
+    `,
+  },
+];
 
 export function initDb() {
   logger.info('Initializing SQLite database...');
+  const conn = ensureDb();
 
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      telegram_id INTEGER PRIMARY KEY,
-      username TEXT,
-      first_name TEXT,
-      last_name TEXT,
-      linked_stockwise_user_id INTEGER,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS analytics_events (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      telegram_id INTEGER NOT NULL,
-      command TEXT NOT NULL,
-      ticker TEXT,
-      raw_input TEXT,
-      api_response_time_ms INTEGER,
-      success INTEGER NOT NULL DEFAULT 1,
-      error_message TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_events_telegram_id ON analytics_events(telegram_id);
-    CREATE INDEX IF NOT EXISTS idx_events_command ON analytics_events(command);
-    CREATE INDEX IF NOT EXISTS idx_events_created_at ON analytics_events(created_at);
-
-    CREATE TABLE IF NOT EXISTS feedback (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      telegram_id INTEGER NOT NULL,
-      event_id INTEGER,
-      rating INTEGER CHECK(rating BETWEEN -1 AND 1),
-      comment TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (event_id) REFERENCES analytics_events(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS price_alerts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      telegram_id INTEGER NOT NULL,
-      ticker TEXT NOT NULL,
-      target_price REAL NOT NULL,
-      condition TEXT NOT NULL CHECK(condition IN ('above', 'below')),
-      is_active INTEGER NOT NULL DEFAULT 1,
-      triggered_at DATETIME,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_alerts_active ON price_alerts(is_active);
-
-    CREATE TABLE IF NOT EXISTS user_weights (
-      telegram_id INTEGER PRIMARY KEY,
-      valuation INTEGER NOT NULL DEFAULT 75,
-      profitability INTEGER NOT NULL DEFAULT 85,
-      growth INTEGER NOT NULL DEFAULT 70,
-      financial_health INTEGER NOT NULL DEFAULT 80,
-      momentum INTEGER NOT NULL DEFAULT 50,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (telegram_id) REFERENCES users(telegram_id)
-    );
+  // Migration tracking
+  conn.exec(`
+    CREATE TABLE IF NOT EXISTS _migrations (
+      version INTEGER PRIMARY KEY,
+      applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
   `);
+
+  const appliedVersions = new Set(
+    (conn.prepare('SELECT version FROM _migrations').all() as Array<{ version: number }>).map(r => r.version)
+  );
+
+  for (const migration of MIGRATIONS) {
+    if (!appliedVersions.has(migration.version)) {
+      logger.info(`Applying migration ${migration.version}...`);
+      conn.exec(migration.sql);
+      conn.prepare('INSERT INTO _migrations (version) VALUES (?)').run(migration.version);
+      logger.info(`Migration ${migration.version} applied.`);
+    }
+  }
 
   logger.info('Database initialized.');
 }
 
 export function ensureUser(telegramId: number, username?: string, firstName?: string, lastName?: string) {
-  const stmt = db.prepare(`
+  const conn = ensureDb();
+  const stmt = conn.prepare(`
     INSERT INTO users (telegram_id, username, first_name, last_name)
     VALUES (?, ?, ?, ?)
     ON CONFLICT(telegram_id) DO UPDATE SET
@@ -98,7 +131,8 @@ export function logEvent(event: {
   success?: boolean;
   errorMessage?: string;
 }) {
-  const stmt = db.prepare(`
+  const conn = ensureDb();
+  const stmt = conn.prepare(`
     INSERT INTO analytics_events (telegram_id, command, ticker, raw_input, api_response_time_ms, success, error_message)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
@@ -114,7 +148,8 @@ export function logEvent(event: {
 }
 
 export function saveFeedback(telegramId: number, eventId: number | null, rating: number, comment?: string) {
-  const stmt = db.prepare(`
+  const conn = ensureDb();
+  const stmt = conn.prepare(`
     INSERT INTO feedback (telegram_id, event_id, rating, comment)
     VALUES (?, ?, ?, ?)
   `);
@@ -122,7 +157,8 @@ export function saveFeedback(telegramId: number, eventId: number | null, rating:
 }
 
 export function addAlert(telegramId: number, ticker: string, targetPrice: number, condition: 'above' | 'below') {
-  const stmt = db.prepare(`
+  const conn = ensureDb();
+  const stmt = conn.prepare(`
     INSERT INTO price_alerts (telegram_id, ticker, target_price, condition)
     VALUES (?, ?, ?, ?)
   `);
@@ -130,7 +166,8 @@ export function addAlert(telegramId: number, ticker: string, targetPrice: number
 }
 
 export function getActiveAlerts() {
-  return db.prepare(`SELECT * FROM price_alerts WHERE is_active = 1`).all() as Array<{
+  const conn = ensureDb();
+  return conn.prepare(`SELECT * FROM price_alerts WHERE is_active = 1`).all() as Array<{
     id: number;
     telegram_id: number;
     ticker: string;
@@ -140,11 +177,13 @@ export function getActiveAlerts() {
 }
 
 export function deactivateAlert(alertId: number) {
-  db.prepare(`UPDATE price_alerts SET is_active = 0, triggered_at = CURRENT_TIMESTAMP WHERE id = ?`).run(alertId);
+  const conn = ensureDb();
+  conn.prepare(`UPDATE price_alerts SET is_active = 0, triggered_at = CURRENT_TIMESTAMP WHERE id = ?`).run(alertId);
 }
 
 export function getUserAlerts(telegramId: number) {
-  return db.prepare(`SELECT * FROM price_alerts WHERE telegram_id = ? ORDER BY created_at DESC`).all(telegramId) as Array<{
+  const conn = ensureDb();
+  return conn.prepare(`SELECT * FROM price_alerts WHERE telegram_id = ? ORDER BY created_at DESC`).all(telegramId) as Array<{
     id: number;
     ticker: string;
     target_price: number;
@@ -161,15 +200,16 @@ function clampDays(days: number): number {
 }
 
 export function getAnalyticsSummary(days = 7) {
+  const conn = ensureDb();
   const safeDays = clampDays(days);
-  const totalUsers = db.prepare(`SELECT COUNT(DISTINCT telegram_id) as count FROM users`).get() as { count: number };
-  const totalEvents = db.prepare(`SELECT COUNT(*) as count FROM analytics_events WHERE created_at >= datetime('now', '-${safeDays} days')`).get() as { count: number };
-  const commandStats = db.prepare(`
+  const totalUsers = conn.prepare(`SELECT COUNT(DISTINCT telegram_id) as count FROM users`).get() as { count: number };
+  const totalEvents = conn.prepare(`SELECT COUNT(*) as count FROM analytics_events WHERE created_at >= datetime('now', '-${safeDays} days')`).get() as { count: number };
+  const commandStats = conn.prepare(`
     SELECT command, COUNT(*) as count FROM analytics_events
     WHERE created_at >= datetime('now', '-${safeDays} days')
     GROUP BY command ORDER BY count DESC
   `).all() as Array<{ command: string; count: number }>;
-  const topTickers = db.prepare(`
+  const topTickers = conn.prepare(`
     SELECT ticker, COUNT(*) as count FROM analytics_events
     WHERE ticker IS NOT NULL AND created_at >= datetime('now', '-${safeDays} days')
     GROUP BY ticker ORDER BY count DESC LIMIT 20
@@ -179,8 +219,9 @@ export function getAnalyticsSummary(days = 7) {
 }
 
 export function exportAnalyticsCsv(days = 30): string {
+  const conn = ensureDb();
   const safeDays = clampDays(days);
-  const rows = db.prepare(`
+  const rows = conn.prepare(`
     SELECT ae.*, u.username, u.first_name
     FROM analytics_events ae
     LEFT JOIN users u ON ae.telegram_id = u.telegram_id
@@ -205,12 +246,14 @@ export function exportAnalyticsCsv(days = 30): string {
 }
 
 export function ensureUserWeights(telegramId: number) {
-  db.prepare(`INSERT OR IGNORE INTO user_weights (telegram_id) VALUES (?)`).run(telegramId);
+  const conn = ensureDb();
+  conn.prepare(`INSERT OR IGNORE INTO user_weights (telegram_id) VALUES (?)`).run(telegramId);
 }
 
 export function getUserWeights(telegramId: number) {
+  const conn = ensureDb();
   ensureUserWeights(telegramId);
-  return db.prepare(`SELECT * FROM user_weights WHERE telegram_id = ?`).get(telegramId) as {
+  return conn.prepare(`SELECT * FROM user_weights WHERE telegram_id = ?`).get(telegramId) as {
     telegram_id: number;
     valuation: number;
     profitability: number;
@@ -221,15 +264,17 @@ export function getUserWeights(telegramId: number) {
 }
 
 export function setUserWeight(telegramId: number, category: string, value: number) {
+  const conn = ensureDb();
   const valid = ['valuation', 'profitability', 'growth', 'financial_health', 'momentum'];
   if (!valid.includes(category)) return false;
   const clamped = Math.min(Math.max(Math.round(value), 0), 100);
-  db.prepare(`UPDATE user_weights SET ${category} = ? WHERE telegram_id = ?`).run(clamped, telegramId);
+  conn.prepare(`UPDATE user_weights SET ${category} = ? WHERE telegram_id = ?`).run(clamped, telegramId);
   return true;
 }
 
 export function resetUserWeights(telegramId: number) {
-  db.prepare(`
+  const conn = ensureDb();
+  conn.prepare(`
     UPDATE user_weights
     SET valuation = 75, profitability = 85, growth = 70, financial_health = 80, momentum = 50
     WHERE telegram_id = ?
@@ -237,7 +282,8 @@ export function resetUserWeights(telegramId: number) {
 }
 
 export function exportWeightsCsv(): string {
-  const rows = db.prepare(`
+  const conn = ensureDb();
+  const rows = conn.prepare(`
     SELECT uw.*, u.username, u.first_name
     FROM user_weights uw
     LEFT JOIN users u ON uw.telegram_id = u.telegram_id
@@ -261,3 +307,8 @@ export function exportWeightsCsv(): string {
 }
 
 export { db };
+
+// Backward-compatible accessor
+export function getDb(): DatabaseType {
+  return ensureDb();
+}

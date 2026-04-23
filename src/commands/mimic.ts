@@ -1,4 +1,5 @@
 import { Context, Markup } from 'telegraf';
+import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
 import { userSafeError } from '../utils/logger';
 
@@ -23,7 +24,7 @@ export async function mimicCommand(ctx: Context) {
     Markup.inlineKeyboard(keyboard)
   );
 
-  (ctx as any).state = { success: true };
+  (ctx as BotContext).state = { success: true };
 }
 
 export async function handleMimicCallback(ctx: Context) {
@@ -40,9 +41,9 @@ export async function handleMimicCallback(ctx: Context) {
   await ctx.answerCbQuery(`Selected ${investor.name}`);
   await ctx.replyWithChatAction('typing');
 
-  const { data, duration, error } = await stockwise.mimicInvestor(investorId);
-  (ctx as any).state = { ticker: investorId, apiDuration: duration, success: !error };
-  if (error) (ctx as any).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
+  const { data, duration, error } = await stockwise.mimicInvestor(investorId, undefined, telegramId);
+  (ctx as BotContext).state = { ticker: investorId, apiDuration: duration, success: !error };
+  if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error) {
     await ctx.reply(userSafeError());

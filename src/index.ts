@@ -58,7 +58,7 @@ async function main() {
         res.end();
       }
     });
-    healthServer.listen(3000, () => {
+    healthServer.listen(config.healthPort, () => {
       logger.info('Health check server listening on port 3000');
     });
 

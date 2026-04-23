@@ -1,7 +1,9 @@
 import { Context } from 'telegraf';
+import { BotContext } from '../types';
 import { addAlert, getUserAlerts } from '../db';
 import { stockwise } from '../api/stockwise';
 import { userSafeError } from '../utils/logger';
+import { validateTicker } from '../utils/validation';
 
 export async function alertCommand(ctx: Context) {
   const text = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
@@ -29,15 +31,15 @@ export async function alertCommand(ctx: Context) {
   const condition = conditionRaw?.toLowerCase() as 'above' | 'below';
   const price = parseFloat(priceStr);
 
-  if (!ticker || !['above', 'below'].includes(condition) || isNaN(price)) {
+  if (!ticker || !validateTicker(ticker) || !['above', 'below'].includes(condition) || isNaN(price) || price <= 0) {
     await ctx.reply('Usage: /alert <ticker> <above|below> <price>\nExample: /alert AAPL above 200');
     return;
   }
 
   // Validate ticker exists
-  const { data, duration, error } = await stockwise.getStock(ticker);
-  (ctx as any).state = { ticker: ticker.toUpperCase(), apiDuration: duration, success: !error };
-  if (error) (ctx as any).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
+  const { data, duration, error } = await stockwise.getStock(ticker, telegramId);
+  (ctx as BotContext).state = { ticker: ticker.toUpperCase(), apiDuration: duration, success: !error };
+  if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error || !data) {
     await ctx.reply(userSafeError());

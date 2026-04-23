@@ -29,13 +29,19 @@ export function startAlertService(bot: Telegraf<BotContext>) {
           (alert.condition === 'below' && price <= target);
 
         if (triggered) {
-          await bot.telegram.sendMessage(
-            alert.telegram_id,
-            `🔔 *Alert Triggered!*\n\n*${alert.ticker}* is now *$${price}* (${alert.condition} $${target})`,
-            { parse_mode: 'Markdown' }
-          );
-          deactivateAlert(alert.id);
-          logger.info(`Alert triggered: ${alert.ticker} ${alert.condition} ${target}`);
+          try {
+            await bot.telegram.sendMessage(
+              alert.telegram_id,
+              `🔔 *Alert Triggered!*\n\n*${alert.ticker}* is now *$${price}* (${alert.condition} $${target})`,
+              { parse_mode: 'Markdown' }
+            );
+            deactivateAlert(alert.id);
+            logger.info(`Alert triggered: ${alert.ticker} ${alert.condition} ${target}`);
+          } catch (sendErr) {
+            const errMsg = sendErr instanceof Error ? sendErr.message : String(sendErr);
+            logger.error('Failed to send alert notification', { alertId: alert.id, error: errMsg });
+            // Do NOT deactivate if we couldn't notify the user
+          }
         }
       } catch (err) {
         logger.error('Alert processing error', { alertId: alert.id, error: (err as Error).message });

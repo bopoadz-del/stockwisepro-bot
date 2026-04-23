@@ -11,7 +11,7 @@ export async function helpCommand(ctx: Context) {
 *Portfolio*
 /watchlist — View watchlist
 /watchlist_add <ticker> — Add stock
-/watchlist_remove <id> — Remove stock
+/watchlist_remove <ticker> — Remove stock
 /portfolio — View your portfolio
 /mimic — Copy investor strategy
 

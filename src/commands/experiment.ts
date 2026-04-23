@@ -1,4 +1,5 @@
 import { Context } from 'telegraf';
+import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
 import { userSafeError } from '../utils/logger';
 
@@ -14,9 +15,9 @@ export async function runExperimentFromText(ctx: Context, text: string) {
   const telegramId = ctx.from?.id || 0;
   await ctx.replyWithChatAction('typing');
 
-  const { data, duration, error } = await stockwise.runExperiment(text);
-  (ctx as any).state = { apiDuration: duration, success: !error };
-  if (error) (ctx as any).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
+  const { data, duration, error } = await stockwise.runExperiment(text, undefined, telegramId);
+  (ctx as BotContext).state = { apiDuration: duration, success: !error };
+  if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error) {
     await ctx.reply(userSafeError());

@@ -13,6 +13,7 @@ export const config = {
   alertCheckIntervalMinutes: Math.min(Math.max(parseInt(process.env.ALERT_CHECK_INTERVAL_MINUTES || '5', 10), 1), 60),
   stockwiseBotEmail: process.env.STOCKWISE_BOT_USER_EMAIL || '',
   stockwiseBotPassword: process.env.STOCKWISE_BOT_USER_PASSWORD || '',
+  healthPort: parseInt(process.env.HEALTH_PORT || '3000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
 };
 
@@ -21,3 +22,7 @@ if (!config.telegramToken) {
 }
 
 export const DB_PATH = path.resolve(config.dataDir, 'bot_analytics.db');
+
+if (isNaN(config.healthPort) || config.healthPort < 1 || config.healthPort > 65535) {
+  throw new Error('HEALTH_PORT must be a valid port number (1-65535)');
+}

@@ -1,7 +1,9 @@
 import { Context, Markup } from 'telegraf';
+import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
 import { db, getUserWeights } from '../db';
 import { userSafeError } from '../utils/logger';
+import { validateTicker } from '../utils/validation';
 
 const METRIC_KEYS: Record<string, string[]> = {
   valuation: ['valuation', 'value', 'val', 'pe_ratio', 'pb_ratio'],
@@ -49,17 +51,17 @@ export async function scoreCommand(ctx: Context) {
   const ticker = text.replace('/score', '').trim().toUpperCase();
   const telegramId = ctx.from?.id || 0;
 
-  if (!ticker) {
+  if (!ticker || !validateTicker(ticker)) {
     await ctx.reply('Usage: /score <ticker>\nExample: /score AAPL');
     return;
   }
 
   await ctx.replyWithChatAction('typing');
-  const { data, duration, error } = await stockwise.getStockScore(ticker);
+  const { data, duration, error } = await stockwise.getStockScore(ticker, telegramId);
 
-  (ctx as any).state = { ticker, apiDuration: duration, success: !error };
-  if (error) (ctx as any).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
-  const eventId = (ctx as any).state.eventId as number;
+  (ctx as BotContext).state = { ticker, apiDuration: duration, success: !error };
+  if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
+  const eventId = (ctx as BotContext).state.eventId as number;
 
   if (error || !data) {
     await ctx.reply(userSafeError());
