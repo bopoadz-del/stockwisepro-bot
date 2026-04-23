@@ -10,6 +10,8 @@ import { watchlistCommand, watchlistAddCommand, watchlistRemoveCommand } from '.
 import { mimicCommand } from './mimic';
 import { alertCommand } from './alert';
 import { helpCommand } from './help';
+import { simulateCommand } from './simulate';
+import { metricsCommand } from './metrics';
 import { runExperimentFromText } from './experiment';
 
 // Common English words that could be mistaken for tickers
@@ -141,6 +143,24 @@ export async function handleChatMessage(ctx: Context) {
     }
   }
 
+  // Simulate / Monte Carlo
+  if (/\b(simulate|monte carlo|projection|forecast|predict)\b/i.test(lower)) {
+    if (firstTicker) {
+      recordIntent(ctx, 'simulate', { ticker: firstTicker, command: 'simulate' });
+      await runAsCommand(ctx, `/simulate ${firstTicker}`, simulateCommand);
+      return;
+    }
+  }
+
+  // Metrics / risk stats
+  if (/\b(metrics|risk|volatility|sharpe|drawdown|var|statistics|stats)\b/i.test(lower)) {
+    if (firstTicker) {
+      recordIntent(ctx, 'metrics', { ticker: firstTicker, command: 'metrics' });
+      await runAsCommand(ctx, `/metrics ${firstTicker}`, metricsCommand);
+      return;
+    }
+  }
+
   // Mimic
   if (/\b(mimic|copy investor|copy portfolio|investor strategy|follow investor)\b/i.test(lower)) {
     recordIntent(ctx, 'mimic', { command: 'mimic' });
@@ -241,6 +261,10 @@ export async function handleChatMessage(ctx: Context) {
         [
           Markup.button.callback('💼 Portfolio', `correct_intent:portfolio:${logId}`),
           Markup.button.callback('🔔 Alert', `correct_intent:alert:${logId}`),
+        ],
+        [
+          Markup.button.callback('🎲 Simulate', `correct_intent:simulate:${logId}`),
+          Markup.button.callback('📐 Metrics', `correct_intent:metrics:${logId}`),
         ],
         [
           Markup.button.callback('🧠 Mimic', `correct_intent:mimic:${logId}`),

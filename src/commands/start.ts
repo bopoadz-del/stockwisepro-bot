@@ -15,6 +15,8 @@ Your AI-powered stock research companion.
 *Quick commands:*
 🔍 /search <ticker> — Lookup a stock
 📊 /score <ticker> — Get AI scoring
+🎲 /simulate <ticker> <days> — Monte Carlo forecast
+📐 /metrics <ticker> — Risk stats
 ⭐ /watchlist — Manage watchlist
 💼 /portfolio — View portfolio
 🧠 /mimic — Copy legendary investors

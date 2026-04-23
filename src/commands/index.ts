@@ -14,6 +14,8 @@ import { alertCommand } from './alert';
 import { adminCommand, adminExportCommand, adminExportWeightsCommand } from './admin';
 import { adminLearningCommand, adminExportMissedCommand, handleCorrectIntentCallback } from './learning';
 import { weightsCommand, weightsSetCommand, handleWeightCallback } from './weights';
+import { simulateCommand } from './simulate';
+import { metricsCommand } from './metrics';
 
 export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('start', startCommand);
@@ -36,6 +38,8 @@ export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('admin_export_misses', adminExportMissedCommand);
   bot.command('weights', weightsCommand);
   bot.command('weights_set', weightsSetCommand);
+  bot.command('simulate', simulateCommand);
+  bot.command('metrics', metricsCommand);
 
   // Inline callbacks
   bot.action(/^mimic_select:(.+)$/, handleMimicCallback);

@@ -238,4 +238,39 @@ assert.ok(mainSrc.includes('startLearningReportService'), 'index.ts should impor
 assert.ok(mainSrc.includes('learningTask.stop'), 'index.ts should stop learningTask on shutdown');
 console.log('✅ learning service lifecycle wired');
 
+// --- Verify simulate command exists ---
+const simulateSrc = fs.readFileSync('dist/commands/simulate.js', 'utf8');
+assert.ok(simulateSrc.includes('simulateCommand'), 'simulate.ts should export simulateCommand');
+assert.ok(simulateSrc.includes('simulateGBM'), 'simulate.ts should call simulateGBM');
+assert.ok(simulateSrc.includes('getHistoricalPrices'), 'simulate.ts should fetch historical prices');
+console.log('✅ simulate command verified');
+
+// --- Verify metrics command exists ---
+const metricsSrc = fs.readFileSync('dist/commands/metrics.js', 'utf8');
+assert.ok(metricsSrc.includes('metricsCommand'), 'metrics.ts should export metricsCommand');
+assert.ok(metricsSrc.includes('calculateAnnualizedVolatility'), 'metrics.ts should compute volatility');
+assert.ok(metricsSrc.includes('calculateSharpeRatio'), 'metrics.ts should compute Sharpe');
+assert.ok(metricsSrc.includes('calculateMaxDrawdown'), 'metrics.ts should compute drawdown');
+assert.ok(metricsSrc.includes('calculateVaR'), 'metrics.ts should compute VaR');
+console.log('✅ metrics command verified');
+
+// --- Verify financial utils exist ---
+const financialSrc = fs.readFileSync('dist/utils/financial.js', 'utf8');
+assert.ok(financialSrc.includes('simulateGBM'), 'financial.ts should export simulateGBM');
+assert.ok(financialSrc.includes('calculateLogReturns'), 'financial.ts should export calculateLogReturns');
+assert.ok(financialSrc.includes('simpleMovingAverage'), 'financial.ts should export simpleMovingAverage');
+console.log('✅ financial utilities verified');
+
+// --- Verify simulate/metrics registered in commands index ---
+const indexSrc4 = fs.readFileSync('dist/commands/index.js', 'utf8');
+assert.ok(indexSrc4.includes("bot.command('simulate'"), 'commands index should register /simulate');
+assert.ok(indexSrc4.includes("bot.command('metrics'"), 'commands index should register /metrics');
+console.log('✅ simulate/metrics commands registered');
+
+// --- Verify Yahoo historical prices API exists ---
+const yahooSrc = fs.readFileSync('dist/api/yahoo.js', 'utf8');
+assert.ok(yahooSrc.includes('getHistoricalPrices'), 'yahoo.ts should export getHistoricalPrices');
+assert.ok(yahooSrc.includes('HistoricalPrice'), 'yahoo.ts should define HistoricalPrice type');
+console.log('✅ Yahoo historical prices API verified');
+
 console.log('\n🎉 All smoke tests passed');
