@@ -1,0 +1,16 @@
+[Unit]
+Description=StockWisePro Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+WorkingDirectory=/opt/stockwisepro-bot
+ExecStart=/usr/bin/node /opt/stockwisepro-bot/dist/index.js
+EnvironmentFile=/opt/stockwisepro-bot/.env
+User=botuser
+Group=botuser
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,26 @@
+services:
+  - type: worker
+    name: stockwisepro-bot
+    runtime: docker
+    plan: standard
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: STOCKWISE_API_BASE_URL
+        value: https://your-api.onrender.com
+      - key: STOCKWISE_API_KEY
+        sync: false
+      - key: BOT_ADMIN_TELEGRAM_IDS
+        sync: false
+      - key: DATA_DIR
+        value: /app/data
+      - key: ALERT_CHECK_INTERVAL_MINUTES
+        value: 5
+      - key: STOCKWISE_BOT_USER_EMAIL
+        sync: false
+      - key: STOCKWISE_BOT_USER_PASSWORD
+        sync: false
+    disk:
+      name: bot-data
+      mountPath: /app/data
+      sizeGB: 1
