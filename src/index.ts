@@ -9,6 +9,7 @@ import { analyticsMiddleware } from './middleware/analytics';
 import { registerCommands } from './commands';
 import { registerScenes } from './scenes';
 import { startAlertService } from './services/alerts';
+import { startLearningReportService } from './services/learning';
 import { BotContext } from './types';
 
 async function main() {
@@ -48,6 +49,10 @@ async function main() {
     const alertTask = startAlertService(bot);
     logger.info('Step 6: Alert service started');
 
+    logger.info('Step 6b: Starting learning report service...');
+    const learningTask = startLearningReportService(bot);
+    logger.info('Step 6b: Learning report service started');
+
     logger.info('Step 7: Starting health check server...');
     const healthServer = http.createServer((req, res) => {
       if (req.url === '/health') {
@@ -69,12 +74,14 @@ async function main() {
     process.once('SIGINT', () => {
       logger.info('Shutting down (SIGINT)...');
       alertTask.stop();
+      learningTask.stop();
       healthServer.close();
       bot.stop('SIGINT');
     });
     process.once('SIGTERM', () => {
       logger.info('Shutting down (SIGTERM)...');
       alertTask.stop();
+      learningTask.stop();
       healthServer.close();
       bot.stop('SIGTERM');
     });
