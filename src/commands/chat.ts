@@ -1,0 +1,199 @@
+import { Context } from 'telegraf';
+import { BotContext } from '../types';
+import { validateTicker, sanitizeTicker } from '../utils/validation';
+import { scoreCommand } from './score';
+import { searchCommand } from './search';
+import { newsCommand } from './news';
+import { portfolioCommand } from './portfolio';
+import { watchlistCommand, watchlistAddCommand, watchlistRemoveCommand } from './watchlist';
+import { mimicCommand } from './mimic';
+import { alertCommand } from './alert';
+import { helpCommand } from './help';
+import { runExperimentFromText } from './experiment';
+
+// Common English words that could be mistaken for tickers
+const COMMON_WORDS = new Set([
+  'A','I','AN','AS','AT','BE','BY','DO','GO','HE','IF','IN','IS','IT','ME','MY','NO','OF','ON','OR',
+  'SO','TO','UP','US','WE','ALL','AND','ARE','BUT','CAN','FOR','HAD','HAS','HER','HIM','HIS','HOW',
+  'ITS','NEW','NOT','NOW','OFF','OLD','ONE','OUR','OUT','SEE','SHE','THE','TWO','USE','WAY','WHO',
+  'YES','YET','YOU','THEY','THEM','THAN','THEN','THAT','THIS','WILL','WITH','HAVE','FROM','HERE',
+  'WANT','BEEN','WERE','SAID','EACH','WHICH','THEIR','TIME','VERY','WHEN','MUCH','WOULD','THERE',
+  'ABOUT','OTHER','RIGHT','FIRST','ALSO','AFTER','BACK','ONLY','KNOW','TAKE','YEAR','GOOD','SOME',
+  'COME','MAKE','WELL','WORK','EVEN','MORE','LONG','WHAT','FIND','GIVE','MOST','OVER','SUCH','THINK',
+  'WHERE','BEING','EVERY','GREAT','MIGHT','SHALL','STILL','THOSE','WHILE','COULD','STATE','NEVER',
+  'REALLY','SHOULD','THROUGH','BECAUSE','BEFORE','LITTLE','PEOPLE','AROUND','DURING','PLACE','THESE'
+]);
+
+function extractTickerCandidates(text: string): string[] {
+  const candidates: string[] = [];
+
+  // Pattern 1: $TICKER
+  const dollarMatches = text.match(/\$([A-Z]{1,5})/gi);
+  if (dollarMatches) {
+    for (const m of dollarMatches) {
+      const ticker = m.replace('$', '').toUpperCase();
+      if (validateTicker(ticker)) candidates.push(ticker);
+    }
+  }
+
+  // Pattern 2: standalone 2-5 letter uppercase words (exclude common words)
+  const wordMatches = text.match(/\b[A-Z]{1,5}\b/g);
+  if (wordMatches) {
+    for (const m of wordMatches) {
+      const ticker = m.toUpperCase();
+      if (ticker.length >= 2 && !COMMON_WORDS.has(ticker) && validateTicker(ticker)) {
+        if (!candidates.includes(ticker)) candidates.push(ticker);
+      }
+    }
+  }
+
+  return candidates;
+}
+
+function isTickerOnly(text: string): string | null {
+  const trimmed = text.trim();
+  // $AAPL or AAPL
+  const match = trimmed.match(/^\$?([A-Z0-9.\-]{1,20})$/i);
+  if (match) {
+    const ticker = sanitizeTicker(match[1]);
+    if (validateTicker(ticker) && !COMMON_WORDS.has(ticker)) {
+      return ticker;
+    }
+  }
+  return null;
+}
+
+// Simulate a command context by overriding ctx.message.text
+async function runAsCommand(ctx: Context, commandText: string, handler: (ctx: Context) => Promise<void>) {
+  const originalText = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
+  if (ctx.message && 'text' in ctx.message) {
+    (ctx.message as any).text = commandText;
+  }
+  try {
+    await handler(ctx);
+  } finally {
+    if (ctx.message && 'text' in ctx.message) {
+      (ctx.message as any).text = originalText;
+    }
+  }
+}
+
+export async function handleChatMessage(ctx: Context) {
+  const text = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
+  const lower = text.toLowerCase().trim();
+
+  // 1. Experiment trigger (existing behavior)
+  if (!text.startsWith('/') && lower.startsWith('exp:')) {
+    await runExperimentFromText(ctx, text.slice(4).trim());
+    return;
+  }
+
+  // 2. Ticker-only message → score
+  const tickerOnly = isTickerOnly(text);
+  if (tickerOnly) {
+    await runAsCommand(ctx, `/score ${tickerOnly}`, scoreCommand);
+    return;
+  }
+
+  // 3. Natural language parsing
+  const tickers = extractTickerCandidates(text);
+  const firstTicker = tickers[0];
+
+  // Help / commands
+  if (/\b(help|commands|what can you do|how to use|menu)\b/i.test(lower)) {
+    await helpCommand(ctx);
+    return;
+  }
+
+  // Portfolio
+  if (/\b(my portfolio|show portfolio|view portfolio|portfolio)\b/i.test(lower)) {
+    await portfolioCommand(ctx);
+    return;
+  }
+
+  // Watchlist
+  if (/\b(my watchlist|show watchlist|view watchlist|watchlist)\b/i.test(lower)) {
+    // If they also mention adding/removing, handle below; otherwise just show
+    if (!/\b(add|remove|delete)\b/i.test(lower)) {
+      await watchlistCommand(ctx);
+      return;
+    }
+  }
+
+  // Mimic
+  if (/\b(mimic|copy investor|copy portfolio|investor strategy|follow investor)\b/i.test(lower)) {
+    await mimicCommand(ctx);
+    return;
+  }
+
+  // Alert with ticker + condition + price
+  const alertMatch = text.match(
+    /(?:alert|notify|tell me).{0,20}?\b([A-Z]{1,5})\b.{0,10}?\b(above|below|over|under|higher than|lower than)\b.{0,10}?\$?(\d+(?:\.\d+)?)/i
+  ) || text.match(
+    /\b([A-Z]{1,5})\b.{0,10}?\b(above|below|over|under|higher than|lower than)\b.{0,10}?\$?(\d+(?:\.\d+)?)/i
+  );
+
+  if (alertMatch) {
+    const ticker = alertMatch[1].toUpperCase();
+    let condition = alertMatch[2].toLowerCase();
+    const price = alertMatch[3];
+    if (condition === 'over' || condition === 'higher than') condition = 'above';
+    if (condition === 'under' || condition === 'lower than') condition = 'below';
+    await runAsCommand(ctx, `/alert ${ticker} ${condition} ${price}`, alertCommand);
+    return;
+  }
+
+  // Watchlist add
+  const addMatch = lower.match(/(?:add|put)\s+(.+?)\s+(?:to\s+)?(?:my\s+)?watchlist/);
+  if (addMatch && firstTicker) {
+    await runAsCommand(ctx, `/watchlist_add ${firstTicker}`, watchlistAddCommand);
+    return;
+  }
+
+  // Watchlist remove
+  const removeMatch = lower.match(/(?:remove|delete)\s+(.+?)\s+(?:from\s+)?(?:my\s+)?watchlist/);
+  if (removeMatch && firstTicker) {
+    await runAsCommand(ctx, `/watchlist_remove ${firstTicker}`, watchlistRemoveCommand);
+    return;
+  }
+
+  // News
+  if (/\b(news|headlines|what\s+(?:is|are)\s+(?:the\s+)?news)/i.test(lower)) {
+    if (firstTicker) {
+      await runAsCommand(ctx, `/news ${firstTicker}`, newsCommand);
+      return;
+    }
+  }
+
+  // Score / opinion
+  if (/\b(score|rating|opinion|what do you think|how is|analysis of|analyze)\b/i.test(lower)) {
+    if (firstTicker) {
+      await runAsCommand(ctx, `/score ${firstTicker}`, scoreCommand);
+      return;
+    }
+  }
+
+  // Search / find / look up
+  if (/\b(search|find|look up|lookup|info on|information on|about)\b/i.test(lower)) {
+    if (firstTicker) {
+      await runAsCommand(ctx, `/search ${firstTicker}`, searchCommand);
+      return;
+    }
+  }
+
+  // If we have a ticker but no specific intent matched, default to score
+  if (firstTicker) {
+    await runAsCommand(ctx, `/score ${firstTicker}`, scoreCommand);
+    return;
+  }
+
+  // 4. Fallback
+  await ctx.reply(
+    `🤖 I didn't catch that.\n\n` +
+    `You can:\n` +
+    `• Type a ticker like *AAPL* or *$TSLA* for a quick score\n` +
+    `• Ask me *"news for AAPL"* or *"score of AAPL"*\n` +
+    `• Use /help to see all commands`,
+    { parse_mode: 'Markdown' }
+  );
+}

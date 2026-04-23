@@ -8,7 +8,8 @@ import { scoreCommand } from './score';
 import { watchlistCommand, watchlistAddCommand, watchlistRemoveCommand } from './watchlist';
 import { portfolioCommand } from './portfolio';
 import { mimicCommand, handleMimicCallback } from './mimic';
-import { experimentCommand, runExperimentFromText } from './experiment';
+import { experimentCommand } from './experiment';
+import { handleChatMessage } from './chat';
 import { alertCommand } from './alert';
 import { adminCommand, adminExportCommand, adminExportWeightsCommand } from './admin';
 import { weightsCommand, weightsSetCommand, handleWeightCallback } from './weights';
@@ -57,13 +58,8 @@ export function registerCommands(bot: Telegraf<BotContext>) {
     await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
   });
 
-  // Experiment text handler (simple stateless approach)
+  // Chat & natural-language handler
   bot.hears(/.+/, async (ctx) => {
-    const text = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
-    // If user is in experiment "mode" we could use scenes; here we do a lightweight trigger:
-    // If text starts with 'exp:' and is not a command, run experiment
-    if (!text.startsWith('/') && text.toLowerCase().startsWith('exp:')) {
-      await runExperimentFromText(ctx, text.slice(4).trim());
-    }
+    await handleChatMessage(ctx);
   });
 }
