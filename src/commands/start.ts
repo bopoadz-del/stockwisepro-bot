@@ -25,5 +25,5 @@ Your AI-powered stock research companion.
 _Built for experimental research. Data is logged to improve scoring accuracy._
   `.trim();
 
-  await ctx.replyWithMarkdownV2(welcome, Markup.removeKeyboard());
+  await ctx.replyWithMarkdown(welcome, Markup.removeKeyboard());
 }

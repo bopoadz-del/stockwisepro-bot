@@ -29,5 +29,5 @@ export async function helpCommand(ctx: Context) {
 /help — This menu
   `.trim();
 
-  await ctx.replyWithMarkdownV2(help);
+  await ctx.replyWithMarkdown(help);
 }

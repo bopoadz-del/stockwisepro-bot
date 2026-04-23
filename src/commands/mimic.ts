@@ -18,7 +18,7 @@ export async function mimicCommand(ctx: Context) {
     Markup.button.callback(`${inv.name} (${inv.style})`, `mimic_select:${inv.id}`)
   ]);
 
-  await ctx.replyWithMarkdownV2(
+  await ctx.replyWithMarkdown(
     '🧠 *Mimic an Investor*\n\nChoose a legend to copy their strategy:',
     Markup.inlineKeyboard(keyboard)
   );
@@ -50,7 +50,7 @@ export async function handleMimicCallback(ctx: Context) {
 
   const holdings = data?.holdings?.map((h: any) => `• *${h.ticker}* — ${h.percentage || h.weight || '?'}%`).join('\n') || 'See portfolio for details.';
 
-  await ctx.replyWithMarkdownV2(
+  await ctx.replyWithMarkdown(
     `✅ *Now mimicking ${investor.name}*\n\n*Suggested allocation:*\n${holdings}\n\n_Use /portfolio to view full details._`
   );
 }

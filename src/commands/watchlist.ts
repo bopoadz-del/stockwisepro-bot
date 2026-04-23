@@ -26,7 +26,7 @@ export async function watchlistCommand(ctx: Context) {
     return `• *${t}* ${p}`;
   });
 
-  await ctx.replyWithMarkdownV2(`⭐ *Your Watchlist*\n\n${lines.join('\n')}`);
+  await ctx.replyWithMarkdown(`⭐ *Your Watchlist*\n\n${lines.join('\n')}`);
 }
 
 export async function watchlistAddCommand(ctx: Context) {
@@ -48,7 +48,7 @@ export async function watchlistAddCommand(ctx: Context) {
     return;
   }
 
-  await ctx.reply(`✅ Added *${ticker}* to your watchlist.`, { parse_mode: 'MarkdownV2' });
+  await ctx.reply(`✅ Added *${ticker}* to your watchlist.`, { parse_mode: 'Markdown' });
 }
 
 export async function watchlistRemoveCommand(ctx: Context) {

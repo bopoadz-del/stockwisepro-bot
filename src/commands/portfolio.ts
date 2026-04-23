@@ -36,5 +36,5 @@ export async function portfolioCommand(ctx: Context) {
     msg += `\n*P&L:* ${sign}$${pnl}`;
   }
 
-  await ctx.replyWithMarkdownV2(msg);
+  await ctx.replyWithMarkdown(msg);
 }

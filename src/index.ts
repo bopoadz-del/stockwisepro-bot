@@ -11,40 +11,50 @@ import { BotContext } from './types';
 
 async function main() {
   try {
-    // Init database
+    logger.info('=== StockWiseBot starting ===');
+    logger.info('Node version: ' + process.version);
+    logger.info('Environment: ' + config.nodeEnv);
+
+    logger.info('Step 1: Initializing database...');
     initDb();
+    logger.info('Step 1: Database OK');
 
-    // Authenticate with StockWisePro API (optional)
+    logger.info('Step 2: Authenticating with StockWisePro API...');
     await stockwise.authenticateAsBot();
+    logger.info('Step 2: API auth OK (or skipped)');
 
-    // Create bot
+    logger.info('Step 3: Creating Telegraf bot...');
     const bot = new Telegraf<BotContext>(config.telegramToken);
+    logger.info('Step 3: Bot instance created');
 
-    // Middleware
+    logger.info('Step 4: Attaching middleware...');
     bot.use(analyticsMiddleware());
+    logger.info('Step 4: Middleware attached');
 
-    // Register scenes & commands
+    logger.info('Step 5: Registering scenes & commands...');
     registerScenes(bot);
     registerCommands(bot);
+    logger.info('Step 5: Commands registered');
 
-    // Start alert cron
-    startAlertService(bot);
-
-    // Error handler
-    bot.catch((err, ctx) => {
-      logger.error('Bot error', { error: (err as Error).message, updateType: ctx.updateType });
-      ctx.reply('⚠️ Something went wrong. Please try again.').catch(() => {});
+    // Health-check command
+    bot.command('ping', async (ctx) => {
+      await ctx.reply('🏓 Pong! Bot is alive.');
     });
 
-    // Launch
-    logger.info('Starting StockWiseBot...');
-    await bot.launch();
+    logger.info('Step 6: Starting alert service...');
+    startAlertService(bot);
+    logger.info('Step 6: Alert service started');
 
-    // Graceful stop
+    logger.info('Step 7: Launching bot...');
+    await bot.launch();
+    logger.info('Step 7: Bot is polling Telegram successfully');
+
     process.once('SIGINT', () => bot.stop('SIGINT'));
     process.once('SIGTERM', () => bot.stop('SIGTERM'));
   } catch (err) {
-    logger.error('Fatal startup error', { error: (err as Error).message });
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : '';
+    logger.error('Fatal startup error', { error: errorMessage, stack });
     process.exit(1);
   }
 }

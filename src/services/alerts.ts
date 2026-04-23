@@ -32,7 +32,7 @@ export function startAlertService(bot: Telegraf<BotContext>) {
           await bot.telegram.sendMessage(
             alert.telegram_id,
             `🔔 *Alert Triggered!*\n\n*${alert.ticker}* is now *$${price}* (${alert.condition} $${target})`,
-            { parse_mode: 'MarkdownV2' }
+            { parse_mode: 'Markdown' }
           );
           deactivateAlert(alert.id);
           logger.info(`Alert triggered: ${alert.ticker} ${alert.condition} ${target}`);

@@ -33,5 +33,5 @@ export async function searchCommand(ctx: Context) {
     return `• *${s.ticker || s.symbol}* — ${s.name || ''} (${price})`;
   });
 
-  await ctx.replyWithMarkdownV2(`🔍 *Search results for "${query}"*:\n\n${lines.join('\n')}`);
+  await ctx.replyWithMarkdown(`🔍 *Search results for "${query}"*:\n\n${lines.join('\n')}`);
 }

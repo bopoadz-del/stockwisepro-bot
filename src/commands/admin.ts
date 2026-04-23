@@ -29,7 +29,7 @@ ${summary.commandStats.map(c => `• ${c.command}: ${c.count}`).join('\n') || 'N
 ${summary.topTickers.map(t => `• ${t.ticker}: ${t.count}`).join('\n') || 'None'}
   `.trim();
 
-  await ctx.replyWithMarkdownV2(msg);
+  await ctx.replyWithMarkdown(msg);
 }
 
 export async function adminExportCommand(ctx: Context) {

@@ -52,7 +52,7 @@ _Was this score helpful?_
   const eventResult = db.prepare('SELECT id FROM analytics_events WHERE telegram_id = ? ORDER BY id DESC LIMIT 1').get(telegramId) as { id: number } | undefined;
   const eventId = eventResult?.id || 0;
 
-  await ctx.replyWithMarkdownV2(msg, Markup.inlineKeyboard([
+  await ctx.replyWithMarkdown(msg, Markup.inlineKeyboard([
     Markup.button.callback('👍 Accurate', `feedback:${eventId}:1`),
     Markup.button.callback('👎 Off', `feedback:${eventId}:-1`),
   ]));

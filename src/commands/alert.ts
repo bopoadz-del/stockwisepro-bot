@@ -21,7 +21,7 @@ export async function alertCommand(ctx: Context) {
       return `${status} *${a.ticker}* ${a.condition} $${a.target_price}`;
     }).join('\n');
 
-    await ctx.replyWithMarkdownV2(`🔔 *Your Alerts*\n\n${lines}`);
+    await ctx.replyWithMarkdown(`🔔 *Your Alerts*\n\n${lines}`);
     return;
   }
 
@@ -44,5 +44,5 @@ export async function alertCommand(ctx: Context) {
   addAlert(telegramId, ticker, price, condition);
   logEvent({ telegramId, command: '/alert', ticker: ticker.toUpperCase(), success: true });
 
-  await ctx.reply(`🔔 Alert set: *${ticker.toUpperCase()}* ${condition} $${price}. I'll notify you when it hits.`, { parse_mode: 'MarkdownV2' });
+  await ctx.reply(`🔔 Alert set: *${ticker.toUpperCase()}* ${condition} $${price}. I'll notify you when it hits.`, { parse_mode: 'Markdown' });
 }
