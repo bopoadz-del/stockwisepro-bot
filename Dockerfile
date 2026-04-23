@@ -1,7 +1,7 @@
-FROM node:20-alpine
+FROM node:20-slim
 
 # Install build dependencies for better-sqlite3
-RUN apk add --no-cache python3 make g++
+RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
