@@ -1,6 +1,6 @@
 import { Context } from 'telegraf';
 import { brave } from '../api/brave';
-import { logEvent } from '../db';
+import { userSafeError } from '../utils/logger';
 
 export async function newsCommand(ctx: Context) {
   const text = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
@@ -17,10 +17,11 @@ export async function newsCommand(ctx: Context) {
   const searchQuery = `${query} stock`;
   const { data, duration, error } = await brave.newsSearch(searchQuery, 5);
 
-  logEvent({ telegramId, command: '/news', ticker: query, apiResponseTimeMs: duration, success: !error });
+  (ctx as any).state = { ticker: query, apiDuration: duration, success: !error };
+  if (error) (ctx as any).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error) {
-    await ctx.reply(`❌ News search failed: ${JSON.stringify(error)}`);
+    await ctx.reply(userSafeError());
     return;
   }
 

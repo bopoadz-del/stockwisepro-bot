@@ -12,6 +12,10 @@ function writeToFile(level: string, msg: string, meta?: Record<string, unknown>)
   }
 }
 
+export function userSafeError(): string {
+  return '❌ Something went wrong. Please try again later.';
+}
+
 export const logger = {
   info: (msg: string, meta?: Record<string, unknown>) => {
     console.log(`[INFO] ${new Date().toISOString()} ${msg}`, meta ? JSON.stringify(meta) : '');

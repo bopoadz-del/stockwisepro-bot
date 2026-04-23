@@ -10,7 +10,7 @@ export const config = {
   braveApiKey: process.env.BRAVE_API_KEY || '',
   dataDir: process.env.DATA_DIR || './data',
   adminTelegramIds: (process.env.BOT_ADMIN_TELEGRAM_IDS || '').split(',').map(id => id.trim()).filter(Boolean),
-  alertCheckIntervalMinutes: parseInt(process.env.ALERT_CHECK_INTERVAL_MINUTES || '5', 10),
+  alertCheckIntervalMinutes: Math.min(Math.max(parseInt(process.env.ALERT_CHECK_INTERVAL_MINUTES || '5', 10), 1), 60),
   stockwiseBotEmail: process.env.STOCKWISE_BOT_USER_EMAIL || '',
   stockwiseBotPassword: process.env.STOCKWISE_BOT_USER_PASSWORD || '',
   nodeEnv: process.env.NODE_ENV || 'development',

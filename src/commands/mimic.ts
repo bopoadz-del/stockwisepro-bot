@@ -1,6 +1,6 @@
 import { Context, Markup } from 'telegraf';
 import { stockwise } from '../api/stockwise';
-import { logEvent } from '../db';
+import { userSafeError } from '../utils/logger';
 
 const INVESTORS = [
   { id: 'buffett', name: 'Warren Buffett', style: 'Value' },
@@ -23,7 +23,7 @@ export async function mimicCommand(ctx: Context) {
     Markup.inlineKeyboard(keyboard)
   );
 
-  logEvent({ telegramId, command: '/mimic', success: true });
+  (ctx as any).state = { success: true };
 }
 
 export async function handleMimicCallback(ctx: Context) {
@@ -41,10 +41,11 @@ export async function handleMimicCallback(ctx: Context) {
   await ctx.replyWithChatAction('typing');
 
   const { data, duration, error } = await stockwise.mimicInvestor(investorId);
-  logEvent({ telegramId, command: '/mimic_exec', ticker: investorId, apiResponseTimeMs: duration, success: !error });
+  (ctx as any).state = { ticker: investorId, apiDuration: duration, success: !error };
+  if (error) (ctx as any).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error) {
-    await ctx.reply(`❌ Mimic failed: ${JSON.stringify(error)}`);
+    await ctx.reply(userSafeError());
     return;
   }
 

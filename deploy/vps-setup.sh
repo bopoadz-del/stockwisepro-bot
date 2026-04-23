@@ -29,7 +29,7 @@ else
 fi
 
 # Install & build
-npm install
+npm ci
 npm run build
 
 # Set permissions

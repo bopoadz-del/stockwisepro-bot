@@ -61,6 +61,17 @@ export function initDb() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_alerts_active ON price_alerts(is_active);
+
+    CREATE TABLE IF NOT EXISTS user_weights (
+      telegram_id INTEGER PRIMARY KEY,
+      valuation INTEGER NOT NULL DEFAULT 75,
+      profitability INTEGER NOT NULL DEFAULT 85,
+      growth INTEGER NOT NULL DEFAULT 70,
+      financial_health INTEGER NOT NULL DEFAULT 80,
+      momentum INTEGER NOT NULL DEFAULT 50,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (telegram_id) REFERENCES users(telegram_id)
+    );
   `);
 
   logger.info('Database initialized.');
@@ -143,17 +154,24 @@ export function getUserAlerts(telegramId: number) {
   }>;
 }
 
+function clampDays(days: number): number {
+  const d = Number(days);
+  if (!Number.isFinite(d) || d < 1 || d > 365) return 7;
+  return Math.floor(d);
+}
+
 export function getAnalyticsSummary(days = 7) {
+  const safeDays = clampDays(days);
   const totalUsers = db.prepare(`SELECT COUNT(DISTINCT telegram_id) as count FROM users`).get() as { count: number };
-  const totalEvents = db.prepare(`SELECT COUNT(*) as count FROM analytics_events WHERE created_at >= datetime('now', '-${days} days')`).get() as { count: number };
+  const totalEvents = db.prepare(`SELECT COUNT(*) as count FROM analytics_events WHERE created_at >= datetime('now', '-${safeDays} days')`).get() as { count: number };
   const commandStats = db.prepare(`
     SELECT command, COUNT(*) as count FROM analytics_events
-    WHERE created_at >= datetime('now', '-${days} days')
+    WHERE created_at >= datetime('now', '-${safeDays} days')
     GROUP BY command ORDER BY count DESC
   `).all() as Array<{ command: string; count: number }>;
   const topTickers = db.prepare(`
     SELECT ticker, COUNT(*) as count FROM analytics_events
-    WHERE ticker IS NOT NULL AND created_at >= datetime('now', '-${days} days')
+    WHERE ticker IS NOT NULL AND created_at >= datetime('now', '-${safeDays} days')
     GROUP BY ticker ORDER BY count DESC LIMIT 20
   `).all() as Array<{ ticker: string; count: number }>;
 
@@ -161,12 +179,69 @@ export function getAnalyticsSummary(days = 7) {
 }
 
 export function exportAnalyticsCsv(days = 30): string {
+  const safeDays = clampDays(days);
   const rows = db.prepare(`
     SELECT ae.*, u.username, u.first_name
     FROM analytics_events ae
     LEFT JOIN users u ON ae.telegram_id = u.telegram_id
-    WHERE ae.created_at >= datetime('now', '-${days} days')
+    WHERE ae.created_at >= datetime('now', '-${safeDays} days')
     ORDER BY ae.created_at DESC
+  `).all() as Array<Record<string, unknown>>;
+
+  if (rows.length === 0) return '';
+
+  const headers = Object.keys(rows[0]);
+  const csv = [
+    headers.join(','),
+    ...rows.map(row => headers.map(h => {
+      const val = row[h];
+      if (val == null) return '';
+      const str = String(val).replace(/"/g, '""');
+      return str.includes(',') || str.includes('\n') ? `"${str}"` : str;
+    }).join(','))
+  ].join('\n');
+
+  return csv;
+}
+
+export function ensureUserWeights(telegramId: number) {
+  db.prepare(`INSERT OR IGNORE INTO user_weights (telegram_id) VALUES (?)`).run(telegramId);
+}
+
+export function getUserWeights(telegramId: number) {
+  ensureUserWeights(telegramId);
+  return db.prepare(`SELECT * FROM user_weights WHERE telegram_id = ?`).get(telegramId) as {
+    telegram_id: number;
+    valuation: number;
+    profitability: number;
+    growth: number;
+    financial_health: number;
+    momentum: number;
+  };
+}
+
+export function setUserWeight(telegramId: number, category: string, value: number) {
+  const valid = ['valuation', 'profitability', 'growth', 'financial_health', 'momentum'];
+  if (!valid.includes(category)) return false;
+  const clamped = Math.min(Math.max(Math.round(value), 0), 100);
+  db.prepare(`UPDATE user_weights SET ${category} = ? WHERE telegram_id = ?`).run(clamped, telegramId);
+  return true;
+}
+
+export function resetUserWeights(telegramId: number) {
+  db.prepare(`
+    UPDATE user_weights
+    SET valuation = 75, profitability = 85, growth = 70, financial_health = 80, momentum = 50
+    WHERE telegram_id = ?
+  `).run(telegramId);
+}
+
+export function exportWeightsCsv(): string {
+  const rows = db.prepare(`
+    SELECT uw.*, u.username, u.first_name
+    FROM user_weights uw
+    LEFT JOIN users u ON uw.telegram_id = u.telegram_id
+    ORDER BY uw.telegram_id
   `).all() as Array<Record<string, unknown>>;
 
   if (rows.length === 0) return '';

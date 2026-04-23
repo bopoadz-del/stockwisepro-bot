@@ -10,7 +10,7 @@ export function startAlertService(bot: Telegraf<BotContext>) {
   const interval = config.alertCheckIntervalMinutes;
   logger.info(`Starting alert service (every ${interval} minutes)`);
 
-  cron.schedule(`*/${interval} * * * *`, async () => {
+  const task = cron.schedule(`*/${interval} * * * *`, async () => {
     logger.info('Checking price alerts...');
     const alerts = getActiveAlerts();
 
@@ -42,4 +42,6 @@ export function startAlertService(bot: Telegraf<BotContext>) {
       }
     }
   });
+
+  return task;
 }

@@ -1,8 +1,10 @@
 import { Telegraf } from 'telegraf';
+import http from 'http';
 import { config } from './config';
 import { initDb } from './db';
 import { stockwise } from './api/stockwise';
 import { logger } from './utils/logger';
+import { rateLimitMiddleware } from './middleware/rateLimit';
 import { analyticsMiddleware } from './middleware/analytics';
 import { registerCommands } from './commands';
 import { registerScenes } from './scenes';
@@ -28,6 +30,7 @@ async function main() {
     logger.info('Step 3: Bot instance created');
 
     logger.info('Step 4: Attaching middleware...');
+    bot.use(rateLimitMiddleware);
     bot.use(analyticsMiddleware());
     logger.info('Step 4: Middleware attached');
 
@@ -42,15 +45,39 @@ async function main() {
     });
 
     logger.info('Step 6: Starting alert service...');
-    startAlertService(bot);
+    const alertTask = startAlertService(bot);
     logger.info('Step 6: Alert service started');
 
-    logger.info('Step 7: Launching bot...');
-    await bot.launch();
-    logger.info('Step 7: Bot is polling Telegram successfully');
+    logger.info('Step 7: Starting health check server...');
+    const healthServer = http.createServer((req, res) => {
+      if (req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
+      } else {
+        res.writeHead(404);
+        res.end();
+      }
+    });
+    healthServer.listen(3000, () => {
+      logger.info('Health check server listening on port 3000');
+    });
 
-    process.once('SIGINT', () => bot.stop('SIGINT'));
-    process.once('SIGTERM', () => bot.stop('SIGTERM'));
+    logger.info('Step 8: Launching bot...');
+    await bot.launch();
+    logger.info('Step 8: Bot is polling Telegram successfully');
+
+    process.once('SIGINT', () => {
+      logger.info('Shutting down (SIGINT)...');
+      alertTask.stop();
+      healthServer.close();
+      bot.stop('SIGINT');
+    });
+    process.once('SIGTERM', () => {
+      logger.info('Shutting down (SIGTERM)...');
+      alertTask.stop();
+      healthServer.close();
+      bot.stop('SIGTERM');
+    });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     const stack = err instanceof Error ? err.stack : '';

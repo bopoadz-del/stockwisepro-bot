@@ -10,7 +10,8 @@ import { portfolioCommand } from './portfolio';
 import { mimicCommand, handleMimicCallback } from './mimic';
 import { experimentCommand, runExperimentFromText } from './experiment';
 import { alertCommand } from './alert';
-import { adminCommand, adminExportCommand } from './admin';
+import { adminCommand, adminExportCommand, adminExportWeightsCommand } from './admin';
+import { weightsCommand, weightsSetCommand, handleWeightCallback } from './weights';
 
 export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('start', startCommand);
@@ -28,9 +29,13 @@ export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('alerts', alertCommand); // alias
   bot.command('admin', adminCommand);
   bot.command('admin_export', adminExportCommand);
+  bot.command('admin_export_weights', adminExportWeightsCommand);
+  bot.command('weights', weightsCommand);
+  bot.command('weights_set', weightsSetCommand);
 
   // Inline callbacks
   bot.action(/^mimic_select:(.+)$/, handleMimicCallback);
+  bot.action(/^weight:(.+)$/, handleWeightCallback);
 
   // Feedback callbacks
   bot.action(/^feedback:(.+):(.+)$/, async (ctx) => {
@@ -47,9 +52,9 @@ export function registerCommands(bot: Telegraf<BotContext>) {
   bot.hears(/.+/, async (ctx) => {
     const text = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
     // If user is in experiment "mode" we could use scenes; here we do a lightweight trigger:
-    // If text looks like a formula (contains = or < or >) and not a command, offer to run it
-    if (!text.startsWith('/') && (text.includes('=') || text.includes('>') || text.includes('<'))) {
-      await runExperimentFromText(ctx, text);
+    // If text starts with 'exp:' and is not a command, run experiment
+    if (!text.startsWith('/') && text.toLowerCase().startsWith('exp:')) {
+      await runExperimentFromText(ctx, text.slice(4).trim());
     }
   });
 }

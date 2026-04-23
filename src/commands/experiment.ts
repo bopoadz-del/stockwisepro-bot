@@ -1,6 +1,6 @@
 import { Context } from 'telegraf';
 import { stockwise } from '../api/stockwise';
-import { logEvent } from '../db';
+import { userSafeError } from '../utils/logger';
 
 export async function experimentCommand(ctx: Context) {
   await ctx.reply(
@@ -15,10 +15,11 @@ export async function runExperimentFromText(ctx: Context, text: string) {
   await ctx.replyWithChatAction('typing');
 
   const { data, duration, error } = await stockwise.runExperiment(text);
-  logEvent({ telegramId, command: '/experiment', rawInput: text.substring(0, 500), apiResponseTimeMs: duration, success: !error });
+  (ctx as any).state = { apiDuration: duration, success: !error };
+  if (error) (ctx as any).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error) {
-    await ctx.reply(`❌ Experiment error: ${JSON.stringify(error)}`);
+    await ctx.reply(userSafeError());
     return;
   }
 
