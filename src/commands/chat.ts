@@ -1,6 +1,7 @@
-import { Context } from 'telegraf';
+import { Context, Markup } from 'telegraf';
 import { BotContext } from '../types';
 import { validateTicker, sanitizeTicker } from '../utils/validation';
+import { logChatIntent } from '../db';
 import { scoreCommand } from './score';
 import { searchCommand } from './search';
 import { newsCommand } from './news';
@@ -52,7 +53,6 @@ function extractTickerCandidates(text: string): string[] {
 
 function isTickerOnly(text: string): string | null {
   const trimmed = text.trim();
-  // $AAPL or AAPL
   const match = trimmed.match(/^\$?([A-Z0-9.\-]{1,20})$/i);
   if (match) {
     const ticker = sanitizeTicker(match[1]);
@@ -78,12 +78,32 @@ async function runAsCommand(ctx: Context, commandText: string, handler: (ctx: Co
   }
 }
 
+function recordIntent(
+  ctx: Context,
+  intent: string,
+  opts: { ticker?: string; command?: string; isFallback?: boolean } = {}
+) {
+  const telegramId = ctx.from?.id || 0;
+  const rawMessage = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
+  return logChatIntent({
+    telegramId,
+    rawMessage,
+    detectedIntent: intent,
+    extractedTicker: opts.ticker,
+    executedCommand: opts.command,
+    isFallback: opts.isFallback || false,
+  });
+}
+
 export async function handleChatMessage(ctx: Context) {
   const text = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
   const lower = text.toLowerCase().trim();
+  const tickers = extractTickerCandidates(text);
+  const firstTicker = tickers[0];
 
   // 1. Experiment trigger (existing behavior)
   if (!text.startsWith('/') && lower.startsWith('exp:')) {
+    recordIntent(ctx, 'experiment', { command: 'experiment' });
     await runExperimentFromText(ctx, text.slice(4).trim());
     return;
   }
@@ -91,30 +111,31 @@ export async function handleChatMessage(ctx: Context) {
   // 2. Ticker-only message → score
   const tickerOnly = isTickerOnly(text);
   if (tickerOnly) {
+    recordIntent(ctx, 'ticker_score', { ticker: tickerOnly, command: 'score' });
     await runAsCommand(ctx, `/score ${tickerOnly}`, scoreCommand);
     return;
   }
 
   // 3. Natural language parsing
-  const tickers = extractTickerCandidates(text);
-  const firstTicker = tickers[0];
 
   // Help / commands
   if (/\b(help|commands|what can you do|how to use|menu)\b/i.test(lower)) {
+    recordIntent(ctx, 'help', { command: 'help' });
     await helpCommand(ctx);
     return;
   }
 
   // Portfolio
   if (/\b(my portfolio|show portfolio|view portfolio|portfolio)\b/i.test(lower)) {
+    recordIntent(ctx, 'portfolio', { command: 'portfolio' });
     await portfolioCommand(ctx);
     return;
   }
 
-  // Watchlist
+  // Watchlist (show only)
   if (/\b(my watchlist|show watchlist|view watchlist|watchlist)\b/i.test(lower)) {
-    // If they also mention adding/removing, handle below; otherwise just show
     if (!/\b(add|remove|delete)\b/i.test(lower)) {
+      recordIntent(ctx, 'watchlist', { command: 'watchlist' });
       await watchlistCommand(ctx);
       return;
     }
@@ -122,6 +143,7 @@ export async function handleChatMessage(ctx: Context) {
 
   // Mimic
   if (/\b(mimic|copy investor|copy portfolio|investor strategy|follow investor)\b/i.test(lower)) {
+    recordIntent(ctx, 'mimic', { command: 'mimic' });
     await mimicCommand(ctx);
     return;
   }
@@ -139,6 +161,7 @@ export async function handleChatMessage(ctx: Context) {
     const price = alertMatch[3];
     if (condition === 'over' || condition === 'higher than') condition = 'above';
     if (condition === 'under' || condition === 'lower than') condition = 'below';
+    recordIntent(ctx, 'alert', { ticker, command: 'alert' });
     await runAsCommand(ctx, `/alert ${ticker} ${condition} ${price}`, alertCommand);
     return;
   }
@@ -146,6 +169,7 @@ export async function handleChatMessage(ctx: Context) {
   // Watchlist add
   const addMatch = lower.match(/(?:add|put)\s+(.+?)\s+(?:to\s+)?(?:my\s+)?watchlist/);
   if (addMatch && firstTicker) {
+    recordIntent(ctx, 'watchlist_add', { ticker: firstTicker, command: 'watchlist_add' });
     await runAsCommand(ctx, `/watchlist_add ${firstTicker}`, watchlistAddCommand);
     return;
   }
@@ -153,6 +177,7 @@ export async function handleChatMessage(ctx: Context) {
   // Watchlist remove
   const removeMatch = lower.match(/(?:remove|delete)\s+(.+?)\s+(?:from\s+)?(?:my\s+)?watchlist/);
   if (removeMatch && firstTicker) {
+    recordIntent(ctx, 'watchlist_remove', { ticker: firstTicker, command: 'watchlist_remove' });
     await runAsCommand(ctx, `/watchlist_remove ${firstTicker}`, watchlistRemoveCommand);
     return;
   }
@@ -160,6 +185,7 @@ export async function handleChatMessage(ctx: Context) {
   // News
   if (/\b(news|headlines|what\s+(?:is|are)\s+(?:the\s+)?news)/i.test(lower)) {
     if (firstTicker) {
+      recordIntent(ctx, 'news', { ticker: firstTicker, command: 'news' });
       await runAsCommand(ctx, `/news ${firstTicker}`, newsCommand);
       return;
     }
@@ -168,6 +194,7 @@ export async function handleChatMessage(ctx: Context) {
   // Score / opinion
   if (/\b(score|rating|opinion|what do you think|how is|analysis of|analyze)\b/i.test(lower)) {
     if (firstTicker) {
+      recordIntent(ctx, 'score', { ticker: firstTicker, command: 'score' });
       await runAsCommand(ctx, `/score ${firstTicker}`, scoreCommand);
       return;
     }
@@ -176,6 +203,7 @@ export async function handleChatMessage(ctx: Context) {
   // Search / find / look up
   if (/\b(search|find|look up|lookup|info on|information on|about)\b/i.test(lower)) {
     if (firstTicker) {
+      recordIntent(ctx, 'search', { ticker: firstTicker, command: 'search' });
       await runAsCommand(ctx, `/search ${firstTicker}`, searchCommand);
       return;
     }
@@ -183,17 +211,42 @@ export async function handleChatMessage(ctx: Context) {
 
   // If we have a ticker but no specific intent matched, default to score
   if (firstTicker) {
+    recordIntent(ctx, 'default_score', { ticker: firstTicker, command: 'score' });
     await runAsCommand(ctx, `/score ${firstTicker}`, scoreCommand);
     return;
   }
 
-  // 4. Fallback
+  // 4. Fallback — log and ask for correction
+  const logResult = recordIntent(ctx, 'fallback', { isFallback: true });
+  const logId = logResult.lastInsertRowid as number;
+
   await ctx.reply(
     `🤖 I didn't catch that.\n\n` +
     `You can:\n` +
     `• Type a ticker like *AAPL* or *$TSLA* for a quick score\n` +
     `• Ask me *"news for AAPL"* or *"score of AAPL"*\n` +
-    `• Use /help to see all commands`,
-    { parse_mode: 'Markdown' }
+    `• Use /help to see all commands\n\n` +
+    `_What were you looking for?_`,
+    {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [
+          Markup.button.callback('📊 Score', `correct_intent:score:${logId}`),
+          Markup.button.callback('📰 News', `correct_intent:news:${logId}`),
+        ],
+        [
+          Markup.button.callback('🔍 Search', `correct_intent:search:${logId}`),
+          Markup.button.callback('⭐ Watchlist', `correct_intent:watchlist:${logId}`),
+        ],
+        [
+          Markup.button.callback('💼 Portfolio', `correct_intent:portfolio:${logId}`),
+          Markup.button.callback('🔔 Alert', `correct_intent:alert:${logId}`),
+        ],
+        [
+          Markup.button.callback('🧠 Mimic', `correct_intent:mimic:${logId}`),
+          Markup.button.callback('❓ Other', `correct_intent:other:${logId}`),
+        ],
+      ]),
+    }
   );
 }

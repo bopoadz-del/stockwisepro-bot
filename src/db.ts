@@ -79,6 +79,28 @@ const MIGRATIONS: Array<{ version: number; sql: string }> = [
       );
     `,
   },
+  {
+    version: 2,
+    sql: `
+      CREATE TABLE IF NOT EXISTS nl_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        telegram_id INTEGER NOT NULL,
+        raw_message TEXT NOT NULL,
+        detected_intent TEXT,
+        extracted_ticker TEXT,
+        executed_command TEXT,
+        is_fallback INTEGER NOT NULL DEFAULT 0,
+        user_corrected_intent TEXT,
+        user_feedback INTEGER CHECK(user_feedback BETWEEN -1 AND 1),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_nl_logs_telegram_id ON nl_logs(telegram_id);
+      CREATE INDEX IF NOT EXISTS idx_nl_logs_intent ON nl_logs(detected_intent);
+      CREATE INDEX IF NOT EXISTS idx_nl_logs_fallback ON nl_logs(is_fallback);
+      CREATE INDEX IF NOT EXISTS idx_nl_logs_created_at ON nl_logs(created_at);
+    `,
+  },
 ];
 
 export function initDb() {
@@ -288,6 +310,119 @@ export function exportWeightsCsv(): string {
     FROM user_weights uw
     LEFT JOIN users u ON uw.telegram_id = u.telegram_id
     ORDER BY uw.telegram_id
+  `).all() as Array<Record<string, unknown>>;
+
+  if (rows.length === 0) return '';
+
+  const headers = Object.keys(rows[0]);
+  const csv = [
+    headers.join(','),
+    ...rows.map(row => headers.map(h => {
+      const val = row[h];
+      if (val == null) return '';
+      const str = String(val).replace(/"/g, '""');
+      return str.includes(',') || str.includes('\n') ? `"${str}"` : str;
+    }).join(','))
+  ].join('\n');
+
+  return csv;
+}
+
+/* ─── Natural Language Learning Logs ─── */
+
+export function logChatIntent(log: {
+  telegramId: number;
+  rawMessage: string;
+  detectedIntent?: string;
+  extractedTicker?: string;
+  executedCommand?: string;
+  isFallback?: boolean;
+}) {
+  const conn = ensureDb();
+  const stmt = conn.prepare(`
+    INSERT INTO nl_logs (telegram_id, raw_message, detected_intent, extracted_ticker, executed_command, is_fallback)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  return stmt.run(
+    log.telegramId,
+    log.rawMessage,
+    log.detectedIntent || null,
+    log.extractedTicker || null,
+    log.executedCommand || null,
+    log.isFallback ? 1 : 0
+  );
+}
+
+export function correctChatIntent(logId: number, correctedIntent: string) {
+  const conn = ensureDb();
+  conn.prepare(`UPDATE nl_logs SET user_corrected_intent = ? WHERE id = ?`).run(correctedIntent, logId);
+}
+
+export function saveChatFeedback(logId: number, rating: number) {
+  const conn = ensureDb();
+  conn.prepare(`UPDATE nl_logs SET user_feedback = ? WHERE id = ?`).run(rating, logId);
+}
+
+export function getLearningStats(days = 7) {
+  const conn = ensureDb();
+  const safeDays = clampDays(days);
+
+  const totalChat = conn.prepare(`
+    SELECT COUNT(*) as count FROM nl_logs WHERE created_at >= datetime('now', '-${safeDays} days')
+  `).get() as { count: number };
+
+  const fallbackRate = conn.prepare(`
+    SELECT COUNT(*) as total, SUM(is_fallback) as fallbacks
+    FROM nl_logs WHERE created_at >= datetime('now', '-${safeDays} days')
+  `).get() as { total: number; fallbacks: number };
+
+  const intentStats = conn.prepare(`
+    SELECT detected_intent, COUNT(*) as count,
+      ROUND(AVG(is_fallback) * 100, 1) as fallback_pct
+    FROM nl_logs
+    WHERE created_at >= datetime('now', '-${safeDays} days')
+    GROUP BY detected_intent
+    ORDER BY count DESC
+  `).all() as Array<{ detected_intent: string; count: number; fallback_pct: number }>;
+
+  const correctionStats = conn.prepare(`
+    SELECT user_corrected_intent, COUNT(*) as count
+    FROM nl_logs
+    WHERE user_corrected_intent IS NOT NULL
+      AND created_at >= datetime('now', '-${safeDays} days')
+    GROUP BY user_corrected_intent
+    ORDER BY count DESC
+  `).all() as Array<{ user_corrected_intent: string; count: number }>;
+
+  return { totalChat, fallbackRate, intentStats, correctionStats };
+}
+
+export function getMissedIntents(days = 7, limit = 50) {
+  const conn = ensureDb();
+  const safeDays = clampDays(days);
+  return conn.prepare(`
+    SELECT id, telegram_id, raw_message, detected_intent, user_corrected_intent, created_at
+    FROM nl_logs
+    WHERE is_fallback = 1 AND created_at >= datetime('now', '-${safeDays} days')
+    ORDER BY created_at DESC
+    LIMIT ?
+  `).all(limit) as Array<{
+    id: number;
+    telegram_id: number;
+    raw_message: string;
+    detected_intent: string | null;
+    user_corrected_intent: string | null;
+    created_at: string;
+  }>;
+}
+
+export function exportMissedIntentsCsv(days = 30): string {
+  const conn = ensureDb();
+  const safeDays = clampDays(days);
+  const rows = conn.prepare(`
+    SELECT * FROM nl_logs
+    WHERE is_fallback = 1 AND created_at >= datetime('now', '-${safeDays} days')
+    ORDER BY created_at DESC
   `).all() as Array<Record<string, unknown>>;
 
   if (rows.length === 0) return '';

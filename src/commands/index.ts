@@ -12,6 +12,7 @@ import { experimentCommand } from './experiment';
 import { handleChatMessage } from './chat';
 import { alertCommand } from './alert';
 import { adminCommand, adminExportCommand, adminExportWeightsCommand } from './admin';
+import { adminLearningCommand, adminExportMissedCommand, handleCorrectIntentCallback } from './learning';
 import { weightsCommand, weightsSetCommand, handleWeightCallback } from './weights';
 
 export function registerCommands(bot: Telegraf<BotContext>) {
@@ -31,12 +32,17 @@ export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('admin', adminCommand);
   bot.command('admin_export', adminExportCommand);
   bot.command('admin_export_weights', adminExportWeightsCommand);
+  bot.command('admin_learning', adminLearningCommand);
+  bot.command('admin_export_misses', adminExportMissedCommand);
   bot.command('weights', weightsCommand);
   bot.command('weights_set', weightsSetCommand);
 
   // Inline callbacks
   bot.action(/^mimic_select:(.+)$/, handleMimicCallback);
   bot.action(/^weight:(.+)$/, handleWeightCallback);
+
+  // Intent correction callbacks (learning)
+  bot.action(/^correct_intent:(.+):(\d+)$/, handleCorrectIntentCallback);
 
   // Feedback callbacks
   bot.action(/^feedback:(.+):(.+)$/, async (ctx) => {
