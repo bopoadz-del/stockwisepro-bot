@@ -1,0 +1,53 @@
+import { Telegraf } from 'telegraf';
+import { BotContext } from '../types';
+import { startCommand } from './start';
+import { helpCommand } from './help';
+import { searchCommand } from './search';
+import { scoreCommand } from './score';
+import { watchlistCommand, watchlistAddCommand, watchlistRemoveCommand } from './watchlist';
+import { portfolioCommand } from './portfolio';
+import { mimicCommand, handleMimicCallback } from './mimic';
+import { experimentCommand, runExperimentFromText } from './experiment';
+import { alertCommand } from './alert';
+import { adminCommand, adminExportCommand } from './admin';
+
+export function registerCommands(bot: Telegraf<BotContext>) {
+  bot.command('start', startCommand);
+  bot.command('help', helpCommand);
+  bot.command('search', searchCommand);
+  bot.command('score', scoreCommand);
+  bot.command('watchlist', watchlistCommand);
+  bot.command('watchlist_add', watchlistAddCommand);
+  bot.command('watchlist_remove', watchlistRemoveCommand);
+  bot.command('portfolio', portfolioCommand);
+  bot.command('mimic', mimicCommand);
+  bot.command('experiment', experimentCommand);
+  bot.command('alert', alertCommand);
+  bot.command('alerts', alertCommand); // alias
+  bot.command('admin', adminCommand);
+  bot.command('admin_export', adminExportCommand);
+
+  // Inline callbacks
+  bot.action(/^mimic_select:(.+)$/, handleMimicCallback);
+
+  // Feedback callbacks
+  bot.action(/^feedback:(.+):(.+)$/, async (ctx) => {
+    const match = ctx.match as RegExpExecArray;
+    const eventId = parseInt(match[1], 10);
+    const rating = parseInt(match[2], 10);
+    const { saveFeedback } = await import('../db');
+    saveFeedback(ctx.from?.id || 0, eventId, rating);
+    await ctx.answerCbQuery('Thanks for your feedback!');
+    await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
+  });
+
+  // Experiment text handler (simple stateless approach)
+  bot.hears(/.+/, async (ctx) => {
+    const text = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
+    // If user is in experiment "mode" we could use scenes; here we do a lightweight trigger:
+    // If text looks like a formula (contains = or < or >) and not a command, offer to run it
+    if (!text.startsWith('/') && (text.includes('=') || text.includes('>') || text.includes('<'))) {
+      await runExperimentFromText(ctx, text);
+    }
+  });
+}

@@ -1,0 +1,33 @@
+import { Context } from 'telegraf';
+
+export async function helpCommand(ctx: Context) {
+  const help = `
+📖 *StockWiseBot Commands*
+
+*Research*
+/search <ticker> — Search stocks
+/score <ticker> — AI scoring & metrics
+
+*Portfolio*
+/watchlist — View watchlist
+/watchlist_add <ticker> — Add stock
+/watchlist_remove <id> — Remove stock
+/portfolio — View your portfolio
+/mimic — Copy investor strategy
+
+*Tools*
+/experiment — Test custom formulas
+/alert — Set price alerts
+/alerts — View your alerts
+
+*Admin*
+/admin — Usage stats
+/admin_export — Download CSV analytics
+
+*General*
+/start — Welcome message
+/help — This menu
+  `.trim();
+
+  await ctx.replyWithMarkdownV2(help);
+}
