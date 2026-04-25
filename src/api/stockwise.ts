@@ -13,7 +13,7 @@ class StockWiseApi {
   constructor() {
     this.client = axios.create({
       baseURL: config.stockwiseApiBaseUrl,
-      timeout: 15000,
+      timeout: 70000,
       headers: {
         'Content-Type': 'application/json',
         ...(config.stockwiseApiKey ? { 'X-API-Key': config.stockwiseApiKey } : {}),
@@ -88,7 +88,7 @@ class StockWiseApi {
     return this.post('/api/experiments', { formula, ticker }, telegramId);
   }
 
-  private async getWithRetry(path: string, telegramId?: number, retries = 2, maxTotalMs = 15000) {
+  private async getWithRetry(path: string, telegramId?: number, retries = 2, maxTotalMs = 90000) {
     const start = Date.now();
     const headers: Record<string, string> = {};
     if (telegramId) headers['X-Telegram-User-Id'] = String(telegramId);
