@@ -49,7 +49,7 @@ export async function metricsCommand(ctx: Context) {
 
   const totalReturn = (currentPrice - startPrice) / startPrice;
 
-  (ctx as BotContext).state = { ticker, apiDuration: 0, success: true };
+  Object.assign(ctx.state, { ticker, apiDuration: 0, success: true });
 
   const formatPct = (p: number) => `${(p * 100).toFixed(2)}%`;
   const formatPrice = (p: number) => `$${p.toFixed(2)}`;

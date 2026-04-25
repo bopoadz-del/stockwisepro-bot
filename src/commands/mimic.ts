@@ -24,7 +24,7 @@ export async function mimicCommand(ctx: Context) {
     Markup.inlineKeyboard(keyboard)
   );
 
-  (ctx as BotContext).state = { success: true };
+  Object.assign(ctx.state, { success: true });
 }
 
 export async function handleMimicCallback(ctx: Context) {
@@ -42,7 +42,7 @@ export async function handleMimicCallback(ctx: Context) {
   await ctx.replyWithChatAction('typing');
 
   const { data, duration, error } = await stockwise.mimicInvestor(investorId, undefined, telegramId);
-  (ctx as BotContext).state = { ticker: investorId, apiDuration: duration, success: !error };
+  Object.assign(ctx.state, { ticker: investorId, apiDuration: duration, success: !error });
   if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error) {

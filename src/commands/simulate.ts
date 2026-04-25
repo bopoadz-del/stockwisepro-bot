@@ -43,7 +43,7 @@ export async function simulateCommand(ctx: Context) {
 
   const result = simulateGBM(currentPrice, mu, sigma, days / 252, days, simulations);
 
-  (ctx as BotContext).state = { ticker, apiDuration: 0, success: true };
+  Object.assign(ctx.state, { ticker, apiDuration: 0, success: true });
 
   const formatPrice = (p: number) => `$${p.toFixed(2)}`;
   const formatPct = (p: number) => `${(p * 100).toFixed(1)}%`;

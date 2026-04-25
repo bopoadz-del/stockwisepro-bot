@@ -20,7 +20,7 @@ export async function searchCommand(ctx: Context) {
 
   // 1. Try StockWisePro backend first
   const { data, duration, error } = await stockwise.searchStocks(query, telegramId);
-  (ctx as BotContext).state = { ticker: query, apiDuration: duration, success: !error };
+  Object.assign(ctx.state, { ticker: query, apiDuration: duration, success: !error });
   if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   let stocks = [] as any[];

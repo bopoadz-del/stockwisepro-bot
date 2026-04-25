@@ -38,7 +38,7 @@ export async function alertCommand(ctx: Context) {
 
   // Validate ticker exists
   const { data, duration, error } = await stockwise.getStock(ticker, telegramId);
-  (ctx as BotContext).state = { ticker: ticker.toUpperCase(), apiDuration: duration, success: !error };
+  Object.assign(ctx.state, { ticker: ticker.toUpperCase(), apiDuration: duration, success: !error });
   if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error || !data) {

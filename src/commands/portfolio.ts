@@ -8,7 +8,7 @@ export async function portfolioCommand(ctx: Context) {
   await ctx.replyWithChatAction('typing');
 
   const { data, duration, error } = await stockwise.getPortfolio(telegramId);
-  (ctx as BotContext).state = { apiDuration: duration, success: !error };
+  Object.assign(ctx.state, { apiDuration: duration, success: !error });
   if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error) {

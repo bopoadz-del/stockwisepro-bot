@@ -59,7 +59,7 @@ export async function scoreCommand(ctx: Context) {
   await ctx.replyWithChatAction('typing');
   const { data, duration, error } = await stockwise.getStockScore(ticker, telegramId);
 
-  (ctx as BotContext).state = { ticker, apiDuration: duration, success: !error };
+  Object.assign(ctx.state, { ticker, apiDuration: duration, success: !error });
   if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
   const eventId = (ctx as BotContext).state.eventId as number;
 

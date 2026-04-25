@@ -18,7 +18,7 @@ export async function newsCommand(ctx: Context) {
   const searchQuery = `${query} stock`;
   const { data, duration, error } = await brave.newsSearch(searchQuery, 5);
 
-  (ctx as BotContext).state = { ticker: query, apiDuration: duration, success: !error };
+  Object.assign(ctx.state, { ticker: query, apiDuration: duration, success: !error });
   if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error) {

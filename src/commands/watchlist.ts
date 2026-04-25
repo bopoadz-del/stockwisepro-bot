@@ -44,7 +44,7 @@ export async function watchlistAddCommand(ctx: Context) {
 
   await ctx.replyWithChatAction('typing');
   const { data, duration, error } = await stockwise.addToWatchlist(ticker, telegramId);
-  (ctx as BotContext).state = { ticker, apiDuration: duration, success: !error };
+  Object.assign(ctx.state, { ticker, apiDuration: duration, success: !error });
   if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error) {
@@ -83,7 +83,7 @@ export async function watchlistRemoveCommand(ctx: Context) {
   }
 
   const { data, duration, error } = await stockwise.removeFromWatchlist(item.id, telegramId);
-  (ctx as BotContext).state = { ticker, apiDuration: duration, success: !error };
+  Object.assign(ctx.state, { ticker, apiDuration: duration, success: !error });
   if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error) {
