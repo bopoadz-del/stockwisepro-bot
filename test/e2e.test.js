@@ -70,7 +70,7 @@ function section(title) { console.log(`\n── ${title}`); }
 const tmpDir = path.join(__dirname, `.tmp_e2e_${Date.now()}`);
 fs.mkdirSync(tmpDir, { recursive: true });
 process.env.DATA_DIR = tmpDir;
-process.env.TELEGRAM_BOT_TOKEN = 'dummy_token_for_testing';
+process.env.TELEGRAM_BOT_TOKEN = '123456:TESTTESTTESTTESTTESTTESTTESTTESTTEST';
 process.env.NODE_ENV = 'test';
 
 const db = require('../dist/db');

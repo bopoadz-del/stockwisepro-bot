@@ -1,51 +1,30 @@
 import { Context, Markup } from 'telegraf';
 import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
+import { computeLocalScore } from '../services/scoring';
 import { getUserWeights } from '../db';
 import { userSafeError } from '../utils/logger';
 import { validateTicker } from '../utils/validation';
 
-const METRIC_KEYS: Record<string, string[]> = {
-  valuation: ['valuation', 'value', 'val', 'pe_ratio', 'pb_ratio'],
-  profitability: ['profitability', 'profit', 'profi', 'roe', 'roa', 'margin'],
-  growth: ['growth', 'grw', 'revenue_growth', 'earnings_growth'],
-  financial_health: ['financialHealth', 'financial_health', 'health', 'debt_to_equity', 'current_ratio'],
-  momentum: ['momentum', 'mom', 'trend', 'rsi', 'price_change'],
+const METRIC_LABELS: Record<string, string> = {
+  pe_ratio: 'P/E Ratio',
+  pb_ratio: 'P/B Ratio',
+  ps_ratio: 'P/S Ratio',
+  roe: 'Return on Equity',
+  roa: 'Return on Assets',
+  margin: 'Profit Margin',
+  revenue_growth: 'Revenue Growth',
+  earnings_growth: 'Earnings Growth',
+  debt_to_equity: 'Debt/Equity',
+  current_ratio: 'Current Ratio',
+  rsi: 'RSI',
+  price_change_6m: '6M Price Change',
+  valuation: 'Valuation Score',
+  profitability: 'Profitability',
+  growth: 'Growth Score',
+  financial_health: 'Financial Health',
+  momentum: 'Momentum',
 };
-
-function extractMetric(metrics: Record<string, unknown>, keys: string[]): number | undefined {
-  for (const key of keys) {
-    if (metrics[key] !== undefined) {
-      const n = Number(metrics[key]);
-      if (Number.isFinite(n)) return n;
-    }
-  }
-  return undefined;
-}
-
-function computeWeightedScore(
-  metrics: Record<string, unknown>,
-  weights: Record<string, number>
-): { score: number | null; breakdown: string[] } {
-  let totalScore = 0;
-  let totalWeight = 0;
-  const breakdown: string[] = [];
-
-  for (const [category, weight] of Object.entries(weights)) {
-    if (category === 'telegram_id' || category === 'updated_at') continue;
-    const keys = METRIC_KEYS[category] || [category];
-    const value = extractMetric(metrics, keys);
-    if (value !== undefined) {
-      totalScore += value * weight;
-      totalWeight += weight;
-      const displayValue = Number.isInteger(value) ? value : value.toFixed(2);
-      breakdown.push(`${category.replace(/_/g, ' ')}: ${displayValue} × ${weight}`);
-    }
-  }
-
-  const score = totalWeight > 0 ? Math.round(totalScore / totalWeight) : null;
-  return { score, breakdown };
-}
 
 export async function scoreCommand(ctx: Context) {
   const text = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
@@ -58,69 +37,99 @@ export async function scoreCommand(ctx: Context) {
   }
 
   await ctx.replyWithChatAction('typing');
-  const { data, duration, error } = await stockwise.getStockScore(ticker, telegramId);
 
-  Object.assign(ctx.state, { ticker, apiDuration: duration, success: !error });
-  if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
+  // 1. Try StockWisePro API first
+  const apiStart = Date.now();
+  const { data, duration, error } = await stockwise.getStockScore(ticker, telegramId);
+  let scoreData: {
+    score: number;
+    price: number;
+    metrics: Record<string, unknown>;
+    breakdown?: Record<string, number>;
+  } | null = null;
+
+  if (!error && data) {
+    const s = data as any;
+    scoreData = {
+      score: s.score ?? s.aiScore ?? s.rating ?? 'N/A',
+      price: s.price ?? s.currentPrice ?? 'N/A',
+      metrics: s.metrics || s.fundamentals || {},
+    };
+  }
+
+  // 2. Fallback to local Yahoo-based scoring if API fails
+  if (!scoreData) {
+    const localStart = Date.now();
+    const local = await computeLocalScore(ticker);
+    if (local) {
+      scoreData = {
+        score: local.score,
+        price: local.price,
+        metrics: local.metrics as unknown as Record<string, unknown>,
+        breakdown: local.breakdown,
+      };
+    }
+  }
+
+  const totalDuration = Date.now() - apiStart;
+  Object.assign(ctx.state, { ticker, apiDuration: totalDuration, success: !!scoreData });
+  if (!scoreData) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
   const eventId = (ctx as BotContext).state.eventId as number;
 
-  if (error || !data) {
+  if (!scoreData) {
     await ctx.reply(userSafeError());
     return;
   }
 
-  // Adapt to your actual API shape. This assumes a flexible display.
-  const s = data;
-  const rawScore = s.score ?? s.aiScore ?? s.rating ?? 'N/A';
-  const price = s.price ?? s.currentPrice ?? 'N/A';
-  const metrics = s.metrics || s.fundamentals || {};
-
   const weights = getUserWeights(telegramId);
-  const { score: weightedScore, breakdown } = computeWeightedScore(metrics, weights as any);
+  const metrics = scoreData.metrics;
 
-  const METRIC_LABELS: Record<string, string> = {
-    pe_ratio: 'P/E Ratio',
-    pb_ratio: 'P/B Ratio',
-    ps_ratio: 'P/S Ratio',
-    roe: 'Return on Equity',
-    roa: 'Return on Assets',
-    margin: 'Profit Margin',
-    revenue_growth: 'Revenue Growth',
-    earnings_growth: 'Earnings Growth',
-    debt_to_equity: 'Debt/Equity',
-    current_ratio: 'Current Ratio',
-    rsi: 'RSI',
-    price_change: 'Price Change',
-    valuation: 'Valuation Score',
-    profitability: 'Profitability',
-    growth: 'Growth Score',
-    financial_health: 'Financial Health',
-    momentum: 'Momentum',
-  };
+  // Compute weighted score
+  let weightedSum = 0;
+  let weightTotal = 0;
+  const breakdownLines: string[] = [];
 
-  let metricsText = '';
-  if (Object.keys(metrics).length > 0) {
-    metricsText = Object.entries(metrics)
-      .slice(0, 6)
-      .map(([k, v]) => {
-        const label = METRIC_LABELS[k] || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        const val = typeof v === 'number' ? (Number.isInteger(v) ? v : (v as number).toFixed(2)) : v;
-        return `  ${label}: ${val}`;
-      })
-      .join('\n');
+  // If API provided a pre-computed breakdown, use it; otherwise compute from raw metrics
+  const breakdown = scoreData.breakdown || {};
+  for (const [category, weight] of Object.entries(weights)) {
+    if (category === 'telegram_id' || category === 'updated_at') continue;
+    let catScore: number | undefined = breakdown[category];
+    if (catScore === undefined) {
+      // Try to extract from raw metrics using legacy keys
+      const rawVal = metrics[category] ?? metrics[category.replace('_', '')];
+      catScore = typeof rawVal === 'number' ? rawVal : undefined;
+    }
+    if (catScore !== undefined) {
+      weightedSum += catScore * weight;
+      weightTotal += weight;
+      breakdownLines.push(`${METRIC_LABELS[category] || category}: ${Math.round(catScore)} × ${weight}`);
+    }
   }
 
-  const weightedText = weightedScore !== null
-    ? `⚖️ *Weighted Score:* ${weightedScore}\n\n*Breakdown:*\n${breakdown.join('\n')}`
-    : '_No matching metrics for weighted scoring. Run /weights to configure._';
+  const weightedScore = weightTotal > 0 ? Math.round(weightedSum / weightTotal) : (typeof scoreData.score === 'number' ? scoreData.score : 'N/A');
+
+  const metricsText = Object.entries(metrics)
+    .filter(([k]) => k !== 'price')
+    .slice(0, 6)
+    .map(([k, v]) => {
+      if (v === undefined || v === null) return null;
+      const label = METRIC_LABELS[k] || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const val = typeof v === 'number' ? (Number.isInteger(v) ? v : (v as number).toFixed(2)) : v;
+      return `  ${label}: ${val}`;
+    })
+    .filter(Boolean)
+    .join('\n');
 
   const msg = `
 📊 *Score for ${ticker}*
 
-🏷 Price: $${price}
-⭐ AI Score: *${rawScore}*
+🏷 Price: $${scoreData.price}
+⭐ AI Score: *${scoreData.score}*
 
-${weightedText}
+⚖️ *Weighted Score:* ${weightedScore}
+
+*Breakdown:*
+${breakdownLines.join('\n') || 'N/A'}
 
 *Raw Metrics:*
 ${metricsText || 'N/A'}
