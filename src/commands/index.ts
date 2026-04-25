@@ -7,7 +7,7 @@ import { searchCommand } from './search';
 import { scoreCommand } from './score';
 import { watchlistCommand, watchlistAddCommand, watchlistRemoveCommand } from './watchlist';
 import { portfolioCommand } from './portfolio';
-import { mimicCommand, handleMimicCallback } from './mimic';
+import { mimicCommand, handleMimicCallback, pendingMimic } from './mimic';
 import { experimentCommand, pendingExperiment } from './experiment';
 import { handleChatMessage } from './chat';
 import { alertCommand } from './alert';
@@ -31,9 +31,17 @@ export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('experiment', experimentCommand);
   bot.command('cancel', async (ctx) => {
     const uid = ctx.from?.id;
+    let cancelled = false;
     if (uid && pendingExperiment.has(uid)) {
       pendingExperiment.delete(uid);
-      await ctx.reply('Experiment cancelled.');
+      cancelled = true;
+    }
+    if (uid && pendingMimic.has(uid)) {
+      pendingMimic.delete(uid);
+      cancelled = true;
+    }
+    if (cancelled) {
+      await ctx.reply('Cancelled.');
     } else {
       await ctx.reply('Nothing to cancel.');
     }

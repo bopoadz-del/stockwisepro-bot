@@ -7,7 +7,7 @@ import { searchCommand } from './search';
 import { newsCommand } from './news';
 import { portfolioCommand } from './portfolio';
 import { watchlistCommand, watchlistAddCommand, watchlistRemoveCommand } from './watchlist';
-import { mimicCommand } from './mimic';
+import { mimicCommand, pendingMimic, runMimicFromAmount } from './mimic';
 import { alertCommand } from './alert';
 import { helpCommand } from './help';
 import { simulateCommand } from './simulate';
@@ -103,8 +103,16 @@ export async function handleChatMessage(ctx: Context) {
   const tickers = extractTickerCandidates(text);
   const firstTicker = tickers[0];
 
-  // 1. Experiment trigger — either via /experiment flow or legacy "exp:" prefix
+  // 1. Pending flows (experiment, mimic amount)
   const telegramId = ctx.from?.id || 0;
+
+  if (!text.startsWith('/') && pendingMimic.has(telegramId)) {
+    pendingMimic.delete(telegramId);
+    recordIntent(ctx, 'mimic', { command: 'mimic' });
+    await runMimicFromAmount(ctx, text.trim());
+    return;
+  }
+
   if (!text.startsWith('/') && lower.startsWith('exp:')) {
     recordIntent(ctx, 'experiment', { command: 'experiment' });
     await runExperimentFromText(ctx, text.slice(4).trim());

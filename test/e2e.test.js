@@ -594,17 +594,76 @@ async function runCommandParsingTests() {
   });
 }
 
-// ─── 10. CANCEL COMMAND ──────────────────────────────────────────────────────
+// ─── 10. MIMIC ─ amount prompt flow ──────────────────────────────────────────
+
+async function runMimicTests() {
+  section('mimic: amount prompt flow');
+
+  const { pendingMimic, runMimicFromAmount } = require('../dist/commands/mimic');
+  const sw = require('../dist/api/stockwise').stockwise;
+  const origMimic = sw.mimicInvestor;
+
+  await test('selecting investor sets pending mimic state', async () => {
+    const { handleMimicCallback } = require('../dist/commands/mimic');
+    const ctx = makeCtx('/mimic', 33333);
+    ctx.match = ['mimic_select:buffett', 'buffett'];
+    await handleMimicCallback(ctx);
+    assert.ok(pendingMimic.has(33333), 'user should be in pending mimic state');
+    assert.strictEqual(pendingMimic.get(33333).investorId, 'buffett');
+    pendingMimic.delete(33333);
+  });
+
+  await test('valid amount triggers mimicInvestor with amount', async () => {
+    let calledAmount = null;
+    sw.mimicInvestor = async (investorId, amount) => {
+      calledAmount = amount;
+      return {
+        data: {
+          holdings: [
+            { ticker: 'AAPL', percentage: 50, dollarAmount: 5000 },
+            { ticker: 'KO', percentage: 50, dollarAmount: 5000 },
+          ]
+        },
+        duration: 100,
+        error: null,
+      };
+    };
+
+    pendingMimic.set(44444, { investorId: 'buffett' });
+    const ctx = makeCtx('10000', 44444);
+    await runMimicFromAmount(ctx, '10000');
+
+    assert.strictEqual(calledAmount, 10000, 'amount should be passed to API');
+    assert.ok(!pendingMimic.has(44444), 'pending state should be cleared');
+    const reply = lastReply(ctx);
+    assert.ok(reply.includes('Warren Buffett'), 'should mention investor');
+    assert.ok(reply.includes('$10,000'), 'should show investment amount');
+    assert.ok(reply.includes('AAPL'), 'should show holdings');
+  });
+
+  await test('invalid amount shows retry message and keeps pending', async () => {
+    pendingMimic.set(55555, { investorId: 'dalio' });
+    const ctx = makeCtx('abc', 55555);
+    await runMimicFromAmount(ctx, 'abc');
+    assert.ok(pendingMimic.has(55555), 'pending state should remain on invalid input');
+    const reply = lastReply(ctx);
+    assert.ok(reply.includes('valid'), 'should prompt for valid number');
+    pendingMimic.delete(55555);
+  });
+
+  sw.mimicInvestor = origMimic;
+}
+
+// ─── 11. CANCEL COMMAND ──────────────────────────────────────────────────────
 
 async function runCancelTests() {
   section('/cancel command');
 
-  const { pendingExperiment } = require('../dist/commands/experiment');
-
-  await test('/cancel clears pending experiment and confirms', async () => {
+  await test('/cancel clears pending experiment and mimic states', async () => {
     const src = fs.readFileSync('dist/commands/index.js', 'utf8');
     assert.ok(src.includes("bot.command('cancel'"), '/cancel should be registered');
-    assert.ok(src.includes('pendingExperiment.delete'), '/cancel should clear pending state');
+    assert.ok(src.includes('pendingExperiment.delete'), '/cancel should clear pending experiment');
+    assert.ok(src.includes('pendingMimic.delete'), '/cancel should clear pending mimic');
   });
 }
 
@@ -622,6 +681,7 @@ async function main() {
   await runNLPTests();
   await runValidationTests();
   await runCommandParsingTests();
+  await runMimicTests();
   await runCancelTests();
 
   // Cleanup
