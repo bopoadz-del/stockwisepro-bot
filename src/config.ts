@@ -21,6 +21,14 @@ if (!config.telegramToken) {
   throw new Error('TELEGRAM_BOT_TOKEN is required');
 }
 
+// Basic Telegram bot token format validation: digits:alphanumeric
+if (!/^\d+:[A-Za-z0-9_-]+$/.test(config.telegramToken)) {
+  throw new Error(
+    'TELEGRAM_BOT_TOKEN appears to be malformed. Expected format: <numbers>:<alphanumeric-string>. ' +
+    'Please verify your token from @BotFather.'
+  );
+}
+
 export const DB_PATH = path.resolve(config.dataDir, 'bot_analytics.db');
 
 if (isNaN(config.healthPort) || config.healthPort < 1 || config.healthPort > 65535) {

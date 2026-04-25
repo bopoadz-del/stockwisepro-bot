@@ -64,11 +64,23 @@ async function main() {
       }
     });
     healthServer.listen(config.healthPort, () => {
-      logger.info('Health check server listening on port 3000');
+      logger.info(`Health check server listening on port ${config.healthPort}`);
     });
 
     logger.info('Step 8: Launching bot...');
-    await bot.launch();
+    try {
+      await bot.launch();
+    } catch (launchErr) {
+      const msg = launchErr instanceof Error ? launchErr.message : String(launchErr);
+      if (msg.includes('401') || msg.includes('Unauthorized')) {
+        throw new Error(
+          'Telegram refused the bot token (401 Unauthorized). ' +
+          'The token may be invalid, revoked, or expired. ' +
+          'Please regenerate a new token via @BotFather and update the TELEGRAM_BOT_TOKEN environment variable.'
+        );
+      }
+      throw launchErr;
+    }
     logger.info('Step 8: Bot is polling Telegram successfully');
 
     process.once('SIGINT', () => {
