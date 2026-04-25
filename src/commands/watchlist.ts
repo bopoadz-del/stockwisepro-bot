@@ -68,7 +68,7 @@ export async function watchlistRemoveCommand(ctx: Context) {
   // Find the watchlist item by ticker so we can remove it by ID
   const { data: listData, error: listError } = await stockwise.getWatchlist(telegramId);
   if (listError || !Array.isArray(listData)) {
-    await ctx.reply(`❌ Could not load watchlist: ${JSON.stringify(listError)}`);
+    await ctx.reply(userSafeError());
     return;
   }
 

@@ -29,8 +29,12 @@ export async function simulateCommand(ctx: Context) {
 
   await ctx.replyWithChatAction('typing');
 
+  const t0 = Date.now();
   const hist = await getHistoricalPrices(ticker, '2y');
+  const apiDuration = Date.now() - t0;
+
   if (hist.error || !hist.data || hist.data.length < 30) {
+    Object.assign(ctx.state, { ticker, apiDuration, success: false });
     await ctx.reply(userSafeError());
     return;
   }
@@ -43,7 +47,7 @@ export async function simulateCommand(ctx: Context) {
 
   const result = simulateGBM(currentPrice, mu, sigma, days / 252, days, simulations);
 
-  Object.assign(ctx.state, { ticker, apiDuration: 0, success: true });
+  Object.assign(ctx.state, { ticker, apiDuration, success: true });
 
   const formatPrice = (p: number) => `$${p.toFixed(2)}`;
   const formatPct = (p: number) => `${(p * 100).toFixed(1)}%`;

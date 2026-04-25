@@ -22,20 +22,25 @@ export async function portfolioCommand(ctx: Context) {
     return;
   }
 
+  const fmtPrice = (n: unknown) =>
+    typeof n === 'number' && isFinite(n)
+      ? `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : '?';
+
   const holdings = portfolio.holdings.map((h: any) => {
-    const t = h.ticker || h.stock?.ticker;
-    const shares = h.shares || h.quantity || 0;
-    const value = h.currentValue || (h.shares * (h.currentPrice || h.stock?.price));
-    return `• *${t}*: ${shares} shares — $${value || '?'}`;
+    const t = h.ticker || h.stock?.ticker || '?';
+    const shares = h.shares ?? h.quantity ?? 0;
+    const rawValue = h.currentValue ?? (shares * (h.currentPrice ?? h.stock?.price));
+    return `• *${t}*: ${shares} shares — ${fmtPrice(rawValue)}`;
   }).join('\n');
 
-  const totalValue = portfolio.totalValue || portfolio.currentValue || '?';
-  const pnl = portfolio.pnl || portfolio.profitLoss;
+  const rawTotal = portfolio.totalValue ?? portfolio.currentValue;
+  const pnl = portfolio.pnl ?? portfolio.profitLoss;
 
-  let msg = `💼 *Your Portfolio*\n\n${holdings}\n\n*Total Value:* $${totalValue}`;
-  if (pnl !== undefined) {
+  let msg = `💼 *Your Portfolio*\n\n${holdings}\n\n*Total Value:* ${fmtPrice(rawTotal)}`;
+  if (typeof pnl === 'number' && isFinite(pnl)) {
     const sign = pnl >= 0 ? '+' : '';
-    msg += `\n*P&L:* ${sign}$${pnl}`;
+    msg += `\n*P&L:* ${sign}${fmtPrice(pnl)}`;
   }
 
   await ctx.replyWithMarkdown(msg);

@@ -77,11 +77,35 @@ export async function scoreCommand(ctx: Context) {
   const weights = getUserWeights(telegramId);
   const { score: weightedScore, breakdown } = computeWeightedScore(metrics, weights as any);
 
+  const METRIC_LABELS: Record<string, string> = {
+    pe_ratio: 'P/E Ratio',
+    pb_ratio: 'P/B Ratio',
+    ps_ratio: 'P/S Ratio',
+    roe: 'Return on Equity',
+    roa: 'Return on Assets',
+    margin: 'Profit Margin',
+    revenue_growth: 'Revenue Growth',
+    earnings_growth: 'Earnings Growth',
+    debt_to_equity: 'Debt/Equity',
+    current_ratio: 'Current Ratio',
+    rsi: 'RSI',
+    price_change: 'Price Change',
+    valuation: 'Valuation Score',
+    profitability: 'Profitability',
+    growth: 'Growth Score',
+    financial_health: 'Financial Health',
+    momentum: 'Momentum',
+  };
+
   let metricsText = '';
   if (Object.keys(metrics).length > 0) {
     metricsText = Object.entries(metrics)
       .slice(0, 6)
-      .map(([k, v]) => `${k}: ${v}`)
+      .map(([k, v]) => {
+        const label = METRIC_LABELS[k] || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const val = typeof v === 'number' ? (Number.isInteger(v) ? v : (v as number).toFixed(2)) : v;
+        return `  ${label}: ${val}`;
+      })
       .join('\n');
   }
 

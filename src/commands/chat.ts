@@ -12,7 +12,7 @@ import { alertCommand } from './alert';
 import { helpCommand } from './help';
 import { simulateCommand } from './simulate';
 import { metricsCommand } from './metrics';
-import { runExperimentFromText } from './experiment';
+import { runExperimentFromText, pendingExperiment } from './experiment';
 
 // Common English words that could be mistaken for tickers
 const COMMON_WORDS = new Set([
@@ -103,10 +103,17 @@ export async function handleChatMessage(ctx: Context) {
   const tickers = extractTickerCandidates(text);
   const firstTicker = tickers[0];
 
-  // 1. Experiment trigger (existing behavior)
+  // 1. Experiment trigger — either via /experiment flow or legacy "exp:" prefix
+  const telegramId = ctx.from?.id || 0;
   if (!text.startsWith('/') && lower.startsWith('exp:')) {
     recordIntent(ctx, 'experiment', { command: 'experiment' });
     await runExperimentFromText(ctx, text.slice(4).trim());
+    return;
+  }
+  if (!text.startsWith('/') && pendingExperiment.has(telegramId)) {
+    pendingExperiment.delete(telegramId);
+    recordIntent(ctx, 'experiment', { command: 'experiment' });
+    await runExperimentFromText(ctx, text.trim());
     return;
   }
 
