@@ -5,6 +5,10 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "test": "npm run build && node test/smoke.js && node test/learning.test.js && node test/e2e.test.js",
+    "test:smoke": "node test/smoke.js",
+    "test:learning": "node test/learning.test.js",
+    "test:e2e": "npm run build && node test/e2e.test.js",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "docker:build": "docker build -t stockwisepro-bot .",

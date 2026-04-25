@@ -38,7 +38,8 @@ function computeWeightedScore(
     if (value !== undefined) {
       totalScore += value * weight;
       totalWeight += weight;
-      breakdown.push(`${category.replace(/_/g, ' ')}: ${value} × ${weight}`);
+      const displayValue = Number.isInteger(value) ? value : value.toFixed(2);
+      breakdown.push(`${category.replace(/_/g, ' ')}: ${displayValue} × ${weight}`);
     }
   }
 

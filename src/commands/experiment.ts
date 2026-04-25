@@ -16,6 +16,20 @@ export async function experimentCommand(ctx: Context) {
   );
 }
 
+function formatResultObject(value: unknown): string {
+  if (typeof value !== 'object' || value === null) return String(value);
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([k]) => !['id', 'createdAt', 'updatedAt', 'telegramId'].includes(k))
+    .map(([k, v]) => {
+      const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const formatted = typeof v === 'number'
+        ? (Number.isInteger(v) ? v : (v as number).toFixed(4))
+        : v;
+      return `${label}: ${formatted}`;
+    });
+  return entries.length > 0 ? entries.join('\n') : 'No result data returned.';
+}
+
 export async function runExperimentFromText(ctx: Context, text: string) {
   const telegramId = ctx.from?.id || 0;
   await ctx.replyWithChatAction('typing');
@@ -35,9 +49,9 @@ export async function runExperimentFromText(ctx: Context, text: string) {
   } else if (typeof data?.backtest === 'string') {
     resultText = data.backtest;
   } else if (data?.result !== undefined) {
-    resultText = JSON.stringify(data.result, null, 2);
+    resultText = formatResultObject(data.result);
   } else if (data?.backtest !== undefined) {
-    resultText = JSON.stringify(data.backtest, null, 2);
+    resultText = formatResultObject(data.backtest);
   } else if (data && typeof data === 'object') {
     const entries = Object.entries(data as Record<string, unknown>)
       .filter(([k]) => !['id', 'createdAt', 'updatedAt', 'telegramId'].includes(k))
