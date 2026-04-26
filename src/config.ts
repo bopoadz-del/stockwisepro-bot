@@ -17,6 +17,8 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   databentoApiKey: process.env.DATABENTO_API_KEY || '',
   redisUrl: process.env.REDIS_URL || '',
+  upstashRedisRestUrl: process.env.UPSTASH_REDIS_REST_URL || '',
+  upstashRedisRestToken: process.env.UPSTASH_REDIS_REST_TOKEN || '',
 };
 
 if (!config.telegramToken) {
