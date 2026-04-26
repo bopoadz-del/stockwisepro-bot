@@ -1,6 +1,7 @@
 import YahooFinance from 'yahoo-finance2';
 import { getHistoricalPrices } from '../api/yahoo';
 import { logger } from '../utils/logger';
+import { setQuote, setFundamentals, getQuote, getFundamentals } from './cache';
 
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
@@ -91,33 +92,69 @@ function calculateRSI(prices: number[]): number | undefined {
 }
 
 export async function computeLocalScore(ticker: string): Promise<ScoreResult | null> {
+  const upperTicker = ticker.toUpperCase();
+
   try {
-    const summary = await yf.quoteSummary(ticker.toUpperCase(), {
-      modules: ['financialData', 'defaultKeyStatistics', 'summaryDetail'],
-    });
+    // 1. Try cache first
+    const cachedQuote = await getQuote(upperTicker);
+    const cachedFundamentals = await getFundamentals(upperTicker);
 
-    const price = toNum(summary.financialData?.currentPrice ?? summary.summaryDetail?.previousClose) ?? 0;
-    const pe = toNum(summary.summaryDetail?.trailingPE);
-    const pb = toNum(summary.defaultKeyStatistics?.priceToBook);
-    const roe = toNum(summary.defaultKeyStatistics?.returnOnEquity);
-    const margin = toNum(summary.financialData?.profitMargins);
-    const revenueGrowth = toNum(summary.financialData?.revenueGrowth);
-    const earningsGrowth = toNum(summary.financialData?.earningsGrowth);
-    const debtToEquity = toNum(summary.financialData?.debtToEquity);
-    const currentRatio = toNum(summary.financialData?.currentRatio);
+    let price = cachedQuote?.price ?? 0;
+    let pe = cachedFundamentals?.pe;
+    let pb = cachedFundamentals?.pb;
+    let roe = cachedFundamentals?.roe;
+    let margin = cachedFundamentals?.margin;
+    let revenueGrowth = cachedFundamentals?.revenueGrowth;
+    let earningsGrowth = cachedFundamentals?.earningsGrowth;
+    let debtToEquity = cachedFundamentals?.debtToEquity;
+    let currentRatio = cachedFundamentals?.currentRatio;
+    let rsi = cachedFundamentals?.rsi;
+    let priceChange6m = cachedFundamentals?.priceChange6m;
 
-    // Fetch historical prices for momentum & RSI
-    const hist = await getHistoricalPrices(ticker, '1y');
-    let rsi: number | undefined;
-    let priceChange6m: number | undefined;
+    const hasFundamentals = pe !== undefined || pb !== undefined || margin !== undefined;
 
-    if (hist.data && hist.data.length >= 130) {
-      const prices = hist.data.map(d => d.close);
-      rsi = calculateRSI(prices);
-      const sixMonthsAgo = prices[prices.length - 130];
-      const latest = prices[prices.length - 1];
-      priceChange6m = ((latest - sixMonthsAgo) / sixMonthsAgo) * 100;
+    // 2. Cache miss → fetch from Yahoo Finance
+    if (!hasFundamentals || price === 0) {
+      const summary = await yf.quoteSummary(upperTicker, {
+        modules: ['financialData', 'defaultKeyStatistics', 'summaryDetail'],
+      });
+
+      price = toNum(summary.financialData?.currentPrice ?? summary.summaryDetail?.previousClose) ?? price;
+      pe = pe ?? toNum(summary.summaryDetail?.trailingPE);
+      pb = pb ?? toNum(summary.defaultKeyStatistics?.priceToBook);
+      roe = roe ?? toNum(summary.defaultKeyStatistics?.returnOnEquity);
+      margin = margin ?? toNum(summary.financialData?.profitMargins);
+      revenueGrowth = revenueGrowth ?? toNum(summary.financialData?.revenueGrowth);
+      earningsGrowth = earningsGrowth ?? toNum(summary.financialData?.earningsGrowth);
+      debtToEquity = debtToEquity ?? toNum(summary.financialData?.debtToEquity);
+      currentRatio = currentRatio ?? toNum(summary.financialData?.currentRatio);
+
+      // Write quote to cache
+      if (price > 0) {
+        await setQuote({ ticker: upperTicker, price, timestamp: Date.now() });
+      }
     }
+
+    // 3. Fetch historical prices for momentum & RSI (if not cached)
+    if (rsi === undefined || priceChange6m === undefined) {
+      const hist = await getHistoricalPrices(ticker, '1y');
+      if (hist.data && hist.data.length >= 130) {
+        const prices = hist.data.map(d => d.close);
+        rsi = calculateRSI(prices);
+        const sixMonthsAgo = prices[prices.length - 130];
+        const latest = prices[prices.length - 1];
+        priceChange6m = ((latest - sixMonthsAgo) / sixMonthsAgo) * 100;
+      }
+    }
+
+    // 4. Write fundamentals to cache
+    await setFundamentals(upperTicker, {
+      ticker: upperTicker,
+      pe, pb, roe, margin,
+      revenueGrowth, earningsGrowth,
+      debtToEquity, currentRatio,
+      rsi, priceChange6m,
+    });
 
     const metrics: StockMetrics = {
       price: Number.isFinite(price) ? price : 0,

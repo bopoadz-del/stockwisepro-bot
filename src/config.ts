@@ -15,6 +15,8 @@ export const config = {
   stockwiseBotPassword: process.env.STOCKWISE_BOT_USER_PASSWORD || '',
   healthPort: parseInt(process.env.HEALTH_PORT || '3000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
+  databentoApiKey: process.env.DATABENTO_API_KEY || '',
+  redisUrl: process.env.REDIS_URL || '',
 };
 
 if (!config.telegramToken) {

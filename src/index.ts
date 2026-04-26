@@ -3,6 +3,8 @@ import http from 'http';
 import { config } from './config';
 import { initDb } from './db';
 import { stockwise } from './api/stockwise';
+import { databento } from './api/databento';
+import { isCacheAvailable } from './services/cache';
 import { logger } from './utils/logger';
 import { rateLimitMiddleware } from './middleware/rateLimit';
 import { analyticsMiddleware } from './middleware/analytics';
@@ -25,6 +27,19 @@ async function main() {
     logger.info('Step 2: Authenticating with StockWisePro API...');
     await stockwise.authenticateAsBot();
     logger.info('Step 2: API auth OK (or skipped)');
+
+    logger.info('Step 2b: Initializing market data adapters...');
+    if (databento.enabled) {
+      logger.info('Databento adapter enabled');
+    } else {
+      logger.info('Databento adapter disabled (no DATABENTO_API_KEY)');
+    }
+    if (isCacheAvailable()) {
+      logger.info('Redis cache connected');
+    } else {
+      logger.info('Redis cache unavailable (using in-memory fallback)');
+    }
+    logger.info('Step 2b: Market data adapters OK');
 
     logger.info('Step 3: Creating Telegraf bot...');
     const bot = new Telegraf<BotContext>(config.telegramToken);
