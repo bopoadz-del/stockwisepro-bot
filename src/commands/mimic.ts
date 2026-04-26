@@ -1,8 +1,8 @@
 import { Context, Markup } from 'telegraf';
-import { stockwise } from '../api/stockwise';
-import { logEvent } from '../db';
-import { logger } from '../utils/logger';
 import { BotContext } from '../types';
+import { stockwise } from '../api/stockwise';
+import { userSafeError } from '../utils/logger';
+import { logger } from '../utils/logger';
 
 const INVESTORS = [
   { id: 'buffett', name: 'Warren Buffett', style: 'Value' },
@@ -13,8 +13,12 @@ const INVESTORS = [
   { id: 'templeton', name: 'John Templeton', style: 'Contrarian' },
 ];
 
+// Tracks users awaiting investment amount after selecting an investor
+export const pendingMimic = new Map<number, { investorId: string }>();
+
 export async function mimicCommand(ctx: Context) {
   const telegramId = ctx.from?.id || 0;
+  pendingMimic.delete(telegramId);
 
   const keyboard = INVESTORS.map(inv => [
     Markup.button.callback(`${inv.name} (${inv.style})`, `mimic_select:${inv.id}`)
@@ -25,7 +29,7 @@ export async function mimicCommand(ctx: Context) {
     Markup.inlineKeyboard(keyboard)
   );
 
-  logEvent({ telegramId, command: '/mimic', success: true });
+  Object.assign(ctx.state, { success: true });
 }
 
 export async function handleMimicCallback(ctx: BotContext) {
@@ -41,69 +45,59 @@ export async function handleMimicCallback(ctx: BotContext) {
 
   await ctx.answerCbQuery(`Selected ${investor.name}`);
 
-  // Store in session
-  if (!ctx.session) ctx.session = {};
-  ctx.session.awaitingMimicAmount = investorId;
+  pendingMimic.set(telegramId, { investorId });
 
   await ctx.replyWithMarkdown(
-    `✅ *${investor.name}* selected.\n\nHow much do you want to invest?\n\nReply with an amount (e.g. 10000 or 5000.50). Use /cancel to abort.`
+    `✅ *${investor.name}* selected.\n\n` +
+    `How much do you want to invest?\n\n` +
+    `Reply with an amount (e.g. \`10000\` or \`5000.50\`). Use /cancel to abort.`
   );
-
-  logEvent({ telegramId, command: '/mimic_select', ticker: investorId, success: true });
 }
 
-export async function handleMimicAmount(ctx: BotContext, text: string) {
-  const investorId = ctx.session?.awaitingMimicAmount;
+export async function runMimicFromAmount(ctx: Context, amountText: string) {
   const telegramId = ctx.from?.id || 0;
+  const pending = pendingMimic.get(telegramId);
+  if (!pending) return;
 
-  if (!investorId) return;
+  const amount = parseFloat(amountText.replace(/[$,]/g, ''));
+  if (!Number.isFinite(amount) || amount <= 0) {
+    await ctx.reply('❌ Please enter a valid positive number. Try again or /cancel to abort.');
+    return;
+  }
 
-  // Clear session immediately to prevent double-processing
-  delete ctx.session?.awaitingMimicAmount;
-
-  const investor = INVESTORS.find(i => i.id === investorId);
+  pendingMimic.delete(telegramId);
+  const investor = INVESTORS.find(i => i.id === pending.investorId);
   if (!investor) {
-    await ctx.reply('❌ Investor session expired. Please start over with /mimic');
-    return;
-  }
-
-  if (text.toLowerCase() === '/cancel') {
-    await ctx.reply('❌ Mimic cancelled.');
-    return;
-  }
-
-  // Parse amount: remove commas, spaces, $ signs
-  const cleanText = text.replace(/[$,\s]/g, '');
-  const amount = parseFloat(cleanText);
-
-  if (isNaN(amount) || amount <= 0) {
-    await ctx.reply('❌ Invalid amount. Please enter a valid number like 10000 or 5000.50. Use /mimic to try again.');
+    await ctx.reply(userSafeError());
     return;
   }
 
   await ctx.replyWithChatAction('typing');
+  const { data, duration, error } = await stockwise.mimicInvestor(pending.investorId, amount, telegramId);
+  Object.assign(ctx.state, { ticker: pending.investorId, apiDuration: duration, success: !error });
+  if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
-  const { data, duration, error } = await stockwise.mimicInvestor(investorId, amount);
-  logEvent({ telegramId, command: '/mimic_exec', ticker: investorId, apiResponseTimeMs: duration, success: !error });
-
-  if (error) {
-    await ctx.reply(`❌ Mimic failed: ${JSON.stringify(error)}`);
+  if (error || !data) {
+    await ctx.reply(userSafeError());
     return;
   }
 
   const holdings = data?.holdings || [];
   if (holdings.length === 0) {
     await ctx.replyWithMarkdown(
-      `✅ *Now mimicking ${investor.name}*\n\nNo specific holdings returned. Use /portfolio to view details.`
+      `✅ *Mimicking ${investor.name}*\n\n` +
+      `💵 *Investment:* $${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}\n\n` +
+      `No specific holdings returned. Use /portfolio to view details.`
     );
     return;
   }
 
-  // Fetch prices for all holdings in parallel
+  // Fetch prices for all holdings in parallel to calculate share counts
   const pricePromises = holdings.map(async (h: any) => {
     const ticker = h.ticker || h.symbol;
+    if (!ticker) return { ticker, price: null };
     try {
-      const res = await stockwise.getStock(ticker);
+      const res = await stockwise.getStock(ticker, telegramId);
       const price = res.data?.price ?? res.data?.currentPrice ?? res.data?.regularMarketPrice ?? null;
       return { ticker, price: price ? parseFloat(price) : null };
     } catch (e) {
@@ -118,8 +112,8 @@ export async function handleMimicAmount(ctx: BotContext, text: string) {
   let totalAllocated = 0;
   const lines = holdings.map((h: any) => {
     const ticker = h.ticker || h.symbol || '?';
-    const percentage = parseFloat(h.percentage ?? h.weight ?? 0);
-    const dollarAmount = amount * (percentage / 100);
+    const pct = parseFloat(h.percentage ?? h.weight ?? 0);
+    const dollarAmount = amount * (pct / 100);
     totalAllocated += dollarAmount;
 
     const price = priceMap.get(ticker);
@@ -129,13 +123,19 @@ export async function handleMimicAmount(ctx: BotContext, text: string) {
       const sharesStr = shares >= 1 ? shares.toFixed(2) : shares.toFixed(4);
       detail = `${sharesStr} shares @ $${price.toFixed(2)}`;
     } else {
-      detail = `$${dollarAmount.toFixed(2)} allocation`;
+      detail = `$${dollarAmount.toFixed(2)}`;
     }
 
-    return `• *${ticker}* — ${percentage}% → ${detail}`;
+    const pctStr = typeof pct === 'number' ? `${pct.toFixed(1)}%` : `${pct}`;
+    return `• *${ticker}* — ${pctStr} → ${detail}`;
   });
 
-  const msg = `✅ *${investor.name}* Portfolio ($${amount.toLocaleString()})\n\n${lines.join('\n')}\n\n*Total Allocated:* ~$${totalAllocated.toFixed(2)}`;
+  const msg =
+    `✅ *Mimicking ${investor.name}*\n\n` +
+    `💵 *Investment:* $${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}\n\n` +
+    `*Suggested allocation:*\n${lines.join('\n')}\n\n` +
+    `*Total Allocated:* ~$${totalAllocated.toFixed(2)}\n\n` +
+    `_Use /portfolio to view full details._`;
 
   await ctx.replyWithMarkdown(msg);
 }

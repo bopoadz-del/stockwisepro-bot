@@ -1,16 +1,19 @@
 import { Context } from 'telegraf';
+import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
-import { logEvent } from '../db';
+import { userSafeError } from '../utils/logger';
+import { validateTicker } from '../utils/validation';
 
 export async function watchlistCommand(ctx: Context) {
   const telegramId = ctx.from?.id || 0;
   await ctx.replyWithChatAction('typing');
 
-  const { data, duration, error } = await stockwise.getWatchlist();
-  logEvent({ telegramId, command: '/watchlist', apiResponseTimeMs: duration, success: !error });
+  const { data, duration, error } = await stockwise.getWatchlist(telegramId);
+  (ctx as BotContext).state = { apiDuration: duration, success: !error };
+  if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error) {
-    await ctx.reply(`❌ Error: ${JSON.stringify(error)}`);
+    await ctx.reply(userSafeError());
     return;
   }
 
@@ -34,17 +37,18 @@ export async function watchlistAddCommand(ctx: Context) {
   const ticker = text.replace(/^(\/watchlist_add|add)\s+/i, '').trim().toUpperCase();
   const telegramId = ctx.from?.id || 0;
 
-  if (!ticker) {
+  if (!ticker || !validateTicker(ticker)) {
     await ctx.reply('Usage: /watchlist_add <ticker>');
     return;
   }
 
   await ctx.replyWithChatAction('typing');
-  const { data, duration, error } = await stockwise.addToWatchlist(ticker);
-  logEvent({ telegramId, command: '/watchlist_add', ticker, apiResponseTimeMs: duration, success: !error });
+  const { data, duration, error } = await stockwise.addToWatchlist(ticker, telegramId);
+  Object.assign(ctx.state, { ticker, apiDuration: duration, success: !error });
+  if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error) {
-    await ctx.reply(`❌ Could not add ${ticker}: ${JSON.stringify(error)}`);
+    await ctx.reply(userSafeError());
     return;
   }
 
@@ -53,22 +57,39 @@ export async function watchlistAddCommand(ctx: Context) {
 
 export async function watchlistRemoveCommand(ctx: Context) {
   const text = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
-  const idStr = text.replace(/^(\/watchlist_remove|remove)\s+/i, '').trim();
+  const ticker = text.replace(/^(\/watchlist_remove|remove)\s+/i, '').trim().toUpperCase();
   const telegramId = ctx.from?.id || 0;
 
-  const id = parseInt(idStr, 10);
-  if (isNaN(id)) {
-    await ctx.reply('Usage: /watchlist_remove <id>. Use /watchlist to see IDs.');
+  if (!ticker || !validateTicker(ticker)) {
+    await ctx.reply('Usage: /watchlist_remove <ticker>\nExample: /watchlist_remove AAPL');
     return;
   }
 
-  const { data, duration, error } = await stockwise.removeFromWatchlist(id);
-  logEvent({ telegramId, command: '/watchlist_remove', apiResponseTimeMs: duration, success: !error });
+  // Find the watchlist item by ticker so we can remove it by ID
+  const { data: listData, error: listError } = await stockwise.getWatchlist(telegramId);
+  if (listError || !Array.isArray(listData)) {
+    await ctx.reply(userSafeError());
+    return;
+  }
+
+  const item = listData.find((w: any) => {
+    const t = (w.ticker || w.stock?.ticker || '').toUpperCase();
+    return t === ticker;
+  });
+
+  if (!item) {
+    await ctx.reply(`❌ *${ticker}* is not in your watchlist.`, { parse_mode: 'Markdown' });
+    return;
+  }
+
+  const { data, duration, error } = await stockwise.removeFromWatchlist(item.id, telegramId);
+  Object.assign(ctx.state, { ticker, apiDuration: duration, success: !error });
+  if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error) {
-    await ctx.reply(`❌ Could not remove: ${JSON.stringify(error)}`);
+    await ctx.reply(userSafeError());
     return;
   }
 
-  await ctx.reply('✅ Removed from watchlist.');
+  await ctx.reply(`✅ Removed *${ticker}* from your watchlist.`, { parse_mode: 'Markdown' });
 }

@@ -1,6 +1,7 @@
 import { Context } from 'telegraf';
 import { config } from '../config';
-import { getAnalyticsSummary, exportAnalyticsCsv } from '../db';
+import { getAnalyticsSummary, exportAnalyticsCsv, exportWeightsCsv } from '../db';
+import { userSafeError } from '../utils/logger';
 import fs from 'fs';
 import path from 'path';
 
@@ -49,5 +50,41 @@ export async function adminExportCommand(ctx: Context) {
   const filePath = path.join(config.dataDir, `analytics_export_${Date.now()}.csv`);
   fs.writeFileSync(filePath, csv);
 
-  await ctx.replyWithDocument({ source: filePath, filename: 'stockwise_analytics.csv' });
+  try {
+    await ctx.replyWithDocument({ source: filePath, filename: 'stockwise_analytics.csv' });
+  } finally {
+    try {
+      fs.unlinkSync(filePath);
+    } catch {
+      // ignore cleanup errors
+    }
+  }
+}
+
+export async function adminExportWeightsCommand(ctx: Context) {
+  if (!isAdmin(ctx)) {
+    await ctx.reply('⛔ Admin only.');
+    return;
+  }
+
+  await ctx.replyWithChatAction('upload_document');
+  const csv = exportWeightsCsv();
+
+  if (!csv) {
+    await ctx.reply('No weights data to export.');
+    return;
+  }
+
+  const filePath = path.join(config.dataDir, `weights_export_${Date.now()}.csv`);
+  fs.writeFileSync(filePath, csv);
+
+  try {
+    await ctx.replyWithDocument({ source: filePath, filename: 'stockwise_weights.csv' });
+  } finally {
+    try {
+      fs.unlinkSync(filePath);
+    } catch {
+      // ignore cleanup errors
+    }
+  }
 }

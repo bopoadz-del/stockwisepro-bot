@@ -1,11 +1,13 @@
 import { Context } from 'telegraf';
 
-export interface SessionData {
-  awaitingMimicAmount?: string;
-}
-
 export interface BotContext extends Context {
-  session?: SessionData;
+  state: {
+    eventId?: number;
+    ticker?: string;
+    apiDuration?: number;
+    success?: boolean;
+    errorMessage?: string;
+  };
 }
 
 export interface Stock {

@@ -7,7 +7,7 @@ services:
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: STOCKWISE_API_BASE_URL
-        value: https://your-api.onrender.com
+        sync: false
       - key: STOCKWISE_API_KEY
         sync: false
       - key: BOT_ADMIN_TELEGRAM_IDS
@@ -19,6 +19,8 @@ services:
       - key: STOCKWISE_BOT_USER_EMAIL
         sync: false
       - key: STOCKWISE_BOT_USER_PASSWORD
+        sync: false
+      - key: BRAVE_API_KEY
         sync: false
     disk:
       name: bot-data

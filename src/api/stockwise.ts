@@ -13,7 +13,7 @@ class StockWiseApi {
   constructor() {
     this.client = axios.create({
       baseURL: config.stockwiseApiBaseUrl,
-      timeout: 60000,
+      timeout: 70000,
       headers: {
         'Content-Type': 'application/json',
         ...(config.stockwiseApiKey ? { 'X-API-Key': config.stockwiseApiKey } : {}),
@@ -48,54 +48,58 @@ class StockWiseApi {
     }
   }
 
-  async searchStocks(query: string) {
-    return this.getWithRetry(`/api/stocks/search?q=${encodeURIComponent(query)}`);
+  async searchStocks(query: string, telegramId?: number) {
+    return this.getWithRetry(`/api/stocks/search?q=${encodeURIComponent(query)}`, telegramId);
   }
 
-  async getStock(ticker: string) {
-    return this.getWithRetry(`/api/stocks/${encodeURIComponent(ticker.toUpperCase())}`);
+  async getStock(ticker: string, telegramId?: number) {
+    return this.getWithRetry(`/api/stocks/${encodeURIComponent(ticker.toUpperCase())}`, telegramId);
   }
 
   async getStocks() {
     return this.getWithRetry('/api/stocks');
   }
 
-  async getWatchlist() {
-    return this.getWithRetry('/api/watchlist');
+  async getWatchlist(telegramId?: number) {
+    return this.getWithRetry('/api/watchlist', telegramId);
   }
 
-  async addToWatchlist(ticker: string) {
-    return this.post('/api/watchlist', { ticker });
+  async addToWatchlist(ticker: string, telegramId?: number) {
+    return this.post('/api/watchlist', { ticker }, telegramId);
   }
 
-  async removeFromWatchlist(id: number) {
-    return this.delete(`/api/watchlist/${id}`);
+  async removeFromWatchlist(id: number, telegramId?: number) {
+    return this.delete(`/api/watchlist/${id}`, telegramId);
   }
 
-  async getPortfolio() {
-    return this.getWithRetry('/api/portfolio');
+  async getPortfolio(telegramId?: number) {
+    return this.getWithRetry('/api/portfolio', telegramId);
   }
 
-  async mimicInvestor(investorId: string, amount?: number) {
-    return this.post('/api/portfolio/mimic', { investorId, amount });
+  async mimicInvestor(investorId: string, amount?: number, telegramId?: number) {
+    return this.post('/api/portfolio/mimic', { investorId, amount }, telegramId);
   }
 
-  async getStockScore(ticker: string) {
-    // If your API has a dedicated scoring endpoint, adjust here
-    // Fallback: fetch stock details and return raw data for bot-side scoring or display
-    return this.getWithRetry(`/api/stocks/${encodeURIComponent(ticker.toUpperCase())}`);
+  async getStockScore(ticker: string, telegramId?: number) {
+    return this.getWithRetry(`/api/stocks/${encodeURIComponent(ticker.toUpperCase())}`, telegramId);
   }
 
-  async runExperiment(formula: string, ticker?: string) {
-    // Adjust endpoint based on your actual Experiment Workspace API
-    return this.post('/api/experiments', { formula, ticker });
+  async runExperiment(formula: string, ticker?: string, telegramId?: number) {
+    return this.post('/api/experiments', { formula, ticker }, telegramId);
   }
 
-  private async getWithRetry(path: string, retries = 2) {
+  private async getWithRetry(path: string, telegramId?: number, retries = 2, maxTotalMs = 90000) {
     const start = Date.now();
+    const headers: Record<string, string> = {};
+    if (telegramId) headers['X-Telegram-User-Id'] = String(telegramId);
+
     for (let attempt = 0; attempt <= retries; attempt++) {
+      if (Date.now() - start > maxTotalMs) {
+        logger.error(`GET ${path} exceeded max total duration`);
+        return { data: null, duration: Date.now() - start, error: 'Request timeout' };
+      }
       try {
-        const res = await this.client.get(path);
+        const res = await this.client.get(path, { headers });
         return { data: res.data, duration: Date.now() - start, error: null };
       } catch (err) {
         const axiosErr = err as AxiosError;
@@ -105,7 +109,7 @@ class StockWiseApi {
 
         if (shouldRetry) {
           logger.warn(`GET ${path} failed (attempt ${attempt + 1}), retrying...`, { error: axiosErr.message });
-          await sleep(3000);
+          await sleep(2000);
           continue;
         }
 
@@ -116,10 +120,12 @@ class StockWiseApi {
     return { data: null, duration: Date.now() - start, error: 'Max retries exceeded' };
   }
 
-  private async post(path: string, body: unknown) {
+  private async post(path: string, body: unknown, telegramId?: number) {
     const start = Date.now();
+    const headers: Record<string, string> = {};
+    if (telegramId) headers['X-Telegram-User-Id'] = String(telegramId);
     try {
-      const res = await this.client.post(path, body);
+      const res = await this.client.post(path, body, { headers });
       return { data: res.data, duration: Date.now() - start, error: null };
     } catch (err) {
       const axiosErr = err as AxiosError;
@@ -128,10 +134,12 @@ class StockWiseApi {
     }
   }
 
-  private async delete(path: string) {
+  private async delete(path: string, telegramId?: number) {
     const start = Date.now();
+    const headers: Record<string, string> = {};
+    if (telegramId) headers['X-Telegram-User-Id'] = String(telegramId);
     try {
-      const res = await this.client.delete(path);
+      const res = await this.client.delete(path, { headers });
       return { data: res.data, duration: Date.now() - start, error: null };
     } catch (err) {
       const axiosErr = err as AxiosError;

@@ -7,13 +7,15 @@ import { searchCommand } from './search';
 import { scoreCommand } from './score';
 import { watchlistCommand, watchlistAddCommand, watchlistRemoveCommand } from './watchlist';
 import { portfolioCommand } from './portfolio';
-import { mimicCommand, handleMimicCallback, handleMimicAmount } from './mimic';
-import { experimentCommand, runExperimentFromText } from './experiment';
+import { mimicCommand, handleMimicCallback, pendingMimic } from './mimic';
+import { experimentCommand, pendingExperiment } from './experiment';
+import { handleChatMessage } from './chat';
 import { alertCommand } from './alert';
-import { adminCommand, adminExportCommand } from './admin';
-import { stockwise } from '../api/stockwise';
-import { yahooSearch } from '../api/yahoo';
-import { logEvent } from '../db';
+import { adminCommand, adminExportCommand, adminExportWeightsCommand } from './admin';
+import { adminLearningCommand, adminExportMissedCommand, handleCorrectIntentCallback } from './learning';
+import { weightsCommand, weightsSetCommand, handleWeightCallback } from './weights';
+import { simulateCommand } from './simulate';
+import { metricsCommand } from './metrics';
 
 export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('start', startCommand);
@@ -27,92 +29,64 @@ export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('portfolio', portfolioCommand);
   bot.command('mimic', mimicCommand);
   bot.command('experiment', experimentCommand);
-  bot.command('alert', alertCommand);
-  bot.command('alerts', alertCommand); // alias
-  bot.command('admin', adminCommand);
-  bot.command('admin_export', adminExportCommand);
-
   bot.command('cancel', async (ctx) => {
-    if (ctx.session?.awaitingMimicAmount) {
-      delete ctx.session.awaitingMimicAmount;
-      await ctx.reply('❌ Cancelled.');
+    const uid = ctx.from?.id;
+    let cancelled = false;
+    if (uid && pendingExperiment.has(uid)) {
+      pendingExperiment.delete(uid);
+      cancelled = true;
+    }
+    if (uid && pendingMimic.has(uid)) {
+      pendingMimic.delete(uid);
+      cancelled = true;
+    }
+    if (cancelled) {
+      await ctx.reply('Cancelled.');
     } else {
       await ctx.reply('Nothing to cancel.');
     }
   });
+  bot.command('alert', alertCommand);
+  bot.command('alerts', alertCommand); // alias
+  bot.command('admin', adminCommand);
+  bot.command('admin_export', adminExportCommand);
+  bot.command('admin_export_weights', adminExportWeightsCommand);
+  bot.command('admin_learning', adminLearningCommand);
+  bot.command('admin_export_misses', adminExportMissedCommand);
+  bot.command('weights', weightsCommand);
+  bot.command('weights_set', weightsSetCommand);
+  bot.command('simulate', simulateCommand);
+  bot.command('metrics', metricsCommand);
 
   // Inline callbacks
   bot.action(/^mimic_select:(.+)$/, handleMimicCallback);
+  bot.action(/^weight:(.+)$/, handleWeightCallback);
+
+  // Intent correction callbacks (learning)
+  bot.action(/^correct_intent:(.+):(\d+)$/, handleCorrectIntentCallback);
 
   // Feedback callbacks
   bot.action(/^feedback:(.+):(.+)$/, async (ctx) => {
     const match = ctx.match as RegExpExecArray;
     const eventId = parseInt(match[1], 10);
     const rating = parseInt(match[2], 10);
-    const { saveFeedback } = await import('../db');
-    saveFeedback(ctx.from?.id || 0, eventId, rating);
+    const telegramId = ctx.from?.id || 0;
+    const { saveFeedback, db } = await import('../db');
+
+    // Verify the event belongs to the user submitting feedback
+    const eventRow = db.prepare('SELECT telegram_id FROM analytics_events WHERE id = ?').get(eventId) as { telegram_id: number } | undefined;
+    if (!eventRow || eventRow.telegram_id !== telegramId) {
+      await ctx.answerCbQuery('⛔ Unable to submit feedback.');
+      return;
+    }
+
+    saveFeedback(telegramId, eventId, rating);
     await ctx.answerCbQuery('Thanks for your feedback!');
     await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
   });
 
-  // General text handler
+  // Chat & natural-language handler
   bot.hears(/.+/, async (ctx) => {
-    const text = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
-    const telegramId = ctx.from?.id || 0;
-
-    // 1. Handle mimic amount input
-    if (ctx.session?.awaitingMimicAmount) {
-      await handleMimicAmount(ctx, text);
-      return;
-    }
-
-    // 2. Skip commands
-    if (text.startsWith('/')) return;
-
-    // 3. Experiment formula detection
-    if (text.includes('=') || text.includes('>') || text.includes('<')) {
-      await runExperimentFromText(ctx, text);
-      return;
-    }
-
-    // 4. Ticker suggestion for company names (e.g., "apple", "google")
-    if (/^[a-zA-Z0-9\s\.\&\-]+$/.test(text) && text.length > 1 && text.length < 40) {
-      await ctx.replyWithChatAction('typing');
-
-      // Try StockWisePro backend first
-      const { data, duration, error } = await stockwise.searchStocks(text);
-      logEvent({ telegramId, command: 'text_search', ticker: text, apiResponseTimeMs: duration, success: !error });
-
-      let stocks = [] as any[];
-      if (!error && data) {
-        stocks = Array.isArray(data) ? data : [data];
-      }
-
-      if (stocks.length > 0) {
-        const lines = stocks.slice(0, 5).map((s: any) => {
-          const price = s.price ? `$${s.price}` : 'Price N/A';
-          return `• *${s.ticker || s.symbol}* — ${s.name || ''} (${price})`;
-        });
-        await ctx.replyWithMarkdown(
-          `🔍 *Did you mean:*\n\n${lines.join('\n')}\n\n_Use /score <ticker> for details._`
-        );
-        return;
-      }
-
-      // Fallback to Yahoo Finance
-      const yahoo = await yahooSearch(text);
-      if (yahoo.data && yahoo.data.length > 0) {
-        const lines = yahoo.data.slice(0, 6).map((q) => {
-          const name = q.longname || q.shortname || '';
-          return `• *${q.symbol}* — ${name} (${q.exchange || 'N/A'})`;
-        });
-        await ctx.replyWithMarkdown(
-          `🔍 *Did you mean:*\n\n${lines.join('\n')}\n\n_Use /score <ticker> for details._`
-        );
-        return;
-      }
-
-      await ctx.reply(`No results found for "${text}". Try /search <name> or a ticker like AAPL.`);
-    }
+    await handleChatMessage(ctx);
   });
 }

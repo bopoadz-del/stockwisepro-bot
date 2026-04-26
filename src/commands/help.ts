@@ -7,11 +7,13 @@ export async function helpCommand(ctx: Context) {
 *Research*
 /search <ticker> — Search stocks
 /score <ticker> — AI scoring & metrics
+/simulate <ticker> <days> — Monte Carlo price simulation
+/metrics <ticker> — Risk stats (vol, Sharpe, VaR, drawdown)
 
 *Portfolio*
 /watchlist — View watchlist
 /watchlist_add <ticker> — Add stock
-/watchlist_remove <id> — Remove stock
+/watchlist_remove <ticker> — Remove stock
 /portfolio — View your portfolio
 /mimic — Copy investor strategy
 

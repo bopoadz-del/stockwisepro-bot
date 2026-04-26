@@ -1,8 +1,10 @@
 import { Context } from 'telegraf';
+import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
 import { brave } from '../api/brave';
 import { yahooSearch } from '../api/yahoo';
-import { logEvent } from '../db';
+import { userSafeError } from '../utils/logger';
+
 
 export async function searchCommand(ctx: Context) {
   const text = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
@@ -17,8 +19,9 @@ export async function searchCommand(ctx: Context) {
   await ctx.replyWithChatAction('typing');
 
   // 1. Try StockWisePro backend first
-  const { data, duration, error } = await stockwise.searchStocks(query);
-  logEvent({ telegramId, command: '/search', ticker: query, apiResponseTimeMs: duration, success: !error });
+  const { data, duration, error } = await stockwise.searchStocks(query, telegramId);
+  Object.assign(ctx.state, { ticker: query, apiDuration: duration, success: !error });
+  if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   let stocks = [] as any[];
   if (!error && data) {
@@ -37,10 +40,9 @@ export async function searchCommand(ctx: Context) {
   // 2. Fallback to Yahoo Finance fuzzy search
   await ctx.replyWithChatAction('typing');
   const yahoo = await yahooSearch(query);
-  logEvent({ telegramId, command: '/search_yahoo', ticker: query, apiResponseTimeMs: duration, success: !yahoo.error });
 
   if (yahoo.data && yahoo.data.length > 0) {
-    const lines = yahoo.data.slice(0, 6).map((q) => {
+    const lines = yahoo.data.slice(0, 6).map((q: any) => {
       const name = q.longname || q.shortname || '';
       return `• *${q.symbol}* — ${name} (${q.exchange || 'N/A'})`;
     });
@@ -51,7 +53,6 @@ export async function searchCommand(ctx: Context) {
   // 3. Final fallback to Brave web search
   await ctx.replyWithChatAction('typing');
   const braveRes = await brave.webSearch(`${query} stock ticker`, 5);
-  logEvent({ telegramId, command: '/search_brave', ticker: query, apiResponseTimeMs: braveRes.duration, success: !braveRes.error });
 
   if (!braveRes.error && braveRes.data.length > 0) {
     const lines = braveRes.data.slice(0, 5).map((s: any, i: number) => {
@@ -61,5 +62,5 @@ export async function searchCommand(ctx: Context) {
     return;
   }
 
-  await ctx.reply('No stocks or web results found for that query. Try a different name or ticker.');
+  await ctx.reply(userSafeError());
 }
