@@ -1,7 +1,7 @@
 import { Context, Markup } from 'telegraf';
 import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
-import { computeLocalScore } from '../services/scoring';
+import { computeLocalScore, ScoreResult } from '../services/scoring';
 import { getUserWeights } from '../db';
 import { userSafeError } from '../utils/logger';
 import { validateTicker } from '../utils/validation';
@@ -58,15 +58,16 @@ export async function scoreCommand(ctx: Context) {
   }
 
   // 2. Fallback to local Yahoo-based scoring if API fails
+  let localResult: ScoreResult | null = null;
   if (!scoreData) {
     const localStart = Date.now();
-    const local = await computeLocalScore(ticker);
-    if (local) {
+    localResult = await computeLocalScore(ticker);
+    if (localResult) {
       scoreData = {
-        score: local.score,
-        price: local.price,
-        metrics: local.metrics as unknown as Record<string, unknown>,
-        breakdown: local.breakdown,
+        score: localResult.score,
+        price: localResult.price,
+        metrics: localResult.metrics as unknown as Record<string, unknown>,
+        breakdown: localResult.breakdown,
       };
     }
   }
@@ -120,6 +121,15 @@ export async function scoreCommand(ctx: Context) {
     .filter(Boolean)
     .join('\n');
 
+  // Build fundamentals text
+  const f = localResult?.fundamentals;
+  const fundamentalsText = f
+    ? `🧮 *Fundamentals Engine*\n` +
+      `  Altman Z: ${f.altman_z.score}/100 (${f.altman_z.zone.toUpperCase()})\n` +
+      `  Piotroski F: ${f.piotroski_f.score}/100\n` +
+      `  Composite: ${f.composite}/100${f.confidence < 0.7 ? ' ⚠️ low data confidence' : ''}`
+    : '';
+
   const msg = `
 📊 *Score for ${ticker}*
 
@@ -133,6 +143,8 @@ ${breakdownLines.join('\n') || 'N/A'}
 
 *Raw Metrics:*
 ${metricsText || 'N/A'}
+
+${fundamentalsText}
 
 _Was this score helpful?_
   `.trim();

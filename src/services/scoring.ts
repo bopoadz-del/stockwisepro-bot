@@ -3,6 +3,7 @@ import { getHistoricalPrices } from '../api/yahoo';
 import { databento } from '../api/databento';
 import { logger } from '../utils/logger';
 import { setQuote, setFundamentals, getQuote, getFundamentals } from './cache';
+import { mapYahooToFundamentals, FundamentalsComposite } from './fundamentals';
 
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
@@ -25,6 +26,7 @@ export interface ScoreResult {
   price: number;
   metrics: StockMetrics;
   breakdown: Record<string, number>;
+  fundamentals: FundamentalsComposite | null;
 }
 
 function clamp(num: number, min: number, max: number) {
@@ -158,7 +160,23 @@ export async function computeLocalScore(ticker: string): Promise<ScoreResult | n
       }
     }
 
-    // 4. Write fundamentals to cache
+    // 4. Fetch income statements for Altman Z + Piotroski F
+    let fundamentals: FundamentalsComposite | null = null;
+    try {
+      const fullSummary = await yf.quoteSummary(upperTicker, {
+        modules: ['incomeStatementHistory', 'defaultKeyStatistics', 'financialData'],
+      });
+      fundamentals = mapYahooToFundamentals(
+        { regularMarketPrice: price },
+        fullSummary.financialData,
+        fullSummary.defaultKeyStatistics,
+        fullSummary.incomeStatementHistory?.incomeStatementHistory || []
+      );
+    } catch (err) {
+      logger.warn('Fundamentals engine failed', { ticker: upperTicker, error: (err as Error).message });
+    }
+
+    // 5. Write fundamentals to cache
     await setFundamentals(upperTicker, {
       ticker: upperTicker,
       pe, pb, roe, margin,
@@ -221,6 +239,7 @@ export async function computeLocalScore(ticker: string): Promise<ScoreResult | n
       price: metrics.price,
       metrics,
       breakdown,
+      fundamentals,
     };
   } catch (err) {
     logger.error('Local scoring failed', { ticker, error: (err as Error).message });
