@@ -1,5 +1,6 @@
 import YahooFinance from 'yahoo-finance2';
 import { getHistoricalPrices } from '../api/yahoo';
+import { databento } from '../api/databento';
 import { logger } from '../utils/logger';
 import { setQuote, setFundamentals, getQuote, getFundamentals } from './cache';
 
@@ -113,8 +114,18 @@ export async function computeLocalScore(ticker: string): Promise<ScoreResult | n
 
     const hasFundamentals = pe !== undefined || pb !== undefined || margin !== undefined;
 
-    // 2. Cache miss → fetch from Yahoo Finance
-    if (!hasFundamentals || price === 0) {
+    // 2a. Try Databento for live price (if enabled and no cached price)
+    if (price === 0 && databento.enabled) {
+      const dbTrade = await databento.getLatestTrade(upperTicker);
+      if (dbTrade && dbTrade.price > 0) {
+        price = dbTrade.price;
+        await setQuote({ ticker: upperTicker, price, timestamp: Date.now() });
+        logger.info('Databento price used', { ticker: upperTicker, price });
+      }
+    }
+
+    // 2b. Cache miss on fundamentals → fetch from Yahoo Finance
+    if (!hasFundamentals) {
       const summary = await yf.quoteSummary(upperTicker, {
         modules: ['financialData', 'defaultKeyStatistics', 'summaryDetail'],
       });

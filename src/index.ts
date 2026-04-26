@@ -1,7 +1,7 @@
 import { Telegraf } from 'telegraf';
 import http from 'http';
 import { config } from './config';
-import { initDb } from './db';
+import { initDb, flushAnalytics } from './db';
 import { stockwise } from './api/stockwise';
 import { databento } from './api/databento';
 import { isCacheAvailable } from './services/cache';
@@ -100,6 +100,7 @@ async function main() {
 
     process.once('SIGINT', () => {
       logger.info('Shutting down (SIGINT)...');
+      flushAnalytics();
       alertTask.stop();
       learningTask.stop();
       healthServer.close();
@@ -107,6 +108,7 @@ async function main() {
     });
     process.once('SIGTERM', () => {
       logger.info('Shutting down (SIGTERM)...');
+      flushAnalytics();
       alertTask.stop();
       learningTask.stop();
       healthServer.close();

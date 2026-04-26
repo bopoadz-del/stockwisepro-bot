@@ -153,20 +153,29 @@ export function logEvent(event: {
   success?: boolean;
   errorMessage?: string;
 }) {
-  const conn = ensureDb();
-  const stmt = conn.prepare(`
-    INSERT INTO analytics_events (telegram_id, command, ticker, raw_input, api_response_time_ms, success, error_message)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `);
-  return stmt.run(
-    event.telegramId,
-    event.command,
-    event.ticker || null,
-    event.rawInput || null,
-    event.apiResponseTimeMs || null,
-    event.success !== false ? 1 : 0,
-    event.errorMessage || null
-  );
+  try {
+    const conn = ensureDb();
+    const stmt = conn.prepare(`
+      INSERT INTO analytics_events (telegram_id, command, ticker, raw_input, api_response_time_ms, success, error_message)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    return stmt.run(
+      event.telegramId,
+      event.command,
+      event.ticker || null,
+      event.rawInput || null,
+      event.apiResponseTimeMs || null,
+      event.success !== false ? 1 : 0,
+      event.errorMessage || null
+    );
+  } catch (err) {
+    logger.warn('logEvent failed (non-fatal)', { error: (err as Error).message });
+    return { lastInsertRowid: 0 };
+  }
+}
+
+export function flushAnalytics() {
+  // No-op for now; reserved for future batching if needed
 }
 
 export function saveFeedback(telegramId: number, eventId: number | null, rating: number, comment?: string) {
