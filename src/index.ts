@@ -1,4 +1,4 @@
-import { Telegraf } from 'telegraf';
+import { Telegraf, session } from 'telegraf';
 import { config } from './config';
 import { initDb } from './db';
 import { stockwise } from './api/stockwise';
@@ -28,6 +28,7 @@ async function main() {
     logger.info('Step 3: Bot instance created');
 
     logger.info('Step 4: Attaching middleware...');
+    bot.use(session());
     bot.use(analyticsMiddleware());
     logger.info('Step 4: Middleware attached');
 
@@ -35,6 +36,13 @@ async function main() {
     registerScenes(bot);
     registerCommands(bot);
     logger.info('Step 5: Commands registered');
+
+    // Global error handler
+    bot.catch((err, ctx) => {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      logger.error('Bot error', { error: errorMessage, updateType: ctx.updateType });
+      ctx.reply('❌ Something went wrong. Please try again later.').catch(() => { });
+    });
 
     // Health-check command
     bot.command('ping', async (ctx) => {

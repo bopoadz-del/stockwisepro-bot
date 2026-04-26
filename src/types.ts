@@ -1,7 +1,11 @@
 import { Context } from 'telegraf';
 
+export interface SessionData {
+  awaitingMimicAmount?: string;
+}
+
 export interface BotContext extends Context {
-  // Extended context if needed
+  session?: SessionData;
 }
 
 export interface Stock {
