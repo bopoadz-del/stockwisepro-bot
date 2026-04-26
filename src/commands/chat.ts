@@ -107,7 +107,6 @@ export async function handleChatMessage(ctx: Context) {
   const telegramId = ctx.from?.id || 0;
 
   if (!text.startsWith('/') && pendingMimic.has(telegramId)) {
-    pendingMimic.delete(telegramId);
     recordIntent(ctx, 'mimic', { command: 'mimic' });
     await runMimicFromAmount(ctx, text.trim());
     return;
