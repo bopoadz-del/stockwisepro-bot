@@ -80,7 +80,7 @@ const TTL = {
 export async function cacheQuote(q: CachedQuote): Promise<void> {
   if (upstash) {
     try {
-      await upstash.set(`stock:${q.ticker}:quote`, JSON.stringify(q), { ex: TTL.quote });
+      await upstash.set(`stock:${q.ticker}:quote`, q, { ex: TTL.quote });
     } catch (err) {
       logger.warn('Upstash cacheQuote failed', { ticker: q.ticker, error: (err as Error).message });
     }
@@ -100,7 +100,7 @@ export async function cacheFundamentals(
 ): Promise<void> {
   if (upstash) {
     try {
-      await upstash.set(`stock:${ticker}:fundamentals`, JSON.stringify(data), { ex: TTL.fundamentals });
+      await upstash.set(`stock:${ticker}:fundamentals`, data, { ex: TTL.fundamentals });
     } catch (err) {
       logger.warn('Upstash cacheFundamentals failed', { ticker, error: (err as Error).message });
     }
@@ -119,8 +119,8 @@ export async function cacheFundamentals(
 export async function getCachedQuote(ticker: string): Promise<CachedQuote | null> {
   if (upstash) {
     try {
-      const raw = await upstash.get<string>(`stock:${ticker}:quote`);
-      return raw ? (JSON.parse(raw) as CachedQuote) : null;
+      const val = await upstash.get<CachedQuote>(`stock:${ticker}:quote`);
+      return val || null;
     } catch (err) {
       logger.warn('Upstash getCachedQuote failed', { ticker, error: (err as Error).message });
       return null;
@@ -141,8 +141,8 @@ export async function getCachedFundamentals(
 ): Promise<CachedFundamentals | null> {
   if (upstash) {
     try {
-      const raw = await upstash.get<string>(`stock:${ticker}:fundamentals`);
-      return raw ? (JSON.parse(raw) as CachedFundamentals) : null;
+      const val = await upstash.get<CachedFundamentals>(`stock:${ticker}:fundamentals`);
+      return val || null;
     } catch (err) {
       logger.warn('Upstash getCachedFundamentals failed', { ticker, error: (err as Error).message });
       return null;
