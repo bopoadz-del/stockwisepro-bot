@@ -10,6 +10,7 @@ export interface YahooQuote {
   longname?: string;
   exchange?: string;
   type?: string;
+  price?: number;
 }
 
 export async function yahooSearch(query: string): Promise<{ data: YahooQuote[]; error: string | null }> {

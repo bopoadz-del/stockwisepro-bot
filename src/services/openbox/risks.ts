@@ -9,17 +9,20 @@ export interface RiskFlags {
   severity: 'low' | 'moderate' | 'high';
 }
 
-export function analyzeRisks(metrics: {
-  operatingCashflow?: number;
-  debtToEquity?: number;
-  margin?: number;
-  currentRatio?: number;
-  altmanZRaw?: number;
-  piotroskiRaw?: number;
-}): RiskFlags {
+export function analyzeRisks(
+  metrics: {
+    operatingCashflow?: number;
+    debtToEquity?: number;
+    margin?: number;
+    currentRatio?: number;
+    altmanZRaw?: number;
+    piotroskiRaw?: number;
+  },
+  isETF = false
+): RiskFlags {
   const flags: string[] = [];
 
-  if (metrics.operatingCashflow !== undefined && metrics.operatingCashflow <= 0) {
+  if (!isETF && metrics.operatingCashflow !== undefined && metrics.operatingCashflow <= 0) {
     flags.push('Weak cash flow');
   }
 
@@ -35,11 +38,11 @@ export function analyzeRisks(metrics: {
     flags.push('Low liquidity');
   }
 
-  if (metrics.altmanZRaw !== undefined && metrics.altmanZRaw < 1.8) {
+  if (!isETF && metrics.altmanZRaw !== undefined && metrics.altmanZRaw < 1.8) {
     flags.push('Distress zone');
   }
 
-  if (metrics.piotroskiRaw !== undefined && metrics.piotroskiRaw < 4) {
+  if (!isETF && metrics.piotroskiRaw !== undefined && metrics.piotroskiRaw < 4) {
     flags.push('Low quality');
   }
 

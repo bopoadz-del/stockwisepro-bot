@@ -207,11 +207,11 @@ async function runScoreTests() {
       data: {
         finalScore: 78,
         pillars: {
-          fundamentals: 65,
-          marketDynamics: 70,
-          balanceSheet: 60,
-          leadership: 55,
-          innovation: 80,
+          fundamentals: 21,
+          marketDynamics: 11,
+          balanceSheet: 10,
+          leadership: 12,
+          innovation: 10,
           ethics: 10,
         },
         riskFlags: [],
@@ -227,10 +227,11 @@ async function runScoreTests() {
     const reply = ctx._allText();
     assert.ok(reply.includes('OPENBOX SCORE'), 'should show OPENBOX header');
     assert.ok(reply.includes('78/100'), 'should show final score');
-    assert.ok(reply.includes('Fundamentals: 65/30'), 'should show fundamentals pillar');
-    assert.ok(reply.includes('Ethics: 10/10'), 'should show ethics pillar');
+    // Pillars shown as normalized %
+    assert.ok(reply.includes('Fundamentals: 70/100 (weight: 30%)'), 'should show normalized fundamentals');
+    assert.ok(reply.includes('Ethics: PASS/10'), 'should show ethics pass');
     assert.ok(reply.includes('NARRATIVE'), 'should show narrative section');
-    assert.ok(reply.includes('core holding'), 'should show action from narrative');
+    assert.ok(reply.includes('core holding'), 'should show action');
   });
 
   await test('ethics block returns early with violation message', async () => {

@@ -1,6 +1,6 @@
 /**
  * Narrative generator.
- * One-sentence summary from pillar scores.
+ * One-sentence summary from pillar scores (0-100 scale).
  */
 
 export interface NarrativeResult {
@@ -18,9 +18,9 @@ export function generateNarrative(
     (fundamentalsScore + momentumScore + balanceSheetScore) / 3
   );
 
-  const fundamentalsWord = fundamentalsScore >= 60 ? 'Strong' : 'Weak';
-  const momentumWord = momentumScore >= 60 ? 'strong' : 'weak';
-  const balanceWord = balanceSheetScore >= 60 ? 'safe' : 'stressed';
+  const fundamentalsWord = fundamentalsScore >= 70 ? 'Strong' : fundamentalsScore < 50 ? 'Weak' : 'Moderate';
+  const momentumWord = momentumScore >= 70 ? 'strong' : momentumScore < 50 ? 'weak' : 'moderate';
+  const balanceWord = balanceSheetScore >= 70 ? 'safe' : balanceSheetScore < 50 ? 'stressed' : 'mixed';
 
   let action: string;
   if (compositeScore >= 85) action = 'aggressive buy';
