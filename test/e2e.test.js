@@ -628,27 +628,11 @@ async function runMimicTests() {
     pendingMimic.delete(33333);
   });
 
-  await test('valid amount triggers mimicInvestor with amount', async () => {
-    let calledAmount = null;
-    sw.mimicInvestor = async (investorId, amount) => {
-      calledAmount = amount;
-      return {
-        data: {
-          holdings: [
-            { ticker: 'AAPL', percentage: 50, dollarAmount: 5000 },
-            { ticker: 'KO', percentage: 50, dollarAmount: 5000 },
-          ]
-        },
-        duration: 100,
-        error: null,
-      };
-    };
-
+  await test('valid amount triggers local mimic allocation', async () => {
     pendingMimic.set(44444, { investorId: 'buffett' });
     const ctx = makeCtx('10000', 44444);
     await runMimicFromAmount(ctx, '10000');
 
-    assert.strictEqual(calledAmount, 10000, 'amount should be passed to API');
     assert.ok(!pendingMimic.has(44444), 'pending state should be cleared');
     const reply = lastReply(ctx);
     assert.ok(reply.includes('Warren Buffett'), 'should mention investor');
