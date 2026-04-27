@@ -193,7 +193,7 @@ export async function runMimicFromAmount(ctx: Context, amountText: string) {
   msg += `\n💵 *Investment:* $${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}\n\n` +
     `*Suggested allocation:*\n${lines.join('\n')}\n\n` +
     `*Total Allocated:* ~$${totalAllocated.toFixed(2)}\n\n` +
-    `_Reply with \`replace AAPL with MSFT\` to swap tickers._`;
+    `_Reply with \`remove AAPL\` to auto-swap with a style-matched alternative._`;
 
   await ctx.replyWithMarkdown(msg);
 }
@@ -201,25 +201,47 @@ export async function runMimicFromAmount(ctx: Context, amountText: string) {
 export async function handleMimicReplacement(ctx: Context, text: string) {
   const telegramId = ctx.from?.id || 0;
 
-  // Parse "replace AAPL with MSFT" or "replace AAPL"
-  const match = text.match(/^replace\s+(\w+)(?:\s+with\s+(\w+))?$/i);
-  if (!match) return false;
+  // Parse: "replace AAPL", "remove AAPL", "don't like AAPL", "replace AAPL with MSFT"
+  const autoMatch = text.match(/^(?:replace|remove|don't like|hate|swap out|drop)\s+(\w+)$/i);
+  const explicitMatch = text.match(/^replace\s+(\w+)\s+with\s+(\w+)$/i);
 
-  const oldTicker = match[1].toUpperCase();
-  const newTicker = match[2]?.toUpperCase();
+  let oldTicker: string | undefined;
+  let newTicker: string | undefined;
+  let autoReplaced = false;
+
+  if (explicitMatch) {
+    oldTicker = explicitMatch[1].toUpperCase();
+    newTicker = explicitMatch[2].toUpperCase();
+  } else if (autoMatch) {
+    oldTicker = autoMatch[1].toUpperCase();
+    autoReplaced = true;
+  } else {
+    return false;
+  }
 
   const last = lastMimic.get(telegramId);
   if (!last) {
     await ctx.reply(
-      `🔄 Run /mimic first to select an investor, then type \`replace ${oldTicker}${newTicker ? ` with ${newTicker}` : ''}\`.`
+      `🔄 Run /mimic first to select an investor, then type \`remove ${oldTicker}\` to auto-replace.`
     );
     return true;
   }
 
   await ctx.replyWithChatAction('typing');
 
+  // If user didn't specify replacement, let the bot find one
+  if (autoReplaced && oldTicker) {
+    const autoNew = findReplacement(oldTicker, last.investorId, last.ethicsEnabled);
+    if (autoNew) {
+      newTicker = autoNew;
+    } else {
+      await ctx.reply(`❌ Could not find a suitable replacement for *${oldTicker}* with the current filters.`, { parse_mode: 'Markdown' });
+      return true;
+    }
+  }
+
   const mimicResult = getLocalMimicAllocation(last.investorId, last.ethicsEnabled, [
-    { oldTicker, newTicker },
+    { oldTicker: oldTicker!, newTicker },
   ]);
 
   if (!mimicResult) {
@@ -263,8 +285,14 @@ export async function handleMimicReplacement(ctx: Context, text: string) {
   msg += `\n*Holdings:*\n${lines.join('\n')}`;
 
   if (mimicResult.replacedTickers && mimicResult.replacedTickers.length > 0) {
-    msg += `\n\n*Swapped:* ${mimicResult.replacedTickers.map(r => `${r.old} → ${r.new}`).join(', ')}`;
+    const r = mimicResult.replacedTickers[0];
+    const reason = last.ethicsEnabled
+      ? 'same sector & style, ethics-compliant'
+      : 'same sector & style';
+    msg += `\n\n✅ *Auto-replaced:* ${r.old} → ${r.new}\n_(${reason})_`;
   }
+
+  msg += `\n\n_Type \`remove TICKER\` to swap another.`;
 
   await ctx.replyWithMarkdown(msg);
   return true;

@@ -105,8 +105,8 @@ export async function handleChatMessage(ctx: Context) {
   const tickers = extractTickerCandidates(text);
   const firstTicker = tickers[0];
 
-  // 0. Replacement commands
-  if (!text.startsWith('/') && /^replace\s+/i.test(text)) {
+  // 0. Replacement / removal commands (remove AAPL, don't like AAPL, replace AAPL with MSFT)
+  if (!text.startsWith('/') && /^(replace|remove|don't like|hate|swap out|drop)\s+/i.test(text)) {
     const handled = await handleMimicReplacement(ctx, text.trim());
     if (handled) return;
   }
