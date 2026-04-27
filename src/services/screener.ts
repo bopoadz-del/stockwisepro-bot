@@ -60,9 +60,10 @@ export function screenPortfolio(
   const traders = loadCongressTraders();
   const universe = loadStockUniverse();
 
-  // Check if it's a congress trader
-  if (traders[investorId]) {
-    return buildCongressPortfolio(investorId, traders[investorId], ethicsEnabled, userReplacements);
+  // Check if it's a congress trader (strip congress: prefix if present)
+  const cleanId = investorId.startsWith('congress:') ? investorId.replace('congress:', '') : investorId;
+  if (traders[cleanId]) {
+    return buildCongressPortfolio(investorId, traders[cleanId], ethicsEnabled, userReplacements);
   }
 
   const profile = profiles[investorId];
@@ -261,7 +262,8 @@ export function findReplacement(
   const stock = getStockByTicker(ticker);
   if (!stock) return null;
 
-  const profile = profiles[investorId];
+  const cleanId = investorId.startsWith('congress:') ? investorId.replace('congress:', '') : investorId;
+  const profile = profiles[cleanId];
   const preferredStyles = profile?.preferredStyles || ['safe', 'growth'];
 
   let candidates = universe.filter(
