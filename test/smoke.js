@@ -160,12 +160,12 @@ assert.ok(weightsSrc.includes('handleWeightCallback'), 'weights module should ex
 assert.ok(weightsSrc.includes("weight:"), 'weights should use weight: callback prefix');
 console.log('✅ weights command module verified');
 
-// --- Verify score command uses weighted scoring ---
+// --- Verify score command uses OpenBox engine ---
 const scoreSrc2 = fs.readFileSync('dist/commands/score.js', 'utf8');
-assert.ok(scoreSrc2.includes('getUserWeights'), 'score should import getUserWeights');
-assert.ok(scoreSrc2.includes('computeWeightedScore'), 'score should define computeWeightedScore');
-assert.ok(scoreSrc2.includes('weightedScore'), 'score should compute weightedScore');
-console.log('✅ score.ts weighted scoring verified');
+assert.ok(scoreSrc2.includes('computeOpenBoxScore'), 'score should import computeOpenBoxScore');
+assert.ok(scoreSrc2.includes('finalScore'), 'score should reference finalScore');
+assert.ok(scoreSrc2.includes('ethicsPass'), 'score should check ethicsPass');
+console.log('✅ score.ts OpenBox engine verified');
 
 // --- Verify weights command is registered ---
 const indexSrc2 = fs.readFileSync('dist/commands/index.js', 'utf8');

@@ -194,21 +194,30 @@ async function runExperimentTests() {
   sw.runExperiment = origRun;
 }
 
-// ─── 3. SCORE — metrics label formatting ────────────────────────────────────
+// ─── 3. SCORE — OpenBox engine ──────────────────────────────────────────────
 
 async function runScoreTests() {
-  section('score: metric labels and formatting');
+  section('score: OpenBox engine');
 
   const { scoreCommand } = require('../dist/commands/score');
   const origGet = sw.getStockScore;
 
-  await test('known metric keys show human-readable labels', async () => {
+  await test('OpenBox score format shows pillars and narrative', async () => {
     sw.getStockScore = async () => ({
       data: {
-        ticker: 'AAPL',
-        price: 185.5,
-        score: 82,
-        metrics: { pe_ratio: 28.4, debt_to_equity: 0.45, roe: 0.72, revenue_growth: 0.08 },
+        finalScore: 78,
+        pillars: {
+          fundamentals: 65,
+          marketDynamics: 70,
+          balanceSheet: 60,
+          leadership: 55,
+          innovation: 80,
+          ethics: 10,
+        },
+        riskFlags: [],
+        narrative: 'Strong fundamentals, strong momentum, safe balance sheet — core holding.',
+        ethicsPass: true,
+        adjustments: { peerDelta: 2, dominanceBonus: 3 },
       },
       duration: 200,
       error: null,
@@ -216,31 +225,36 @@ async function runScoreTests() {
     const ctx = makeCtx('/score AAPL');
     await scoreCommand(ctx);
     const reply = ctx._allText();
-    assert.ok(reply.includes('P/E Ratio') || reply.includes('P/E'), 'should show P/E label');
-    assert.ok(reply.includes('Debt/Equity') || reply.includes('Debt'), 'should show Debt/Equity label');
-    assert.ok(!reply.includes('pe_ratio'), 'should not show raw snake_case key');
-    assert.ok(!reply.includes('debt_to_equity'), 'should not show raw snake_case key');
+    assert.ok(reply.includes('OPENBOX SCORE'), 'should show OPENBOX header');
+    assert.ok(reply.includes('78/100'), 'should show final score');
+    assert.ok(reply.includes('Fundamentals: 65/30'), 'should show fundamentals pillar');
+    assert.ok(reply.includes('Ethics: 10/10'), 'should show ethics pillar');
+    assert.ok(reply.includes('NARRATIVE'), 'should show narrative section');
+    assert.ok(reply.includes('core holding'), 'should show action from narrative');
   });
 
-  await test('unknown metric keys are title-cased (not snake_case)', async () => {
+  await test('ethics block returns early with violation message', async () => {
     sw.getStockScore = async () => ({
       data: {
-        ticker: 'TSLA',
-        price: 250,
-        score: 70,
-        metrics: { custom_metric: 42 },
+        finalScore: 0,
+        pillars: { fundamentals: 0, marketDynamics: 0, balanceSheet: 0, leadership: 0, innovation: 0, ethics: 0 },
+        riskFlags: ['Boycott list: Israeli-linked ticker'],
+        narrative: 'Blocked by ethics filter — avoid.',
+        ethicsPass: false,
+        adjustments: { peerDelta: 0, dominanceBonus: 0 },
       },
       duration: 100,
       error: null,
     });
-    const ctx = makeCtx('/score TSLA');
+    const ctx = makeCtx('/score TEVA');
     await scoreCommand(ctx);
     const reply = ctx._allText();
-    assert.ok(!reply.includes('custom_metric'), 'should not show raw snake_case');
-    assert.ok(reply.includes('Custom Metric') || reply.includes('Custom'), 'should title-case unknown keys');
+    assert.ok(reply.includes('ETHICS BLOCK'), 'should show ethics block');
+    assert.ok(reply.includes('Boycott list'), 'should show violation');
+    assert.ok(!reply.includes('OPENBOX SCORE'), 'should not show score for blocked stock');
   });
 
-  await test('numeric values are formatted to 2 decimal places', async () => {
+  await test('fallback to local OpenBox engine when API returns legacy shape', async () => {
     sw.getStockScore = async () => ({
       data: { ticker: 'MSFT', price: 400, score: 88, metrics: { roe: 0.38472 } },
       duration: 100,
@@ -249,8 +263,8 @@ async function runScoreTests() {
     const ctx = makeCtx('/score MSFT');
     await scoreCommand(ctx);
     const reply = ctx._allText();
-    assert.ok(reply.includes('0.38'), 'should format to 2dp');
-    assert.ok(!reply.includes('0.38472'), 'should not show full precision float');
+    // Should fall back to computeOpenBoxScore which returns OpenBox format
+    assert.ok(reply.includes('OPENBOX SCORE'), 'should show OPENBOX header from local engine');
   });
 
   await test('missing ticker shows usage hint', async () => {

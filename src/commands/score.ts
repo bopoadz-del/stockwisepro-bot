@@ -1,30 +1,9 @@
 import { Context, Markup } from 'telegraf';
-import { BotContext } from '../types';
+import { BotContext, OpenBoxResult } from '../types';
 import { stockwise } from '../api/stockwise';
-import { computeLocalScore, ScoreResult } from '../services/scoring';
-import { getUserWeights } from '../db';
+import { computeOpenBoxScore } from '../services/openbox/engine';
 import { userSafeError } from '../utils/logger';
 import { validateTicker } from '../utils/validation';
-
-const METRIC_LABELS: Record<string, string> = {
-  pe_ratio: 'P/E Ratio',
-  pb_ratio: 'P/B Ratio',
-  ps_ratio: 'P/S Ratio',
-  roe: 'Return on Equity',
-  roa: 'Return on Assets',
-  margin: 'Profit Margin',
-  revenue_growth: 'Revenue Growth',
-  earnings_growth: 'Earnings Growth',
-  debt_to_equity: 'Debt/Equity',
-  current_ratio: 'Current Ratio',
-  rsi: 'RSI',
-  price_change_6m: '6M Price Change',
-  valuation: 'Valuation Score',
-  profitability: 'Profitability',
-  growth: 'Growth Score',
-  financial_health: 'Financial Health',
-  momentum: 'Momentum',
-};
 
 export async function scoreCommand(ctx: Context) {
   const text = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
@@ -38,113 +17,89 @@ export async function scoreCommand(ctx: Context) {
 
   await ctx.replyWithChatAction('typing');
 
-  // 1. Try StockWisePro API first
   const apiStart = Date.now();
-  const { data, duration, error } = await stockwise.getStockScore(ticker, telegramId);
-  let scoreData: {
-    score: number;
-    price: number;
-    metrics: Record<string, unknown>;
-    breakdown?: Record<string, number>;
-  } | null = null;
+
+  // 1. Try StockWisePro API first
+  const { data, error } = await stockwise.getStockScore(ticker, telegramId);
+  let openBoxData: OpenBoxResult | null = null;
 
   if (!error && data) {
     const s = data as any;
-    scoreData = {
-      score: s.score ?? s.aiScore ?? s.rating ?? 'N/A',
-      price: s.price ?? s.currentPrice ?? 'N/A',
-      metrics: s.metrics || s.fundamentals || {},
-    };
-  }
-
-  // 2. Fallback to local Yahoo-based scoring if API fails
-  let localResult: ScoreResult | null = null;
-  if (!scoreData) {
-    const localStart = Date.now();
-    localResult = await computeLocalScore(ticker);
-    if (localResult) {
-      scoreData = {
-        score: localResult.score,
-        price: localResult.price,
-        metrics: localResult.metrics as unknown as Record<string, unknown>,
-        breakdown: localResult.breakdown,
+    // Detect OpenBox-shaped JSON
+    if (
+      typeof s.finalScore === 'number' &&
+      s.pillars &&
+      typeof s.pillars.fundamentals === 'number' &&
+      Array.isArray(s.riskFlags) &&
+      typeof s.narrative === 'string'
+    ) {
+      openBoxData = {
+        finalScore: s.finalScore,
+        pillars: s.pillars,
+        riskFlags: s.riskFlags,
+        narrative: s.narrative,
+        ethicsPass: s.ethicsPass !== false,
+        adjustments: s.adjustments || { peerDelta: 0, dominanceBonus: 0 },
       };
     }
   }
 
+  // 2. Fallback to local OpenBox engine
+  if (!openBoxData) {
+    const localResult = await computeOpenBoxScore(ticker);
+    if (localResult) {
+      openBoxData = localResult;
+    }
+  }
+
   const totalDuration = Date.now() - apiStart;
-  Object.assign(ctx.state, { ticker, apiDuration: totalDuration, success: !!scoreData });
-  if (!scoreData) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
+  Object.assign(ctx.state, { ticker, apiDuration: totalDuration, success: !!openBoxData });
+  if (!openBoxData) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
   const eventId = (ctx as BotContext).state.eventId as number;
 
-  if (!scoreData) {
+  if (!openBoxData) {
     await ctx.reply(userSafeError());
     return;
   }
 
-  const weights = getUserWeights(telegramId);
-  const metrics = scoreData.metrics;
-
-  // Compute weighted score
-  let weightedSum = 0;
-  let weightTotal = 0;
-  const breakdownLines: string[] = [];
-
-  // If API provided a pre-computed breakdown, use it; otherwise compute from raw metrics
-  const breakdown = scoreData.breakdown || {};
-  for (const [category, weight] of Object.entries(weights)) {
-    if (category === 'telegram_id' || category === 'updated_at') continue;
-    let catScore: number | undefined = breakdown[category];
-    if (catScore === undefined) {
-      // Try to extract from raw metrics using legacy keys
-      const rawVal = metrics[category] ?? metrics[category.replace('_', '')];
-      catScore = typeof rawVal === 'number' ? rawVal : undefined;
-    }
-    if (catScore !== undefined) {
-      weightedSum += catScore * weight;
-      weightTotal += weight;
-      breakdownLines.push(`${METRIC_LABELS[category] || category}: ${Math.round(catScore)} × ${weight}`);
-    }
+  // Ethics hard filter
+  if (!openBoxData.ethicsPass) {
+    await ctx.reply(`🚫 ETHICS BLOCK: ${openBoxData.riskFlags.join(', ')}. This stock is excluded from scoring.`);
+    return;
   }
 
-  const weightedScore = weightTotal > 0 ? Math.round(weightedSum / weightTotal) : (typeof scoreData.score === 'number' ? scoreData.score : 'N/A');
+  const p = openBoxData.pillars;
 
-  const metricsText = Object.entries(metrics)
-    .filter(([k]) => k !== 'price')
-    .slice(0, 6)
-    .map(([k, v]) => {
-      if (v === undefined || v === null) return null;
-      const label = METRIC_LABELS[k] || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      const val = typeof v === 'number' ? (Number.isInteger(v) ? v : (v as number).toFixed(2)) : v;
-      return `  ${label}: ${val}`;
-    })
-    .filter(Boolean)
-    .join('\n');
+  // Extract action label from narrative
+  let action = 'hold';
+  const narrative = openBoxData.narrative;
+  if (narrative.includes('aggressive buy')) action = 'aggressive buy';
+  else if (narrative.includes('core holding')) action = 'core holding';
+  else if (narrative.includes('tactical')) action = 'tactical / watch';
+  else if (narrative.includes('avoid') || narrative.includes('exit')) action = 'avoid / exit';
 
-  // Build fundamentals text
-  const f = localResult?.fundamentals;
-  const fundamentalsText = f
-    ? `🧮 *Fundamentals Engine*\n` +
-      `  Altman Z: ${f.altman_z.score}/100 (${f.altman_z.zone.toUpperCase()})\n` +
-      `  Piotroski F: ${f.piotroski_f.score}/100\n` +
-      `  Composite: ${f.composite}/100${f.confidence < 0.7 ? ' ⚠️ low data confidence' : ''}`
-    : '';
+  const riskText = openBoxData.riskFlags.length > 0
+    ? openBoxData.riskFlags.map(f => `• ${f}`).join('\n')
+    : 'None detected';
 
   const msg = `
-📊 *Score for ${ticker}*
+📊 OPENBOX SCORE: ${ticker}
+🏆 Final Score: ${openBoxData.finalScore}/100
+⚡ Action: ${action}
 
-🏷 Price: $${scoreData.price}
-⭐ AI Score: *${scoreData.score}*
+📊 PILLAR BREAKDOWN
+Fundamentals: ${p.fundamentals}/30
+Market Dynamics: ${p.marketDynamics}/15
+Balance Sheet: ${p.balanceSheet}/15
+Leadership: ${p.leadership}/15
+Innovation: ${p.innovation}/15
+Ethics: ${p.ethics}/10
 
-⚖️ *Weighted Score:* ${weightedScore}
+⚠️ RISK FLAGS
+${riskText}
 
-*Breakdown:*
-${breakdownLines.join('\n') || 'N/A'}
-
-*Raw Metrics:*
-${metricsText || 'N/A'}
-
-${fundamentalsText}
+🧠 NARRATIVE
+${narrative}
 
 _Was this score helpful?_
   `.trim();

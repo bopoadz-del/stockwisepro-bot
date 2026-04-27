@@ -253,7 +253,8 @@ export async function handleChatMessage(ctx: Context) {
   }
 
   // 4. Company name search (e.g., "apple", "google")
-  if (/^[a-zA-Z0-9\s\.\&\-]+$/.test(text) && text.length > 1 && text.length < 40) {
+  const wordCount = text.trim().split(/\s+/).length;
+  if (/^[a-zA-Z0-9\s\.\&\-]+$/.test(text) && text.length > 1 && text.length < 40 && wordCount <= 4) {
     await ctx.replyWithChatAction('typing');
 
     const { data, error } = await stockwise.searchStocks(text);

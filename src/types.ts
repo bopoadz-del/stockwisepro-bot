@@ -61,3 +61,22 @@ export interface UserProfile {
   linkedStockwiseUserId?: number | null;
   createdAt: string;
 }
+
+export interface OpenBoxResult {
+  finalScore: number;
+  pillars: {
+    fundamentals: number;
+    marketDynamics: number;
+    balanceSheet: number;
+    leadership: number;
+    innovation: number;
+    ethics: number;
+  };
+  riskFlags: string[];
+  narrative: string;
+  ethicsPass: boolean;
+  adjustments: {
+    peerDelta: number;
+    dominanceBonus: number;
+  };
+}
