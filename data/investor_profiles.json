@@ -1,0 +1,245 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-04-27",
+  "profiles": {
+    "buffett": {
+      "name": "Warren Buffett",
+      "style": "Value",
+      "description": "Concentrated value investing in wonderful businesses at fair prices. Heavy financials, consumer staples, and energy.",
+      "sectorTargets": {
+        "Financials": 40,
+        "Technology": 25,
+        "Consumer Staples": 12,
+        "Energy": 13,
+        "Healthcare": 3,
+        "Consumer Discretionary": 3,
+        "Communication Services": 2,
+        "Real Estate": 1,
+        "Industrials": 1
+      },
+      "criteria": {
+        "peMax": 25,
+        "pbMax": 5,
+        "roeMin": 0.12,
+        "debtToEquityMax": 0.6,
+        "dividendPreferred": true,
+        "marketCapMin": "large"
+      },
+      "coreHoldings": [
+        "AAPL",
+        "AXP",
+        "BAC",
+        "KO",
+        "CVX",
+        "OXY",
+        "MCO",
+        "CB"
+      ],
+      "excludeSectors": [],
+      "preferredStyles": [
+        "safe",
+        "value",
+        "dividend",
+        "mega-cap"
+      ]
+    },
+    "dalio": {
+      "name": "Ray Dalio",
+      "style": "All Weather",
+      "description": "Risk-parity allocation across economic environments. Balanced stocks, bonds, gold, and commodities.",
+      "sectorTargets": {
+        "Technology": 18,
+        "Financials": 15,
+        "Healthcare": 12,
+        "Consumer Staples": 10,
+        "Industrials": 10,
+        "Energy": 8,
+        "Consumer Discretionary": 8,
+        "Communication Services": 7,
+        "Materials": 5,
+        "Real Estate": 4,
+        "Utilities": 3
+      },
+      "criteria": {
+        "peMax": 30,
+        "pbMax": 6,
+        "roeMin": 0.08,
+        "debtToEquityMax": 1.0,
+        "dividendPreferred": false,
+        "marketCapMin": "mid"
+      },
+      "coreHoldings": [
+        "SPY",
+        "VTI",
+        "GLD",
+        "TLT",
+        "IEF"
+      ],
+      "excludeSectors": [],
+      "preferredStyles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    "wood": {
+      "name": "Cathie Wood",
+      "style": "Growth/Innovation",
+      "description": "Disruptive innovation in AI, genomics, robotics, and blockchain. High conviction, high volatility.",
+      "sectorTargets": {
+        "Technology": 45,
+        "Healthcare": 25,
+        "Consumer Discretionary": 15,
+        "Communication Services": 10,
+        "Financials": 5
+      },
+      "criteria": {
+        "peMax": 999,
+        "pbMax": 20,
+        "roeMin": 0.0,
+        "debtToEquityMax": 2.0,
+        "dividendPreferred": false,
+        "marketCapMin": "small"
+      },
+      "coreHoldings": [
+        "TSLA",
+        "ROKU",
+        "SQ",
+        "ZM",
+        "COIN",
+        "PLTR",
+        "SHOP"
+      ],
+      "excludeSectors": [
+        "Utilities",
+        "Energy",
+        "Real Estate",
+        "Materials"
+      ],
+      "preferredStyles": [
+        "aggressive",
+        "growth",
+        "AI-focused",
+        "small-cap",
+        "mid-cap"
+      ]
+    },
+    "lynch": {
+      "name": "Peter Lynch",
+      "style": "Growth at Reasonable Price",
+      "description": "Invest in what you know. Strong earnings growth at reasonable valuations. Diversified across sectors.",
+      "sectorTargets": {
+        "Technology": 20,
+        "Healthcare": 18,
+        "Consumer Discretionary": 15,
+        "Financials": 12,
+        "Industrials": 12,
+        "Consumer Staples": 10,
+        "Communication Services": 8,
+        "Energy": 5
+      },
+      "criteria": {
+        "peMax": 20,
+        "pbMax": 4,
+        "roeMin": 0.1,
+        "debtToEquityMax": 0.8,
+        "dividendPreferred": false,
+        "marketCapMin": "mid"
+      },
+      "coreHoldings": [
+        "AAPL",
+        "MSFT",
+        "NVDA",
+        "GOOGL",
+        "JPM",
+        "UNH",
+        "HD"
+      ],
+      "excludeSectors": [],
+      "preferredStyles": [
+        "growth",
+        "value",
+        "mid-cap",
+        "mega-cap"
+      ]
+    },
+    "graham": {
+      "name": "Benjamin Graham",
+      "style": "Deep Value",
+      "description": "Margin of safety. Net-net stocks, low PE/PB, strong balance sheets, dividend income.",
+      "sectorTargets": {
+        "Financials": 30,
+        "Energy": 15,
+        "Industrials": 15,
+        "Consumer Staples": 15,
+        "Materials": 10,
+        "Utilities": 10,
+        "Healthcare": 5
+      },
+      "criteria": {
+        "peMax": 15,
+        "pbMax": 1.5,
+        "roeMin": 0.08,
+        "debtToEquityMax": 1.0,
+        "dividendPreferred": true,
+        "marketCapMin": "mid"
+      },
+      "coreHoldings": [
+        "BRK_B",
+        "JPM",
+        "XOM",
+        "CVX",
+        "T",
+        "VZ",
+        "PG"
+      ],
+      "excludeSectors": [
+        "Technology"
+      ],
+      "preferredStyles": [
+        "value",
+        "dividend",
+        "safe"
+      ]
+    },
+    "templeton": {
+      "name": "John Templeton",
+      "style": "Contrarian",
+      "description": "Buy at the point of maximum pessimism. Global deep value, distressed sectors, international exposure.",
+      "sectorTargets": {
+        "Technology": 15,
+        "Energy": 15,
+        "Materials": 15,
+        "Financials": 15,
+        "Industrials": 15,
+        "Communication Services": 10,
+        "Consumer Discretionary": 10,
+        "Healthcare": 5
+      },
+      "criteria": {
+        "peMax": 12,
+        "pbMax": 1.5,
+        "roeMin": 0.05,
+        "debtToEquityMax": 1.5,
+        "dividendPreferred": true,
+        "marketCapMin": "mid"
+      },
+      "coreHoldings": [
+        "TSM",
+        "BABA",
+        "INTC",
+        "PBR",
+        "VALE",
+        "SHEL",
+        "BP"
+      ],
+      "excludeSectors": [],
+      "preferredStyles": [
+        "value",
+        "international",
+        "dividend",
+        "aggressive"
+      ]
+    }
+  }
+}

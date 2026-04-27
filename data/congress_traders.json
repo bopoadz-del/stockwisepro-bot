@@ -1,0 +1,157 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-04-27",
+  "traders": {
+    "pelosi": {
+      "name": "Nancy Pelosi",
+      "party": "Democrat",
+      "description": "Former House Speaker. Known for tech-heavy options plays and strong returns.",
+      "holdings": [
+        "AVGO",
+        "GOOGL",
+        "AMZN",
+        "NVDA",
+        "TEM",
+        "VST",
+        "PANW",
+        "MSFT"
+      ],
+      "topSectors": [
+        "Technology",
+        "Healthcare",
+        "Utilities"
+      ],
+      "style": "aggressive",
+      "riskLevel": "high"
+    },
+    "greene": {
+      "name": "Marjorie Taylor Greene",
+      "party": "Republican",
+      "description": "High-frequency trader with strong 2025 returns. Tech and defense focused.",
+      "holdings": [
+        "NVDA",
+        "AMZN",
+        "PLTR",
+        "META",
+        "TSLA"
+      ],
+      "topSectors": [
+        "Technology",
+        "Industrials"
+      ],
+      "style": "aggressive",
+      "riskLevel": "high"
+    },
+    "khanna": {
+      "name": "Ro Khanna",
+      "party": "Democrat",
+      "description": "Highest volume trader in Congress. Portfolio managed by spouse.",
+      "holdings": [
+        "AAPL",
+        "MSFT",
+        "GOOGL",
+        "NVDA",
+        "AMD",
+        "CRM",
+        "ORCL"
+      ],
+      "topSectors": [
+        "Technology",
+        "Communication Services"
+      ],
+      "style": "safe",
+      "riskLevel": "medium"
+    },
+    "gill": {
+      "name": "Brandon Gill",
+      "party": "Republican",
+      "description": "Crypto Congressman. Youngest Republican in 119th Congress. Heavy Bitcoin exposure.",
+      "holdings": [
+        "COIN",
+        "MSTR",
+        "HOOD",
+        "NVDA",
+        "AMD"
+      ],
+      "topSectors": [
+        "Technology",
+        "Financials"
+      ],
+      "style": "aggressive",
+      "riskLevel": "very high"
+    },
+    "mcclain": {
+      "name": "Lisa McClain",
+      "party": "Republican",
+      "description": "High-volume trader. Heavy semiconductor exposure.",
+      "holdings": [
+        "TSM",
+        "NVDA",
+        "AVGO",
+        "AMD",
+        "QCOM",
+        "MU"
+      ],
+      "topSectors": [
+        "Technology"
+      ],
+      "style": "aggressive",
+      "riskLevel": "high"
+    },
+    "mcCaul": {
+      "name": "Michael McCaul",
+      "party": "Republican",
+      "description": "Massive two-way player. Diversified mega-cap and municipal bonds.",
+      "holdings": [
+        "META",
+        "KHC",
+        "VTEB",
+        "NUE",
+        "AAPL",
+        "MSFT"
+      ],
+      "topSectors": [
+        "Technology",
+        "Industrials",
+        "Financials"
+      ],
+      "style": "safe",
+      "riskLevel": "medium"
+    },
+    "hickenlooper": {
+      "name": "John Hickenlooper",
+      "party": "Democrat",
+      "description": "Senator from Colorado. Options-focused on Liberty Media trackers.",
+      "holdings": [
+        "LBRDK",
+        "LBRDA",
+        "AAPL",
+        "MSFT",
+        "GOOGL"
+      ],
+      "topSectors": [
+        "Communication Services",
+        "Technology"
+      ],
+      "style": "aggressive",
+      "riskLevel": "high"
+    },
+    "fields": {
+      "name": "Cleo Fields",
+      "party": "Democrat",
+      "description": "Top buyer in Congress. $24.2M in purchases. Mega-cap tech conviction.",
+      "holdings": [
+        "GOOG",
+        "MSFT",
+        "AAPL",
+        "AMZN",
+        "NVDA"
+      ],
+      "topSectors": [
+        "Technology"
+      ],
+      "style": "safe",
+      "riskLevel": "medium"
+    }
+  }
+}

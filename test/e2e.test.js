@@ -629,7 +629,7 @@ async function runMimicTests() {
   });
 
   await test('valid amount triggers local mimic allocation', async () => {
-    pendingMimic.set(44444, { investorId: 'buffett' });
+    pendingMimic.set(44444, { investorId: 'buffett', stage: 'amount', ethicsEnabled: false });
     const ctx = makeCtx('10000', 44444);
     await runMimicFromAmount(ctx, '10000');
 
@@ -641,7 +641,7 @@ async function runMimicTests() {
   });
 
   await test('invalid amount shows retry message and keeps pending', async () => {
-    pendingMimic.set(55555, { investorId: 'dalio' });
+    pendingMimic.set(55555, { investorId: 'dalio', stage: 'amount', ethicsEnabled: false });
     const ctx = makeCtx('abc', 55555);
     await runMimicFromAmount(ctx, 'abc');
     assert.ok(pendingMimic.has(55555), 'pending state should remain on invalid input');

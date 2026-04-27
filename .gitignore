@@ -1,6 +1,9 @@
 node_modules/
 dist/
-data/
+data/*
+!data/stock_universe.json
+!data/investor_profiles.json
+!data/congress_traders.json
 *.db
 *.sqlite
 *.sqlite3

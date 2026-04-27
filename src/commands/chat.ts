@@ -7,7 +7,7 @@ import { searchCommand } from './search';
 import { newsCommand } from './news';
 import { portfolioCommand } from './portfolio';
 import { watchlistCommand, watchlistAddCommand, watchlistRemoveCommand } from './watchlist';
-import { mimicCommand, pendingMimic, runMimicFromAmount } from './mimic';
+import { mimicCommand, pendingMimic, runMimicFromAmount, handleMimicReplacement } from './mimic';
 import { alertCommand } from './alert';
 import { helpCommand } from './help';
 import { simulateCommand } from './simulate';
@@ -104,6 +104,12 @@ export async function handleChatMessage(ctx: Context) {
   const lower = text.toLowerCase().trim();
   const tickers = extractTickerCandidates(text);
   const firstTicker = tickers[0];
+
+  // 0. Replacement commands
+  if (!text.startsWith('/') && /^replace\s+/i.test(text)) {
+    const handled = await handleMimicReplacement(ctx, text.trim());
+    if (handled) return;
+  }
 
   // 1. Pending flows (experiment, mimic amount)
   const telegramId = ctx.from?.id || 0;

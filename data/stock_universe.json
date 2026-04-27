@@ -1,0 +1,4122 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-04-27",
+  "count": 391,
+  "stocks": [
+    {
+      "ticker": "AAPL",
+      "name": "Apple Inc.",
+      "sector": "Technology",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "AI-focused",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "name": "Microsoft Corp.",
+      "sector": "Technology",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "AI-focused",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "name": "Alphabet Inc.",
+      "sector": "Technology",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "AI-focused",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "AMZN",
+      "name": "Amazon.com Inc.",
+      "sector": "Technology",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "AI-focused",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "NVDA",
+      "name": "Nvidia Corp.",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "AI-focused",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "META",
+      "name": "Meta Platforms Inc.",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "AI-focused",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "TSLA",
+      "name": "Tesla Inc.",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "AI-focused",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "AVGO",
+      "name": "Broadcom Inc.",
+      "sector": "Technology",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "AI-focused",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "AMD",
+      "name": "Advanced Micro Devices",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "AI-focused",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "INTC",
+      "name": "Intel Corp.",
+      "sector": "Technology",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "CRM",
+      "name": "Salesforce Inc.",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "ORCL",
+      "name": "Oracle Corp.",
+      "sector": "Technology",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "AI-focused",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "ADBE",
+      "name": "Adobe Inc.",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "NFLX",
+      "name": "Netflix Inc.",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "PYPL",
+      "name": "PayPal Holdings",
+      "sector": "Technology",
+      "styles": [
+        "value",
+        "mega-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "SHOP",
+      "name": "Shopify Inc.",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "growth",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "SQ",
+      "name": "Block Inc.",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "growth",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "ZM",
+      "name": "Zoom Video Communications",
+      "sector": "Technology",
+      "styles": [
+        "value",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "ROKU",
+      "name": "Roku Inc.",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "COIN",
+      "name": "Coinbase Global",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "growth",
+        "crypto"
+      ]
+    },
+    {
+      "ticker": "PLTR",
+      "name": "Palantir Technologies",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "growth",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "UBER",
+      "name": "Uber Technologies",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "ABNB",
+      "name": "Airbnb Inc.",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "DDOG",
+      "name": "Datadog Inc.",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "growth",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "NET",
+      "name": "Cloudflare Inc.",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "growth",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "SNOW",
+      "name": "Snowflake Inc.",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "growth",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "CRWD",
+      "name": "CrowdStrike Holdings",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "growth",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "PANW",
+      "name": "Palo Alto Networks",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "FTNT",
+      "name": "Fortinet Inc.",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "ZS",
+      "name": "Zscaler Inc.",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "growth",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "NOW",
+      "name": "ServiceNow Inc.",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "mega-cap",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "TWLO",
+      "name": "Twilio Inc.",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "MDB",
+      "name": "MongoDB Inc.",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "growth",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "RBLX",
+      "name": "Roblox Corp.",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "HOOD",
+      "name": "Robinhood Markets",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "growth",
+        "crypto"
+      ]
+    },
+    {
+      "ticker": "UPST",
+      "name": "Upstart Holdings",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "growth",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "SOFI",
+      "name": "SoFi Technologies",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "growth",
+        "financial"
+      ]
+    },
+    {
+      "ticker": "LCID",
+      "name": "Lucid Group",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "EV"
+      ]
+    },
+    {
+      "ticker": "RIVN",
+      "name": "Rivian Automotive",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "EV"
+      ]
+    },
+    {
+      "ticker": "NIO",
+      "name": "NIO Inc.",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "EV",
+        "international"
+      ]
+    },
+    {
+      "ticker": "XPEV",
+      "name": "XPeng Inc.",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "EV",
+        "international"
+      ]
+    },
+    {
+      "ticker": "LI",
+      "name": "Li Auto Inc.",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "EV",
+        "international"
+      ]
+    },
+    {
+      "ticker": "QS",
+      "name": "QuantumScape",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "EV"
+      ]
+    },
+    {
+      "ticker": "RKLB",
+      "name": "Rocket Lab USA",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "space"
+      ]
+    },
+    {
+      "ticker": "ASTS",
+      "name": "AST SpaceMobile",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "space"
+      ]
+    },
+    {
+      "ticker": "SMCI",
+      "name": "Super Micro Computer",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "MRVL",
+      "name": "Marvell Technology",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "mega-cap",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "QCOM",
+      "name": "Qualcomm Inc.",
+      "sector": "Technology",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "AI-focused",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "TXN",
+      "name": "Texas Instruments",
+      "sector": "Technology",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "MU",
+      "name": "Micron Technology",
+      "sector": "Technology",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "LRCX",
+      "name": "Lam Research",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "mega-cap",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "AMAT",
+      "name": "Applied Materials",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "mega-cap",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "KLAC",
+      "name": "KLA Corp.",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "mega-cap",
+        "AI-focused",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "SNPS",
+      "name": "Synopsys Inc.",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "mega-cap",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "CDNS",
+      "name": "Cadence Design Systems",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "mega-cap",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "INTU",
+      "name": "Intuit Inc.",
+      "sector": "Technology",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "growth",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "TEAM",
+      "name": "Atlassian Corp.",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "WDAY",
+      "name": "Workday Inc.",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "ADSK",
+      "name": "Autodesk Inc.",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "ANSS",
+      "name": "Ansys Inc.",
+      "sector": "Technology",
+      "styles": [
+        "growth",
+        "mid-cap"
+      ]
+    },
+    {
+      "ticker": "GLW",
+      "name": "Corning Inc.",
+      "sector": "Technology",
+      "styles": [
+        "safe",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "HPQ",
+      "name": "HP Inc.",
+      "sector": "Technology",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "DELL",
+      "name": "Dell Technologies",
+      "sector": "Technology",
+      "styles": [
+        "value",
+        "mega-cap",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "HPE",
+      "name": "Hewlett Packard Enterprise",
+      "sector": "Technology",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "IBM",
+      "name": "IBM Corp.",
+      "sector": "Technology",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "SAP",
+      "name": "SAP SE",
+      "sector": "Technology",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "international",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "BRK_B",
+      "name": "Berkshire Hathaway",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "value"
+      ]
+    },
+    {
+      "ticker": "JPM",
+      "name": "JPMorgan Chase",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "BAC",
+      "name": "Bank of America",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "WFC",
+      "name": "Wells Fargo",
+      "sector": "Financials",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "C",
+      "name": "Citigroup Inc.",
+      "sector": "Financials",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "GS",
+      "name": "Goldman Sachs",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "MS",
+      "name": "Morgan Stanley",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "AXP",
+      "name": "American Express",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "COF",
+      "name": "Capital One Financial",
+      "sector": "Financials",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "USB",
+      "name": "U.S. Bancorp",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "PNC",
+      "name": "PNC Financial Services",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "TFC",
+      "name": "Truist Financial",
+      "sector": "Financials",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "SCHW",
+      "name": "Charles Schwab",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "BK",
+      "name": "BNY Mellon",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "STT",
+      "name": "State Street Corp.",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "BLK",
+      "name": "BlackRock Inc.",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "MCO",
+      "name": "Moody's Corp.",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "SPGI",
+      "name": "S&P Global Inc.",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "CB",
+      "name": "Chubb Ltd.",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "AIG",
+      "name": "American International Group",
+      "sector": "Financials",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "MET",
+      "name": "MetLife Inc.",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "PRU",
+      "name": "Prudential Financial",
+      "sector": "Financials",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "AFL",
+      "name": "Aflac Inc.",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "ALL",
+      "name": "Allstate Corp.",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "TRV",
+      "name": "Travelers Companies",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "PGR",
+      "name": "Progressive Corp.",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "CME",
+      "name": "CME Group Inc.",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "ICE",
+      "name": "Intercontinental Exchange",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "NDAQ",
+      "name": "Nasdaq Inc.",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "SPY",
+      "name": "SPDR S&P 500 ETF",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "ETF"
+      ]
+    },
+    {
+      "ticker": "VOO",
+      "name": "Vanguard S&P 500 ETF",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "ETF"
+      ]
+    },
+    {
+      "ticker": "VTI",
+      "name": "Vanguard Total Stock ETF",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "ETF"
+      ]
+    },
+    {
+      "ticker": "QQQ",
+      "name": "Invesco QQQ ETF",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "ETF",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "IWM",
+      "name": "iShares Russell 2000 ETF",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "ETF"
+      ]
+    },
+    {
+      "ticker": "XLF",
+      "name": "Financial Select Sector SPDR",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "ETF"
+      ]
+    },
+    {
+      "ticker": "KRE",
+      "name": "SPDR S&P Regional Banking ETF",
+      "sector": "Financials",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "ETF"
+      ]
+    },
+    {
+      "ticker": "SIVB",
+      "name": "SVB Financial (defunct)",
+      "sector": "Financials",
+      "styles": [
+        "aggressive"
+      ]
+    },
+    {
+      "ticker": "NU",
+      "name": "Nu Holdings Ltd.",
+      "sector": "Financials",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth",
+        "international"
+      ]
+    },
+    {
+      "ticker": "SOFI",
+      "name": "SoFi Technologies",
+      "sector": "Financials",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "ALLY",
+      "name": "Ally Financial",
+      "sector": "Financials",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "DFS",
+      "name": "Discover Financial",
+      "sector": "Financials",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "SYF",
+      "name": "Synchrony Financial",
+      "sector": "Financials",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "RF",
+      "name": "Regions Financial",
+      "sector": "Financials",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "CFG",
+      "name": "Citizens Financial",
+      "sector": "Financials",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "KEY",
+      "name": "KeyCorp",
+      "sector": "Financials",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "HBAN",
+      "name": "Huntington Bancshares",
+      "sector": "Financials",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "UNH",
+      "name": "UnitedHealth Group",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "JNJ",
+      "name": "Johnson & Johnson",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "PFE",
+      "name": "Pfizer Inc.",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "ABBV",
+      "name": "AbbVie Inc.",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "MRK",
+      "name": "Merck & Co.",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "LLY",
+      "name": "Eli Lilly & Co.",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "TMO",
+      "name": "Thermo Fisher Scientific",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "ABT",
+      "name": "Abbott Laboratories",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "DHR",
+      "name": "Danaher Corp.",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "BMY",
+      "name": "Bristol Myers Squibb",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "AMGN",
+      "name": "Amgen Inc.",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "GILD",
+      "name": "Gilead Sciences",
+      "sector": "Healthcare",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "VRTX",
+      "name": "Vertex Pharmaceuticals",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "REGN",
+      "name": "Regeneron Pharmaceuticals",
+      "sector": "Healthcare",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "BIIB",
+      "name": "Biogen Inc.",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "ISRG",
+      "name": "Intuitive Surgical",
+      "sector": "Healthcare",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "ZTS",
+      "name": "Zoetis Inc.",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "CVS",
+      "name": "CVS Health Corp.",
+      "sector": "Healthcare",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "CI",
+      "name": "Cigna Group",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "HUM",
+      "name": "Humana Inc.",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "ELV",
+      "name": "Elevance Health",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "CAH",
+      "name": "Cardinal Health",
+      "sector": "Healthcare",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "MCK",
+      "name": "McKesson Corp.",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "COR",
+      "name": "Cencora Inc.",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "WST",
+      "name": "West Pharmaceutical",
+      "sector": "Healthcare",
+      "styles": [
+        "growth",
+        "mid-cap"
+      ]
+    },
+    {
+      "ticker": "RMD",
+      "name": "ResMed Inc.",
+      "sector": "Healthcare",
+      "styles": [
+        "growth",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "DXCM",
+      "name": "Dexcom Inc.",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "EW",
+      "name": "Edwards Lifesciences",
+      "sector": "Healthcare",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "IDXX",
+      "name": "IDEXX Laboratories",
+      "sector": "Healthcare",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "WAT",
+      "name": "Waters Corp.",
+      "sector": "Healthcare",
+      "styles": [
+        "growth",
+        "mid-cap"
+      ]
+    },
+    {
+      "ticker": "CRSP",
+      "name": "CRISPR Therapeutics",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "NTLA",
+      "name": "Intellia Therapeutics",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "BEAM",
+      "name": "Beam Therapeutics",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "EDIT",
+      "name": "Editas Medicine",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "VCEL",
+      "name": "Vericel Corp.",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "ARCT",
+      "name": "Arcturus Therapeutics",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "DNA",
+      "name": "Ginkgo Bioworks",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "TWST",
+      "name": "Twist Bioscience",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "PACB",
+      "name": "Pacific Biosciences",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "NVTA",
+      "name": "Invitae Corp.",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "EXAS",
+      "name": "Exact Sciences",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "ILMN",
+      "name": "Illumina Inc.",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "TEM",
+      "name": "Tempus AI Inc.",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "MRNA",
+      "name": "Moderna Inc.",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "BNTX",
+      "name": "BioNTech SE",
+      "sector": "Healthcare",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "growth",
+        "international"
+      ]
+    },
+    {
+      "ticker": "PG",
+      "name": "Procter & Gamble",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "KO",
+      "name": "Coca-Cola Co.",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "PEP",
+      "name": "PepsiCo Inc.",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "WMT",
+      "name": "Walmart Inc.",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "COST",
+      "name": "Costco Wholesale",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "MDLZ",
+      "name": "Mondelez International",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "KHC",
+      "name": "Kraft Heinz",
+      "sector": "Consumer Staples",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "GIS",
+      "name": "General Mills",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "K",
+      "name": "Kellanova",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "HSY",
+      "name": "Hershey Co.",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "MKC",
+      "name": "McCormick & Co.",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mid-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "CPB",
+      "name": "Campbell Soup",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mid-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "CAG",
+      "name": "Conagra Brands",
+      "sector": "Consumer Staples",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "SJM",
+      "name": "J.M. Smucker",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mid-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "KR",
+      "name": "Kroger Co.",
+      "sector": "Consumer Staples",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "WBA",
+      "name": "Walgreens Boots Alliance",
+      "sector": "Consumer Staples",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "CL",
+      "name": "Colgate-Palmolive",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "CHD",
+      "name": "Church & Dwight",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mid-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "EL",
+      "name": "Estee Lauder",
+      "sector": "Consumer Staples",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "DG",
+      "name": "Dollar General",
+      "sector": "Consumer Staples",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "DLTR",
+      "name": "Dollar Tree",
+      "sector": "Consumer Staples",
+      "styles": [
+        "value",
+        "mid-cap"
+      ]
+    },
+    {
+      "ticker": "TGT",
+      "name": "Target Corp.",
+      "sector": "Consumer Staples",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "ADM",
+      "name": "Archer Daniels Midland",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "TSN",
+      "name": "Tyson Foods",
+      "sector": "Consumer Staples",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "BG",
+      "name": "Bunge Global",
+      "sector": "Consumer Staples",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "MO",
+      "name": "Altria Group",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "PM",
+      "name": "Philip Morris International",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "STZ",
+      "name": "Constellation Brands",
+      "sector": "Consumer Staples",
+      "styles": [
+        "growth",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "BF_B",
+      "name": "Brown-Forman",
+      "sector": "Consumer Staples",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "MNST",
+      "name": "Monster Beverage",
+      "sector": "Consumer Staples",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "HD",
+      "name": "Home Depot",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "LOW",
+      "name": "Lowe's Companies",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "MCD",
+      "name": "McDonald's Corp.",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "NKE",
+      "name": "Nike Inc.",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "SBUX",
+      "name": "Starbucks Corp.",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "TJX",
+      "name": "TJX Companies",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "BKNG",
+      "name": "Booking Holdings",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "MAR",
+      "name": "Marriott International",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "growth",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "HLT",
+      "name": "Hilton Worldwide",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "DPZ",
+      "name": "Domino's Pizza",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "growth",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "YUM",
+      "name": "Yum! Brands",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "CMG",
+      "name": "Chipotle Mexican Grill",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "DHI",
+      "name": "D.R. Horton",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "growth",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "LEN",
+      "name": "Lennar Corp.",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "growth",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "NVR",
+      "name": "NVR Inc.",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "PHM",
+      "name": "PulteGroup",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "growth",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "TOL",
+      "name": "Toll Brothers",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "growth",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "F",
+      "name": "Ford Motor Co.",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "GM",
+      "name": "General Motors",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "STLA",
+      "name": "Stellantis NV",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "CCL",
+      "name": "Carnival Corp.",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "RCL",
+      "name": "Royal Caribbean",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "NCLH",
+      "name": "Norwegian Cruise",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "LVS",
+      "name": "Las Vegas Sands",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "MGM",
+      "name": "MGM Resorts",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "WYNN",
+      "name": "Wynn Resorts",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "ETSY",
+      "name": "Etsy Inc.",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "EBAY",
+      "name": "eBay Inc.",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "BABA",
+      "name": "Alibaba Group",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "growth",
+        "international"
+      ]
+    },
+    {
+      "ticker": "JD",
+      "name": "JD.com Inc.",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "growth",
+        "international"
+      ]
+    },
+    {
+      "ticker": "PDD",
+      "name": "PDD Holdings",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "growth",
+        "international"
+      ]
+    },
+    {
+      "ticker": "GRPN",
+      "name": "Groupon Inc.",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "aggressive",
+        "small-cap"
+      ]
+    },
+    {
+      "ticker": "CHWY",
+      "name": "Chewy Inc.",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "GME",
+      "name": "GameStop Corp.",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "meme"
+      ]
+    },
+    {
+      "ticker": "AMC",
+      "name": "AMC Entertainment",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "meme"
+      ]
+    },
+    {
+      "ticker": "XOM",
+      "name": "Exxon Mobil",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "CVX",
+      "name": "Chevron Corp.",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "COP",
+      "name": "ConocoPhillips",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "EOG",
+      "name": "EOG Resources",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "SLB",
+      "name": "Schlumberger",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "OXY",
+      "name": "Occidental Petroleum",
+      "sector": "Energy",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "MPC",
+      "name": "Marathon Petroleum",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "VLO",
+      "name": "Valero Energy",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "PSX",
+      "name": "Phillips 66",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "WMB",
+      "name": "Williams Companies",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "KMI",
+      "name": "Kinder Morgan",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "EPD",
+      "name": "Enterprise Products",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "ET",
+      "name": "Energy Transfer",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "MPLX",
+      "name": "MPLX LP",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "ENB",
+      "name": "Enbridge Inc.",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value",
+        "international"
+      ]
+    },
+    {
+      "ticker": "TRP",
+      "name": "TC Energy Corp.",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value",
+        "international"
+      ]
+    },
+    {
+      "ticker": "SU",
+      "name": "Suncor Energy",
+      "sector": "Energy",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "IMO",
+      "name": "Imperial Oil",
+      "sector": "Energy",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "CVE",
+      "name": "Cenovus Energy",
+      "sector": "Energy",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "PBR",
+      "name": "Petrobras",
+      "sector": "Energy",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "VALE",
+      "name": "Vale S.A.",
+      "sector": "Energy",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "BTU",
+      "name": "Peabody Energy",
+      "sector": "Energy",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "ARCH",
+      "name": "Arch Resources",
+      "sector": "Energy",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "CEIX",
+      "name": "CONSOL Energy",
+      "sector": "Energy",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "AR",
+      "name": "Antero Resources",
+      "sector": "Energy",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "SWN",
+      "name": "Southwestern Energy",
+      "sector": "Energy",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "CHK",
+      "name": "Chesapeake Energy",
+      "sector": "Energy",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "RRC",
+      "name": "Range Resources",
+      "sector": "Energy",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "DVN",
+      "name": "Devon Energy",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "FANG",
+      "name": "Diamondback Energy",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "GE",
+      "name": "GE Aerospace",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "CAT",
+      "name": "Caterpillar Inc.",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "BA",
+      "name": "Boeing Co.",
+      "sector": "Industrials",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "HON",
+      "name": "Honeywell International",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "UPS",
+      "name": "United Parcel Service",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "FDX",
+      "name": "FedEx Corp.",
+      "sector": "Industrials",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "RTX",
+      "name": "RTX Corp.",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "LMT",
+      "name": "Lockheed Martin",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "NOC",
+      "name": "Northrop Grumman",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "GD",
+      "name": "General Dynamics",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "TDG",
+      "name": "TransDigm Group",
+      "sector": "Industrials",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "PCAR",
+      "name": "Paccar Inc.",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "DE",
+      "name": "Deere & Co.",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "MMM",
+      "name": "3M Co.",
+      "sector": "Industrials",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "ITW",
+      "name": "Illinois Tool Works",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "EMR",
+      "name": "Emerson Electric",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "ETN",
+      "name": "Eaton Corp.",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "APH",
+      "name": "Amphenol Corp.",
+      "sector": "Industrials",
+      "styles": [
+        "growth",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "CMI",
+      "name": "Cummins Inc.",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "CSX",
+      "name": "CSX Corp.",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "UNP",
+      "name": "Union Pacific",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "NSC",
+      "name": "Norfolk Southern",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "WM",
+      "name": "Waste Management",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "RSG",
+      "name": "Republic Services",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "ODFL",
+      "name": "Old Dominion Freight",
+      "sector": "Industrials",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "LHX",
+      "name": "L3Harris Technologies",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "MAS",
+      "name": "Masco Corp.",
+      "sector": "Industrials",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "LEA",
+      "name": "Lear Corp.",
+      "sector": "Industrials",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "GTX",
+      "name": "Garrett Motion",
+      "sector": "Industrials",
+      "styles": [
+        "aggressive",
+        "small-cap",
+        "value"
+      ]
+    },
+    {
+      "ticker": "ATKR",
+      "name": "Atkore Inc.",
+      "sector": "Industrials",
+      "styles": [
+        "growth",
+        "mid-cap"
+      ]
+    },
+    {
+      "ticker": "NUE",
+      "name": "Nucor Corp.",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "STLD",
+      "name": "Steel Dynamics",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "X",
+      "name": "United States Steel",
+      "sector": "Industrials",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "CLF",
+      "name": "Cleveland-Cliffs",
+      "sector": "Industrials",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "value"
+      ]
+    },
+    {
+      "ticker": "GOOG",
+      "name": "Alphabet Inc.",
+      "sector": "Communication Services",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "AI-focused",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "META",
+      "name": "Meta Platforms",
+      "sector": "Communication Services",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "AI-focused",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "DIS",
+      "name": "Walt Disney Co.",
+      "sector": "Communication Services",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "NFLX",
+      "name": "Netflix Inc.",
+      "sector": "Communication Services",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "CMCSA",
+      "name": "Comcast Corp.",
+      "sector": "Communication Services",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "VZ",
+      "name": "Verizon Communications",
+      "sector": "Communication Services",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "T",
+      "name": "AT&T Inc.",
+      "sector": "Communication Services",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "TMUS",
+      "name": "T-Mobile US",
+      "sector": "Communication Services",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "CHTR",
+      "name": "Charter Communications",
+      "sector": "Communication Services",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "SIRI",
+      "name": "Sirius XM Holdings",
+      "sector": "Communication Services",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "LYV",
+      "name": "Live Nation",
+      "sector": "Communication Services",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "TTWO",
+      "name": "Take-Two Interactive",
+      "sector": "Communication Services",
+      "styles": [
+        "growth",
+        "mega-cap"
+      ]
+    },
+    {
+      "ticker": "EA",
+      "name": "Electronic Arts",
+      "sector": "Communication Services",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "ATVI",
+      "name": "Activision Blizzard",
+      "sector": "Communication Services",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "RBLX",
+      "name": "Roblox Corp.",
+      "sector": "Communication Services",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "MTCH",
+      "name": "Match Group",
+      "sector": "Communication Services",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "IAC",
+      "name": "IAC Inc.",
+      "sector": "Communication Services",
+      "styles": [
+        "aggressive",
+        "mid-cap"
+      ]
+    },
+    {
+      "ticker": "SPOT",
+      "name": "Spotify Technology",
+      "sector": "Communication Services",
+      "styles": [
+        "growth",
+        "mega-cap",
+        "international"
+      ]
+    },
+    {
+      "ticker": "NYT",
+      "name": "New York Times",
+      "sector": "Communication Services",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "WBD",
+      "name": "Warner Bros. Discovery",
+      "sector": "Communication Services",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "value"
+      ]
+    },
+    {
+      "ticker": "PARA",
+      "name": "Paramount Global",
+      "sector": "Communication Services",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "value"
+      ]
+    },
+    {
+      "ticker": " FOX",
+      "name": "Fox Corp.",
+      "sector": "Communication Services",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "NWSA",
+      "name": "News Corp.",
+      "sector": "Communication Services",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "IPG",
+      "name": "Interpublic Group",
+      "sector": "Communication Services",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "OMC",
+      "name": "Omnicom Group",
+      "sector": "Communication Services",
+      "styles": [
+        "safe",
+        "mid-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "LIN",
+      "name": "Linde plc",
+      "sector": "Materials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "APD",
+      "name": "Air Products",
+      "sector": "Materials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "SHW",
+      "name": "Sherwin-Williams",
+      "sector": "Materials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "FCX",
+      "name": "Freeport-McMoRan",
+      "sector": "Materials",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "NEM",
+      "name": "Newmont Corp.",
+      "sector": "Materials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "GOLD",
+      "name": "Barrick Gold",
+      "sector": "Materials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "DOW",
+      "name": "Dow Inc.",
+      "sector": "Materials",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "DD",
+      "name": "DuPont de Nemours",
+      "sector": "Materials",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "ECL",
+      "name": "Ecolab Inc.",
+      "sector": "Materials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "PPG",
+      "name": "PPG Industries",
+      "sector": "Materials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "IFF",
+      "name": "International Flavors",
+      "sector": "Materials",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "ALB",
+      "name": "Albemarle Corp.",
+      "sector": "Materials",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth",
+        "EV"
+      ]
+    },
+    {
+      "ticker": "SQM",
+      "name": "Sociedad Quimica",
+      "sector": "Materials",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "dividend",
+        "international",
+        "EV"
+      ]
+    },
+    {
+      "ticker": "MP",
+      "name": "MP Materials",
+      "sector": "Materials",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "growth",
+        "EV"
+      ]
+    },
+    {
+      "ticker": "AMCR",
+      "name": "Amcor plc",
+      "sector": "Materials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "CF",
+      "name": "CF Industries",
+      "sector": "Materials",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "MOS",
+      "name": "Mosaic Co.",
+      "sector": "Materials",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "NTR",
+      "name": "Nutrien Ltd.",
+      "sector": "Materials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value",
+        "international"
+      ]
+    },
+    {
+      "ticker": "FMC",
+      "name": "FMC Corp.",
+      "sector": "Materials",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "CE",
+      "name": "Celanese Corp.",
+      "sector": "Materials",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "AMT",
+      "name": "American Tower",
+      "sector": "Real Estate",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "PLD",
+      "name": "Prologis Inc.",
+      "sector": "Real Estate",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "CCI",
+      "name": "Crown Castle",
+      "sector": "Real Estate",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "EQIX",
+      "name": "Equinix Inc.",
+      "sector": "Real Estate",
+      "styles": [
+        "growth",
+        "mega-cap",
+        "dividend",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "PSA",
+      "name": "Public Storage",
+      "sector": "Real Estate",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "O",
+      "name": "Realty Income",
+      "sector": "Real Estate",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "SPG",
+      "name": "Simon Property Group",
+      "sector": "Real Estate",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "WELL",
+      "name": "Welltower Inc.",
+      "sector": "Real Estate",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "VTR",
+      "name": "Ventas Inc.",
+      "sector": "Real Estate",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "AVB",
+      "name": "AvalonBay Communities",
+      "sector": "Real Estate",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "EQR",
+      "name": "Equity Residential",
+      "sector": "Real Estate",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "UDR",
+      "name": "UDR Inc.",
+      "sector": "Real Estate",
+      "styles": [
+        "safe",
+        "mid-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "ESS",
+      "name": "Essex Property Trust",
+      "sector": "Real Estate",
+      "styles": [
+        "safe",
+        "mid-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "MAA",
+      "name": "Mid-America Apt",
+      "sector": "Real Estate",
+      "styles": [
+        "safe",
+        "mid-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "CPT",
+      "name": "Camden Property Trust",
+      "sector": "Real Estate",
+      "styles": [
+        "safe",
+        "mid-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "LAMR",
+      "name": "Lamar Advertising",
+      "sector": "Real Estate",
+      "styles": [
+        "growth",
+        "mid-cap",
+        "dividend"
+      ]
+    },
+    {
+      "ticker": "EXR",
+      "name": "Extra Space Storage",
+      "sector": "Real Estate",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "DLR",
+      "name": "Digital Realty Trust",
+      "sector": "Real Estate",
+      "styles": [
+        "growth",
+        "mega-cap",
+        "dividend",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "IRM",
+      "name": "Iron Mountain",
+      "sector": "Real Estate",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "ARE",
+      "name": "Alexandria Real Estate",
+      "sector": "Real Estate",
+      "styles": [
+        "growth",
+        "mega-cap",
+        "dividend",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "NEE",
+      "name": "NextEra Energy",
+      "sector": "Utilities",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "DUK",
+      "name": "Duke Energy",
+      "sector": "Utilities",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "SO",
+      "name": "Southern Co.",
+      "sector": "Utilities",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "D",
+      "name": "Dominion Energy",
+      "sector": "Utilities",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "AEP",
+      "name": "American Electric Power",
+      "sector": "Utilities",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "EXC",
+      "name": "Exelon Corp.",
+      "sector": "Utilities",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "SRE",
+      "name": "Sempra Energy",
+      "sector": "Utilities",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "PEG",
+      "name": "Public Service Enterprise",
+      "sector": "Utilities",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "ED",
+      "name": "Consolidated Edison",
+      "sector": "Utilities",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "XEL",
+      "name": "Xcel Energy",
+      "sector": "Utilities",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "WEC",
+      "name": "WEC Energy Group",
+      "sector": "Utilities",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "ES",
+      "name": "Eversource Energy",
+      "sector": "Utilities",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth"
+      ]
+    },
+    {
+      "ticker": "VST",
+      "name": "Vistra Corp.",
+      "sector": "Utilities",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "growth",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "NRG",
+      "name": "NRG Energy",
+      "sector": "Utilities",
+      "styles": [
+        "aggressive",
+        "mid-cap",
+        "dividend",
+        "value"
+      ]
+    },
+    {
+      "ticker": "CEG",
+      "name": "Constellation Energy",
+      "sector": "Utilities",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "growth",
+        "AI-focused"
+      ]
+    },
+    {
+      "ticker": "TSM",
+      "name": "Taiwan Semiconductor",
+      "sector": "Technology",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "AI-focused",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "ASML",
+      "name": "ASML Holding",
+      "sector": "Technology",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "AI-focused",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "SAP",
+      "name": "SAP SE",
+      "sector": "Technology",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "AI-focused",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "SONY",
+      "name": "Sony Group",
+      "sector": "Technology",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "TM",
+      "name": "Toyota Motor",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "international",
+        "EV"
+      ]
+    },
+    {
+      "ticker": "HMC",
+      "name": "Honda Motor",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "international",
+        "EV"
+      ]
+    },
+    {
+      "ticker": "NSANY",
+      "name": "Nissan Motor",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend",
+        "international",
+        "EV"
+      ]
+    },
+    {
+      "ticker": "RNO",
+      "name": "Renault SA",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "value",
+        "mid-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "VWAGY",
+      "name": "Volkswagen AG",
+      "sector": "Consumer Discretionary",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend",
+        "international",
+        "EV"
+      ]
+    },
+    {
+      "ticker": "BASFY",
+      "name": "BASF SE",
+      "sector": "Materials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "SIEGY",
+      "name": "Siemens AG",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "AIR",
+      "name": "Airbus SE",
+      "sector": "Industrials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "RY",
+      "name": "Royal Bank of Canada",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "TD",
+      "name": "Toronto-Dominion Bank",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "BNS",
+      "name": "Bank of Nova Scotia",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "SAN",
+      "name": "Banco Santander",
+      "sector": "Financials",
+      "styles": [
+        "value",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "HSBC",
+      "name": "HSBC Holdings",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "UBS",
+      "name": "UBS Group AG",
+      "sector": "Financials",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "CS",
+      "name": "Credit Suisse",
+      "sector": "Financials",
+      "styles": [
+        "aggressive",
+        "mega-cap",
+        "international"
+      ]
+    },
+    {
+      "ticker": "NVO",
+      "name": "Novo Nordisk",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth",
+        "international"
+      ]
+    },
+    {
+      "ticker": "ROG",
+      "name": "Roche Holding",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "international"
+      ]
+    },
+    {
+      "ticker": "AZN",
+      "name": "AstraZeneca",
+      "sector": "Healthcare",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "growth",
+        "international"
+      ]
+    },
+    {
+      "ticker": "SHEL",
+      "name": "Shell plc",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value",
+        "international"
+      ]
+    },
+    {
+      "ticker": "BP",
+      "name": "BP plc",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value",
+        "international"
+      ]
+    },
+    {
+      "ticker": "TTE",
+      "name": "TotalEnergies SE",
+      "sector": "Energy",
+      "styles": [
+        "safe",
+        "mega-cap",
+        "dividend",
+        "value",
+        "international"
+      ]
+    }
+  ],
+  "sectors": [
+    "Communication Services",
+    "Consumer Discretionary",
+    "Consumer Staples",
+    "Energy",
+    "Financials",
+    "Healthcare",
+    "Industrials",
+    "Materials",
+    "Real Estate",
+    "Technology",
+    "Utilities"
+  ],
+  "styles": [
+    "AI-focused",
+    "ETF",
+    "EV",
+    "aggressive",
+    "crypto",
+    "dividend",
+    "financial",
+    "growth",
+    "international",
+    "mega-cap",
+    "meme",
+    "mid-cap",
+    "safe",
+    "small-cap",
+    "space",
+    "value"
+  ]
+}
