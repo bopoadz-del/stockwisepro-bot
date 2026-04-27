@@ -78,16 +78,39 @@ export async function runMimicFromAmount(ctx: Context, amountText: string) {
   if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
   if (error || !data) {
-    await ctx.reply(userSafeError());
+    logger.error('MIMIC API ERROR', { 
+      investorId: pending.investorId, 
+      amount, 
+      telegramId,
+      error: JSON.stringify(error),
+      data: JSON.stringify(data)
+    });
+    await ctx.reply(
+      `❌ Mimic failed for *${investor?.name || 'Unknown'}*\n\n` +
+      `*Backend error:*\n\`${JSON.stringify(error).slice(0, 400)}\`\n\n` +
+      `*Response:*\n\`${JSON.stringify(data).slice(0, 400)}\`\n\n` +
+      `Check that \`/api/portfolio/mimic\` exists on your backend.`,
+      { parse_mode: 'Markdown' }
+    );
     return;
   }
 
-  const holdings = data?.holdings || [];
+  const holdings = data?.holdings || data?.allocation || data?.portfolio || data?.stocks || [];
+  logger.info('MIMIC RESPONSE PARSE', { 
+    investorId: pending.investorId,
+    dataKeys: Object.keys(data || {}),
+    holdingsCount: holdings.length,
+    rawData: JSON.stringify(data).slice(0, 500)
+  });
+
   if (holdings.length === 0) {
     await ctx.replyWithMarkdown(
-      `✅ *Mimicking ${investor.name}*\n\n` +
-      `💵 *Investment:* $${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}\n\n` +
-      `No specific holdings returned. Use /portfolio to view details.`
+      `⚠️ *Mimic returned empty portfolio*\n\n` +
+      `*Investor:* ${investor.name}\n` +
+      `*Amount:* $${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}\n\n` +
+      `*Backend response keys:* \`${Object.keys(data || {}).join(', ')}\`\n\n` +
+      `*Raw response:*\n\`\`\`json\n${JSON.stringify(data, null, 2).slice(0, 800)}\n\`\`\`\n\n` +
+      `Your backend \`/api/portfolio/mimic\` must return \`{ holdings: [{ticker, percentage}] }\``
     );
     return;
   }
