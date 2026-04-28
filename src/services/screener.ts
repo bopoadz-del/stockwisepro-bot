@@ -26,7 +26,24 @@ export interface ScreenResult {
 function normalizeWeights(holdings: ScreenedHolding[]): ScreenedHolding[] {
   const total = holdings.reduce((sum, h) => sum + h.percentage, 0);
   if (total === 0) return holdings;
-  return holdings.map(h => ({ ...h, percentage: parseFloat(((h.percentage / total) * 100).toFixed(2)) }));
+
+  const normalized = holdings.map(h => ({
+    ...h,
+    percentage: parseFloat(((h.percentage / total) * 100).toFixed(2)),
+  }));
+
+  // Ensure total sums to exactly 100 by adjusting the largest holding
+  const currentTotal = normalized.reduce((sum, h) => sum + h.percentage, 0);
+  const diff = parseFloat((100 - currentTotal).toFixed(2));
+  if (diff !== 0 && normalized.length > 0) {
+    const largestIdx = normalized.reduce((maxIdx, h, i, arr) =>
+      h.percentage > arr[maxIdx].percentage ? i : maxIdx, 0);
+    normalized[largestIdx].percentage = parseFloat(
+      (normalized[largestIdx].percentage + diff).toFixed(2)
+    );
+  }
+
+  return normalized;
 }
 
 function sortByStyleMatch(stocks: StockUniverseEntry[], preferredStyles: string[]): StockUniverseEntry[] {
@@ -137,9 +154,10 @@ function buildInvestorPortfolio(
       let replacementTicker = rep.newTicker;
 
       if (!replacementTicker) {
-        // Auto-find replacement in same sector with same style
+        // Auto-find replacement in same sector with same style, excluding existing holdings
+        const existingTickers = new Set(holdings.map(h => h.ticker.toUpperCase()));
         let candidates = universe.filter(
-          s => s.sector === oldHolding.sector && s.ticker !== oldHolding.ticker
+          s => s.sector === oldHolding.sector && s.ticker !== oldHolding.ticker && !existingTickers.has(s.ticker.toUpperCase())
         );
         if (ethicsEnabled) candidates = applyEthicsFilter(candidates);
         candidates = sortByStyleMatch(candidates, profile.preferredStyles);

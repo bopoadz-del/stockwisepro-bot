@@ -3,7 +3,7 @@ import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
 import { userSafeError } from '../utils/logger';
 import { logger } from '../utils/logger';
-import { getLocalMimicAllocation, findReplacement } from '../services/mimic';
+import { getLocalMimicAllocation, findReplacement, fetchMimicPrices } from '../services/mimic';
 import { loadCongressTraders } from '../services/universe';
 
 const INVESTORS = [
@@ -144,22 +144,8 @@ export async function runMimicFromAmount(ctx: Context, amountText: string) {
     return;
   }
 
-  // Fetch prices for all holdings in parallel to calculate share counts
-  const pricePromises = holdings.map(async (h: any) => {
-    const ticker = h.ticker || h.symbol;
-    if (!ticker) return { ticker, price: null };
-    try {
-      const res = await stockwise.getStock(ticker, telegramId);
-      const price = res.data?.price ?? res.data?.currentPrice ?? res.data?.regularMarketPrice ?? null;
-      return { ticker, price: price ? parseFloat(price) : null };
-    } catch (e) {
-      logger.warn(`Price fetch failed for ${ticker}`, { error: (e as Error).message });
-      return { ticker, price: null };
-    }
-  });
-
-  const prices = await Promise.all(pricePromises);
-  const priceMap = new Map(prices.map(p => [p.ticker, p.price]));
+  // Fetch prices for all holdings
+  const priceMap = await fetchMimicPrices(holdings, telegramId);
 
   let totalAllocated = 0;
   const lines = holdings.map((h: any) => {
@@ -229,20 +215,20 @@ export async function handleMimicReplacement(ctx: Context, text: string) {
 
   await ctx.replyWithChatAction('typing');
 
-  // If user didn't specify replacement, let the bot find one
+  // If user didn't specify replacement, pass undefined so the screener auto-finds
+  // one that avoids existing holdings
   if (autoReplaced && oldTicker) {
-    const autoNew = findReplacement(oldTicker, last.investorId, last.ethicsEnabled);
-    if (autoNew) {
-      newTicker = autoNew;
-    } else {
-      await ctx.reply(`❌ Could not find a suitable replacement for *${oldTicker}* with the current filters.`, { parse_mode: 'Markdown' });
-      return true;
-    }
+    newTicker = undefined;
   }
 
   const mimicResult = getLocalMimicAllocation(last.investorId, last.ethicsEnabled, [
     { oldTicker: oldTicker!, newTicker },
   ]);
+
+  if (autoReplaced && oldTicker && (!mimicResult || !mimicResult.replacedTickers || mimicResult.replacedTickers.length === 0)) {
+    await ctx.reply(`❌ Could not find a suitable replacement for *${oldTicker}* with the current filters.`, { parse_mode: 'Markdown' });
+    return true;
+  }
 
   if (!mimicResult) {
     await ctx.reply('❌ Could not build replacement portfolio.');
@@ -252,21 +238,7 @@ export async function handleMimicReplacement(ctx: Context, text: string) {
   const investorName = getInvestorName(last.investorId);
   const holdings = mimicResult.holdings;
 
-  const pricePromises = holdings.map(async (h: any) => {
-    const ticker = h.ticker || h.symbol;
-    if (!ticker) return { ticker, price: null };
-    try {
-      const res = await stockwise.getStock(ticker, telegramId);
-      const price = res.data?.price ?? res.data?.currentPrice ?? res.data?.regularMarketPrice ?? null;
-      return { ticker, price: price ? parseFloat(price) : null };
-    } catch (e) {
-      logger.warn(`Price fetch failed for ${ticker}`, { error: (e as Error).message });
-      return { ticker, price: null };
-    }
-  });
-
-  const prices = await Promise.all(pricePromises);
-  const priceMap = new Map(prices.map(p => [p.ticker, p.price]));
+  const priceMap = await fetchMimicPrices(holdings, telegramId);
 
   const lines = holdings.map((h: any) => {
     const ticker = h.ticker || h.symbol || '?';

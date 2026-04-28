@@ -1,6 +1,9 @@
 import { logger } from '../utils/logger';
 import { stockwise } from '../api/stockwise';
 import { screenPortfolio, findReplacement, ScreenResult } from './screener';
+import YahooFinance from 'yahoo-finance2';
+
+const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
 export interface MimicHolding {
   ticker: string;
@@ -33,6 +36,17 @@ export function getLocalMimicAllocation(
   };
 }
 
+async function fetchYahooPrice(ticker: string): Promise<number | null> {
+  try {
+    const summary = await yf.quoteSummary(ticker.toUpperCase(), { modules: ['price'] });
+    const price = (summary as any)?.price?.regularMarketPrice ?? (summary as any)?.price?.previousClose ?? null;
+    if (price && Number(price) > 0) return Number(price);
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 export async function fetchMimicPrices(
   holdings: MimicHolding[],
   telegramId?: number
@@ -40,14 +54,24 @@ export async function fetchMimicPrices(
   const priceMap = new Map<string, number | null>();
 
   const pricePromises = holdings.map(async (h) => {
+    // 1. Try StockWise API first
     try {
       const res = await stockwise.getStock(h.ticker, telegramId);
       const price = res.data?.price ?? res.data?.currentPrice ?? res.data?.regularMarketPrice ?? null;
-      return { ticker: h.ticker, price: price ? parseFloat(price) : null };
-    } catch (e) {
-      logger.warn(`Price fetch failed for ${h.ticker}`, { error: (e as Error).message });
-      return { ticker: h.ticker, price: null };
+      if (price && parseFloat(price) > 0) {
+        return { ticker: h.ticker, price: parseFloat(price) };
+      }
+    } catch {
+      // fall through to Yahoo
     }
+
+    // 2. Fallback to Yahoo Finance
+    const yahooPrice = await fetchYahooPrice(h.ticker);
+    if (yahooPrice) {
+      return { ticker: h.ticker, price: yahooPrice };
+    }
+
+    return { ticker: h.ticker, price: null };
   });
 
   const prices = await Promise.all(pricePromises);
