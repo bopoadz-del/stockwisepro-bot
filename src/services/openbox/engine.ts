@@ -1,13 +1,9 @@
 import YahooFinance from 'yahoo-finance2';
 import { getHistoricalPrices } from '../../api/yahoo';
 import { logger } from '../../utils/logger';
-import { computeLocalScore } from '../scoring';
-import { FundamentalsComposite } from '../fundamentals';
 import { checkEthics } from './ethics';
 import { computePeerDelta } from './peers';
 import { checkDominance } from './dominance';
-import { analyzeRisks } from './risks';
-import { generateNarrative } from './narrative';
 
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
@@ -20,23 +16,14 @@ function toNum(v: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function computeVolatilityScore(prices: number[]): number {
-  if (prices.length < 2) return 50;
-  const returns = prices.slice(1).map((p, i) => (p - prices[i]) / prices[i]);
-  const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
-  const variance = returns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / returns.length;
-  const stdDev = Math.sqrt(variance);
-  const annualizedVol = stdDev * Math.sqrt(252);
-  return clamp(100 - (annualizedVol / 0.5) * 100, 0, 100);
+function toNumOpt(v: unknown): number | undefined {
+  if (v === null || v === undefined) return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
 }
 
-function computeRelativeStrength(tickerPrices: number[], spyPrices: number[]): number {
-  if (tickerPrices.length < 2 || spyPrices.length < 2) return 50;
-  const tickerReturn = (tickerPrices[tickerPrices.length - 1] - tickerPrices[0]) / tickerPrices[0];
-  const spyReturn = (spyPrices[spyPrices.length - 1] - spyPrices[0]) / spyPrices[0];
-  const delta = tickerReturn - spyReturn;
-  // +20% outperformance = 100, -20% underperformance = 0
-  return clamp((delta + 0.2) / 0.4 * 100, 0, 100);
+function safeDivide(a: number, b: number): number {
+  return b !== 0 ? a / b : 0;
 }
 
 export interface OpenBoxScore {
@@ -56,154 +43,478 @@ export interface OpenBoxScore {
     peerDelta: number;
     dominanceBonus: number;
   };
+  isETF?: boolean;
 }
 
+// ── Piotroski F-Score (9-point quality check) ────────────────────────────────
+function computePiotroski(
+  currInc: any,
+  prevInc: any,
+  currBs: any,
+  prevBs: any,
+  cashflow: any,
+  price: number,
+  shares: number
+): number {
+  let score = 0;
+  if (!currInc || !prevInc || !currBs || !prevBs) return 0;
+
+  const currROA = safeDivide(currInc.netIncome, currBs.totalAssets);
+  const prevROA = safeDivide(prevInc.netIncome, prevBs.totalAssets);
+  if (currROA > 0) score++;
+  if (currROA > prevROA) score++;
+
+  const currCf = cashflow?.totalCashFromOperatingActivities ?? cashflow?.operatingCashflow ?? 0;
+  if (currCf > 0) score++;
+
+  if (currCf > currInc.netIncome) score++;
+
+  const currLeverage = safeDivide(currBs.totalLiab, currBs.totalAssets);
+  const prevLeverage = safeDivide(prevBs.totalLiab, prevBs.totalAssets);
+  if (currLeverage < prevLeverage) score++;
+
+  const currRatio = safeDivide(currBs.totalCurrentAssets, currBs.totalCurrentLiabilities);
+  const prevRatio = safeDivide(prevBs.totalCurrentAssets, prevBs.totalCurrentLiabilities);
+  if (currRatio > prevRatio) score++;
+
+  const currShares = toNum(currBs.commonStockSharesOutstanding);
+  const prevShares = toNum(prevBs.commonStockSharesOutstanding);
+  if (currShares === 0 || prevShares === 0 || currShares <= prevShares) score++;
+
+  const currMargin = safeDivide(currInc.operatingIncome, currInc.totalRevenue);
+  const prevMargin = safeDivide(prevInc.operatingIncome, prevInc.totalRevenue);
+  if (currMargin > prevMargin) score++;
+
+  const currTurnover = safeDivide(currInc.totalRevenue, currBs.totalAssets);
+  const prevTurnover = safeDivide(prevInc.totalRevenue, prevBs.totalAssets);
+  if (currTurnover > prevTurnover) score++;
+
+  return score;
+}
+
+// ── Altman Z-Score ───────────────────────────────────────────────────────────
+function computeAltmanZ(metrics: any): number {
+  const wc = (metrics.currentAssets ?? 0) - (metrics.currentLiabilities ?? 0);
+  const ta = metrics.totalAssets ?? 0;
+  const re = metrics.retainedEarnings ?? 0;
+  const ebit = metrics.operatingIncome ?? 0;
+  const mc = metrics.marketCap ?? 0;
+  const tl = metrics.totalLiabilities ?? 0;
+  const rev = metrics.revenue ?? 0;
+
+  if (ta === 0 || tl === 0) return 0;
+
+  const A = safeDivide(wc, ta);
+  const B = safeDivide(re, ta);
+  const C = safeDivide(ebit, ta);
+  const D = safeDivide(mc, tl);
+  const E = safeDivide(rev, ta);
+
+  return 1.2 * A + 1.4 * B + 3.3 * C + 0.6 * D + 1.0 * E;
+}
+
+// ── Risk flag generator ──────────────────────────────────────────────────────
+function generateRiskFlags(
+  m: any,
+  isETF: boolean,
+  sector: string,
+  industry: string,
+  name: string,
+  priceChange6m?: number,
+  priceChangeYtd?: number
+): string[] {
+  const flags: string[] = [];
+
+  if (isETF) {
+    if (!m.dividendYield || m.dividendYield === 0) {
+      flags.push('No income generation (zero dividend)');
+    }
+    const category = (m.fundCategory || '').toLowerCase();
+    if (category.includes('commodities') || category.includes('gold') || name.toLowerCase().includes('gold')) {
+      flags.push('Single commodity concentration');
+      flags.push('Custody risk (physical vaults)');
+      flags.push('Commodity volatility inherent');
+    }
+    return flags;
+  }
+
+  // Stock-specific flags
+  const pe = m.trailingPE ?? 0;
+  const pb = m.priceToBook ?? 0;
+  const de = m.debtToEquity ?? 0;
+  const margin = m.profitMargin ?? 0;
+  const currRatio = m.currentRatio ?? 0;
+  const ocf = m.operatingCashflow ?? 0;
+  const piotroski = m.piotroskiRaw ?? 0;
+  const altmanZ = m.altmanZRaw ?? 0;
+
+  if (pe > 40 || pb > 20) {
+    flags.push('Extreme valuation');
+  }
+  if (de > 150) {
+    flags.push('High leverage');
+  }
+  if (priceChange6m !== undefined && priceChange6m < -0.20) {
+    flags.push('Terrible momentum');
+  }
+  if (priceChangeYtd !== undefined && priceChangeYtd < -0.30) {
+    flags.push('Severe drawdown');
+  }
+  if (ocf < 0) {
+    flags.push('Weak cash flow');
+  }
+  if (margin > 0 && margin < 0.05) {
+    flags.push('Declining margins');
+  }
+  if (currRatio > 0 && currRatio < 1) {
+    flags.push('Low liquidity');
+  }
+  if (altmanZ > 0 && altmanZ < 1.8) {
+    flags.push('Distress zone');
+  }
+  if (piotroski > 0 && piotroski < 4) {
+    flags.push('Low quality');
+  }
+  if (industry.includes('advertising') || industry.includes('marketing') || name.toLowerCase().includes('ad ')) {
+    flags.push('Regulatory risk (data collection practices)');
+  }
+  if ((sector.includes('technology') || industry.includes('software')) && pe > 30 && (priceChange6m ?? 0) < -0.15) {
+    flags.push('AI disruption fears');
+  }
+
+  return flags;
+}
+
+// ── Narrative generator ──────────────────────────────────────────────────────
+function generateNarrative(
+  fundamentalsRaw: number,
+  marketRaw: number,
+  balanceRaw: number,
+  isETF: boolean,
+  sector: string,
+  industry: string,
+  name: string,
+  riskFlags: string[],
+  finalScore: number,
+  priceChange6m?: number,
+  priceChangeYtd?: number
+): string {
+  const fWord = fundamentalsRaw >= 70 ? 'Strong' : fundamentalsRaw < 50 ? 'Weak' : 'Moderate';
+  const mWord = marketRaw >= 70 ? 'strong' : marketRaw < 50 ? 'weak' : 'moderate';
+  const bWord = balanceRaw >= 70 ? 'safe' : balanceRaw < 50 ? 'stressed' : 'mixed';
+
+  let action: string;
+  if (finalScore >= 85) action = 'aggressive buy';
+  else if (finalScore >= 70) action = 'core holding';
+  else if (finalScore >= 55) action = 'tactical / watch';
+  else action = 'avoid / exit';
+
+  // Contextual additions
+  if (isETF) {
+    const category = name.toLowerCase().includes('gold') ? 'gold' : 'commodity';
+    if (finalScore >= 70) {
+      return `${fWord} fundamentals for an ETF wrapper, ${mWord} momentum riding ${category} bull run, ${bWord} custody structure — accumulation on dips as inflation hedge.`;
+    }
+    return `${fWord} fundamentals for an ETF wrapper, ${mWord} momentum, ${bWord} custody structure — ${action}.`;
+  }
+
+  // Tech stocks with strong fundamentals but weak momentum
+  if ((sector.includes('technology') || industry.includes('software')) && fundamentalsRaw >= 70 && marketRaw < 50) {
+    return `Exceptional fundamentals and execution, but market is pricing in existential risk — high conviction core holding only if you believe the moat survives scrutiny.`;
+  }
+
+  // High valuation + poor momentum
+  if (fundamentalsRaw >= 60 && marketRaw < 40) {
+    return `${fWord} fundamentals and execution, but ${mWord} momentum suggests the market is re-rating the story — ${action}.`;
+  }
+
+  return `${fWord} fundamentals, ${mWord} momentum, ${bWord} balance sheet — ${action}.`;
+}
+
+// ── Main engine ──────────────────────────────────────────────────────────────
 export async function computeOpenBoxScore(ticker: string): Promise<OpenBoxScore | null> {
-  const upperTicker = ticker.toUpperCase();
+  const upper = ticker.toUpperCase();
 
   try {
-    // ── 1. Fetch data in parallel ──────────────────────────────────────────
-    const [localScore, fullSummary, hist, spyHist] = await Promise.all([
-      computeLocalScore(upperTicker),
-      yf.quoteSummary(upperTicker, {
-        modules: ['financialData', 'defaultKeyStatistics', 'summaryDetail', 'incomeStatementHistory', 'summaryProfile', 'price'],
+    const [fullSummary, hist, spyHist] = await Promise.all([
+      yf.quoteSummary(upper, {
+        modules: [
+          'financialData',
+          'defaultKeyStatistics',
+          'summaryDetail',
+          'summaryProfile',
+          'incomeStatementHistory',
+          'balanceSheetHistory',
+          'price',
+          'fundProfile',
+          'fundPerformance',
+        ],
       }).catch(() => null),
-      getHistoricalPrices(upperTicker, '1y'),
+      getHistoricalPrices(upper, '1y'),
       getHistoricalPrices('SPY', '1y').catch(() => ({ data: [], error: 'SPY fetch failed' })),
     ]);
 
-    if (!localScore) {
-      logger.error('OpenBox engine: localScore failed', { ticker: upperTicker });
+    if (!fullSummary) {
+      logger.error('OpenBox engine: quoteSummary failed', { ticker: upper });
       return null;
     }
 
-    const fd = fullSummary?.financialData;
-    const dks = fullSummary?.defaultKeyStatistics;
-    const sd = fullSummary?.summaryDetail;
-    const inc = fullSummary?.incomeStatementHistory?.incomeStatementHistory;
-    const profile = fullSummary?.summaryProfile;
-    const priceModule = fullSummary?.price;
+    const fd = fullSummary.financialData;
+    const dks = fullSummary.defaultKeyStatistics;
+    const sd = fullSummary.summaryDetail;
+    const profile = fullSummary.summaryProfile;
+    const inc = fullSummary.incomeStatementHistory?.incomeStatementHistory as any[] | undefined;
+    const bs = fullSummary.balanceSheetHistory?.balanceSheetHistory as any[] | undefined;
+    const priceMod = fullSummary.price;
+    const fundProf = fullSummary.fundProfile;
+    const fundPerf = fullSummary.fundPerformance;
 
-    const price = toNum(fd?.currentPrice ?? sd?.previousClose ?? priceModule?.regularMarketPrice);
-    const marketCap = price * toNum(dks?.sharesOutstanding);
+    const price = toNum(priceMod?.regularMarketPrice ?? sd?.previousClose);
+    const marketCap = toNum(sd?.marketCap ?? price * toNum(dks?.sharesOutstanding));
     const sector = (profile?.sector || '').toLowerCase();
     const industry = (profile?.industry || '').toLowerCase();
-    const name = (profile?.longBusinessSummary || profile?.name || upperTicker).slice(0, 100);
+    const name = (profile?.longBusinessSummary || profile?.name || upper).slice(0, 100);
 
-    // ETF detection
-    const isETF = priceModule?.quoteType === 'ETF' ||
-                  name.toLowerCase().includes('etf') ||
-                  industry.includes('exchange traded fund') ||
-                  dks?.fundFamily !== undefined;
+    const isETF =
+      priceMod?.quoteType === 'ETF' ||
+      fundProf?.legalType === 'Exchange Traded Fund' ||
+      name.toLowerCase().includes('etf') ||
+      !!dks?.fundFamily;
 
-    // ── 2. Ethics (10 pts, hard gate) ──────────────────────────────────────
-    const ethicsResult = checkEthics(upperTicker, sector, industry, name);
-    const ethicsScore = ethicsResult.pass ? 10 : 0;
-
+    // Ethics hard gate
+    const ethicsResult = checkEthics(upper, sector, industry, name);
     if (!ethicsResult.pass) {
       return {
         finalScore: 0,
-        pillars: {
-          fundamentals: 0,
-          marketDynamics: 0,
-          balanceSheet: 0,
-          leadership: 0,
-          innovation: 0,
-          ethics: 0,
-        },
+        pillars: { fundamentals: 0, marketDynamics: 0, balanceSheet: 0, leadership: 0, innovation: 0, ethics: 0 },
         riskFlags: ethicsResult.violations,
         narrative: 'Blocked by ethics filter — avoid.',
         ethicsPass: false,
         adjustments: { peerDelta: 0, dominanceBonus: 0 },
+        isETF,
       };
     }
 
-    // ── 3. Fundamentals raw score (0-100) ──────────────────────────────────
-    const breakdown = localScore.breakdown;
-    const valuation = breakdown.valuation ?? 50;
-    const profitability = breakdown.profitability ?? 50;
-    const growth = breakdown.growth ?? 50;
-
-    const roa = toNum(dks?.returnOnAssets);
-    const roaScore = clamp(roa / 0.25 * 100, 0, 100);
-
-    const fcf = toNum(fd?.freeCashflow);
-    const fcfYield = marketCap > 0 ? fcf / marketCap : 0;
-    const fcfScore = clamp((fcfYield + 0.02) / 0.07 * 100, 0, 100);
-
-    let fundamentalsRaw = (valuation + profitability + growth + roaScore + fcfScore) / 5;
-
-    // Piotroski cap boost
-    const piotroRaw = localScore.fundamentals?.piotroski_f.raw ?? 0;
-    if (piotroRaw >= 7) {
-      fundamentalsRaw = Math.min(fundamentalsRaw + 5, 100);
+    // Historical price changes
+    const prices = hist.data?.map((d: any) => d.close) || [];
+    let priceChange6m: number | undefined;
+    let priceChangeYtd: number | undefined;
+    if (prices.length >= 2) {
+      const idx6m = Math.max(0, prices.length - 126);
+      priceChange6m = safeDivide(prices[prices.length - 1] - prices[idx6m], prices[idx6m]);
+      priceChangeYtd = safeDivide(prices[prices.length - 1] - prices[0], prices[0]);
     }
 
-    // ── 4. Market Dynamics raw score (0-100) ───────────────────────────────
-    const momentum = breakdown.momentum ?? 50;
+    // Build metrics object
+    const m = {
+      price,
+      marketCap,
+      revenueGrowth: toNumOpt(fd?.revenueGrowth),
+      earningsGrowth: toNumOpt(fd?.earningsGrowth),
+      profitMargin: toNumOpt(fd?.profitMargins),
+      roe: toNumOpt(fd?.returnOnEquity),
+      operatingCashflow: toNumOpt(fd?.operatingCashflow),
+      freeCashflow: toNumOpt(fd?.freeCashflow),
+      totalDebt: toNumOpt(fd?.totalDebt),
+      totalCash: toNumOpt(fd?.totalCash),
+      currentRatio: toNumOpt(fd?.currentRatio),
+      debtToEquity: toNumOpt(fd?.debtToEquity),
+      trailingPE: toNumOpt(sd?.trailingPE),
+      forwardPE: toNumOpt(dks?.forwardPE),
+      priceToBook: toNumOpt(dks?.priceToBook),
+      beta: toNumOpt(dks?.beta),
+      avgVolume: toNumOpt(sd?.averageVolume),
+      dividendYield: toNumOpt(sd?.dividendYield),
+      sharesOutstanding: toNumOpt(dks?.sharesOutstanding),
+      bookValue: toNumOpt(dks?.bookValue),
+      ebitda: toNumOpt(fd?.ebitda),
+      targetMeanPrice: toNumOpt(fd?.targetMeanPrice),
+      fiftyTwoWeekHigh: toNumOpt(sd?.fiftyTwoWeekHigh),
+      fiftyTwoWeekLow: toNumOpt(sd?.fiftyTwoWeekLow),
+      expenseRatio: toNumOpt(fundProf?.feesExpensesInvestment?.annualReportExpenseRatio),
+      expenseRatioCategory: toNumOpt(fundProf?.feesExpensesInvestmentCat?.annualReportExpenseRatio),
+      fundFamily: fundProf?.family,
+      fundCategory: fundProf?.categoryName,
+      ytdReturn: toNumOpt(fundPerf?.performanceOverview?.ytdReturnPct),
+      oneYearReturn: toNumOpt(fundPerf?.trailingReturns?.oneYear),
+      threeYearReturn: toNumOpt(fundPerf?.trailingReturns?.threeYear),
+      fiveYearReturn: toNumOpt(fundPerf?.trailingReturns?.fiveYear),
+      tenYearReturn: toNumOpt(fundPerf?.trailingReturns?.tenYear),
+      fundStdDev: toNumOpt(fundPerf?.riskOverviewStatistics?.riskStatistics?.find((r: any) => r.year === '5y')?.stdDev),
+      fundSharpe: toNumOpt(fundPerf?.riskOverviewStatistics?.riskStatistics?.find((r: any) => r.year === '5y')?.sharpeRatio),
+      fundBeta: toNumOpt(fundPerf?.riskOverviewStatistics?.riskStatistics?.find((r: any) => r.year === '5y')?.beta),
+      revenue: toNumOpt(inc?.[0]?.totalRevenue),
+      rdExpense: toNumOpt(inc?.[0]?.researchDevelopment),
+      operatingIncome: toNumOpt(inc?.[0]?.operatingIncome),
+      totalAssets: toNumOpt(bs?.[0]?.totalAssets),
+      totalLiabilities: toNumOpt(bs?.[0]?.totalLiabilities),
+      currentAssets: toNumOpt(bs?.[0]?.totalCurrentAssets),
+      currentLiabilities: toNumOpt(bs?.[0]?.totalCurrentLiabilities),
+      retainedEarnings: toNumOpt(bs?.[0]?.retainedEarnings),
+      priceChange6m,
+      priceChangeYtd,
+    };
 
-    const histPrices = hist.data?.map(d => d.close) || [];
-    const volScore = computeVolatilityScore(histPrices);
+    // Compute fundamentals quality scores
+    const piotroskiRaw = computePiotroski(
+      inc?.[0], inc?.[1],
+      bs?.[0], bs?.[1],
+      fd, price, m.sharesOutstanding ?? 0
+    );
+    const altmanZRaw = computeAltmanZ(m);
 
-    const spyPrices = spyHist.data?.map((d: any) => d.close) || [];
-    const relStrengthScore = computeRelativeStrength(histPrices, spyPrices);
+    (m as any).piotroskiRaw = piotroskiRaw;
+    (m as any).altmanZRaw = altmanZRaw;
 
-    const marketDynamicsRaw = (momentum + volScore + relStrengthScore) / 3;
+    // ── Pillar scoring ──
+    let fundamentalsRaw: number;
+    let marketRaw: number;
+    let balanceRaw: number;
+    let leadershipRaw: number;
+    let innovationRaw: number;
 
-    // ── 5. Balance Sheet raw score (0-100) ─────────────────────────────────
-    const de = breakdown.financial_health ?? 50;
-    const currentRatio = localScore.metrics.current_ratio;
-    const currentRatioRaw = currentRatio !== undefined ? clamp((currentRatio - 0.5) / 1.5 * 100, 0, 100) : 50;
+    if (isETF) {
+      // ── ETF Fundamentals ──
+      const er = m.expenseRatio ?? 0.005;
+      const erCat = m.expenseRatioCategory ?? 0.008;
+      const expenseScore = clamp((0.005 - er) / 0.0045 * 40, 0, 40);
 
-    const ebit = toNum(inc?.[0]?.ebit);
-    const totalDebt = toNum(fd?.totalDebt);
-    const interestCoverage = totalDebt > 0 ? ebit / totalDebt : 0;
-    const icScore = clamp((interestCoverage - 1) / 4 * 100, 0, 100);
+      const r1y = m.oneYearReturn ?? m.ytdReturn ?? 0;
+      const r3y = m.threeYearReturn ?? 0;
+      const r5y = m.fiveYearReturn ?? 0;
+      const rytd = m.ytdReturn ?? 0;
+      const blendedReturn = r1y * 0.4 + r3y * 0.3 + r5y * 0.2 + rytd * 0.1;
+      const returnsScore = clamp(blendedReturn / 0.50 * 35, 0, 35);
 
-    const totalCash = toNum(fd?.totalCash);
-    const cashReservesRatio = totalDebt > 0 ? totalCash / totalDebt : 0;
-    const cashScore = cashReservesRatio >= 1 ? 100 : clamp(cashReservesRatio * 100, 0, 100);
+      const volumeScore = clamp((m.avgVolume ?? 0) / 10_000_000 * 15, 0, 15);
 
-    let balanceSheetRaw = (de + currentRatioRaw + icScore + cashScore) / 4;
+      const trackingScore = clamp(100 - ((m.fundStdDev ?? 20) - 5) / 25 * 100, 0, 100) * 0.05 +
+                              clamp((0.3 - (m.fundBeta ?? 1)) / 0.3 * 5, 0, 5);
 
-    // Altman Z cap boost
-    const altmanRaw = localScore.fundamentals?.altman_z.raw ?? 0;
-    if (altmanRaw > 3) {
-      balanceSheetRaw = Math.min(balanceSheetRaw + 5, 100);
+      fundamentalsRaw = clamp(expenseScore + returnsScore + volumeScore + trackingScore, 0, 100);
+
+      // ── ETF Market ──
+      const momScore = clamp(blendedReturn / 0.40 * 38, 0, 38);
+      const volScore = clamp(100 - ((m.fundStdDev ?? 20) - 10) / 20 * 100, 0, 100) * 0.27;
+      const liqScore = clamp((m.avgVolume ?? 0) / 9_000_000 * 19, 0, 19);
+      const rsiScore = 5;
+
+      marketRaw = clamp(momScore + volScore + liqScore + rsiScore, 0, 100);
+
+      // ── ETF Balance ──
+      const nameLower = name.toLowerCase();
+      const fundCatLower = (m.fundCategory || '').toLowerCase();
+      const custodyScore = nameLower.includes('physical') || fundCatLower.includes('commodities') || fundCatLower.includes('gold') ? 36 : 30;
+      const leverageScore = 28;
+      const familyLower = (m.fundFamily || '').toLowerCase();
+      const transparencyScore = familyLower.includes('aberdeen') || familyLower.includes('vanguard') || familyLower.includes('blackrock') || familyLower.includes('ishares') || familyLower.includes('spdr') ? 18 : 15;
+      const navScore = clamp(100 - Math.abs((m.fundBeta ?? 1) - 1) * 10, 0, 100) * 0.08;
+
+      balanceRaw = clamp(custodyScore + leverageScore + transparencyScore + navScore, 0, 100);
+
+      // ── ETF Leadership ──
+      const inceptionYear = fundPerf?.performanceOverview?.asOfDate ?
+        Math.min(new Date(fundPerf.performanceOverview.asOfDate).getFullYear() - 2009, 20) / 20 * 35 : 25;
+      const feeCompetitive = erCat > 0 ? clamp((erCat - er) / erCat * 35, 0, 35) : 20;
+      const issuerRep = familyLower.includes('aberdeen') ||
+                        familyLower.includes('vanguard') ||
+                        familyLower.includes('blackrock') ||
+                        familyLower.includes('spdr') ? 28 : 24;
+
+      leadershipRaw = clamp(inceptionYear + feeCompetitive + issuerRep, 0, 100);
+
+      innovationRaw = 0;
+
+    } else {
+      // ── Stock Fundamentals ──
+      const revGrowth = m.revenueGrowth ?? 0;
+      const earnGrowth = m.earningsGrowth ?? 0;
+      const margin = m.profitMargin ?? 0;
+      const roe = m.roe ?? 0;
+      const fcf = m.freeCashflow ?? 0;
+      const fcfYield = marketCap > 0 ? fcf / marketCap : 0;
+      const pe = m.trailingPE ?? 0;
+      const pb = m.priceToBook ?? 0;
+
+      const revScore = clamp(revGrowth / 0.50 * 20, 0, 20);
+      const earnScore = clamp(earnGrowth / 0.50 * 10, 0, 10);
+      const marginScore = clamp(margin / 0.30 * 20, 0, 20);
+      const roeScore = clamp(roe / 0.30 * 20, 0, 20);
+      const fcfScore = clamp((fcfYield + 0.01) / 0.05 * 15, 0, 15);
+      const peScore = pe > 0 ? clamp(100 - (pe - 10) / 40 * 100, 0, 100) * 0.10 : 5;
+      const pbScore = pb > 0 ? clamp(100 - (pb - 1) / 30 * 100, 0, 100) * 0.05 : 5;
+
+      fundamentalsRaw = clamp(revScore + earnScore + marginScore + roeScore + fcfScore + peScore + pbScore, 0, 100);
+
+      if (piotroskiRaw >= 7) fundamentalsRaw = Math.min(fundamentalsRaw + 5, 100);
+
+      // ── Stock Market ──
+      const mom6m = m.priceChange6m ?? 0;
+      const momScore = clamp((mom6m + 0.4) / 0.8 * 40, 0, 40);
+      const volScore = clamp(100 - (m.beta ?? 1) / 3 * 100, 0, 100) * 0.30;
+      const volLiqScore = clamp((m.avgVolume ?? 0) / 10_000_000 * 20, 0, 20);
+      const rsiScore = 5;
+
+      marketRaw = clamp(momScore + volScore + volLiqScore + rsiScore, 0, 100);
+
+      // ── Stock Balance ──
+      const cr = m.currentRatio ?? 0;
+      const oi = m.operatingIncome ?? m.ebitda ?? 0;
+      const td = m.totalDebt ?? 0;
+      const ic = td > 0 ? oi / (td * 0.05) : 0;
+      const cashDebt = m.totalCash && m.totalDebt ? m.totalCash / m.totalDebt : 0;
+      const de = m.debtToEquity ?? 0;
+
+      const crScore = cr > 0 ? clamp((cr - 0.5) / 2.5 * 25, 0, 25) : 12.5;
+      const icScore = ic > 0 ? clamp((ic - 1) / 19 * 25, 0, 25) : 12.5;
+      const cashScore = cashDebt > 0 ? clamp(cashDebt / 1 * 25, 0, 25) : 12.5;
+      const deScore = de > 0 ? clamp(100 - (de - 50) / 150 * 100, 0, 100) * 0.25 : 12.5;
+
+      balanceRaw = clamp(crScore + icScore + cashScore + deScore, 0, 100);
+
+      if (altmanZRaw > 3) balanceRaw = Math.min(balanceRaw + 5, 100);
+
+      // ── Stock Leadership ──
+      const ebitda = m.ebitda ?? 0;
+      const rev = m.revenue ?? 0;
+      const ebitdaMargin = rev > 0 ? ebitda / rev : 0;
+      const marginExec = margin > 0 ? clamp(margin / 0.25 * 25, 0, 25) : 12.5;
+
+      const fcfYieldLeadership = marketCap > 0 ? (m.freeCashflow ?? 0) / marketCap : 0;
+      const capitalReturn = m.dividendYield ? clamp(m.dividendYield / 0.03 * 20, 0, 20) :
+                            (fcfYieldLeadership > 0.01 ? 18 : 12);
+
+      const target = m.targetMeanPrice ?? 0;
+      const analystScore = target > 0 && price > 0 ?
+        clamp(100 - Math.abs(target - price) / price * 100, 0, 100) * 0.25 : 12.5;
+
+      const isTechStock = [
+        'technology', 'software', 'semiconductors', 'biotechnology',
+        'healthcare technology', 'internet content', 'computer software',
+        'application software', 'advertising', 'media', 'communication',
+      ].some(s => sector.includes(s) || industry.includes(s));
+      const strategyScore = isTechStock && margin > 0.20 ? 18 : 10;
+      const governanceScore = 12;
+
+      leadershipRaw = clamp(marginExec + capitalReturn + analystScore + strategyScore + governanceScore, 0, 100);
+
+      // ── Stock Innovation ──
+
+      if (isTechStock) {
+        const rd = m.rdExpense ?? 0;
+        const rdRatio = rev > 0 ? rd / rev : 0;
+        const rdScore = rdRatio > 0 ? clamp(rdRatio / 0.15 * 50, 0, 50) :
+                        margin > 0.30 ? 35 :
+                        margin > 0.15 ? 25 : 15;
+        const moatScore = margin > 0.30 ? 28 : margin > 0.15 ? 20 : 10;
+        const accelScore = revGrowth > 0.30 ? 20 : revGrowth > 0.15 ? 15 : 10;
+        innovationRaw = clamp(rdScore + moatScore + accelScore, 0, 100);
+      } else {
+        innovationRaw = 0;
+      }
     }
 
-    // ── 6. Leadership raw score (0-100) ────────────────────────────────────
-    let leadershipRaw = 50;
-    // shares outstanding decreasing
-    const sharesNow = toNum(dks?.sharesOutstanding);
-    const sharesPrev = toNum(dks?.sharesShortPriorMonth);
-    if (sharesNow > 0 && sharesPrev > 0 && sharesNow < sharesPrev) {
-      leadershipRaw += 5;
-    }
-    // dividend yield > 0
-    const divYield = toNum(sd?.dividendYield);
-    if (divYield > 0) {
-      leadershipRaw += 5;
-    }
-    // target mean price within 10% of current
-    const targetMean = toNum(fd?.targetMeanPrice);
-    if (targetMean > 0 && price > 0 && Math.abs(targetMean - price) / price <= 0.1) {
-      leadershipRaw += 5;
-    }
-
-    // ── 7. Innovation raw score (0-100) ────────────────────────────────────
-    const techSectors = new Set(['technology', 'software', 'semiconductors', 'biotechnology', 'healthcare technology']);
-    const isTech = techSectors.has(sector) || techSectors.has(industry);
-
-    let innovationRaw = 0;
-    if (isTech) {
-      const rd = toNum(inc?.[0]?.researchDevelopment);
-      const revenue = toNum(inc?.[0]?.totalRevenue);
-      const rdRatio = revenue > 0 ? rd / revenue : 0;
-      innovationRaw = clamp(rdRatio / 0.2 * 100, 0, 100);
-    }
-
-    // ── 8. Apply weights ────────────────────────────────────────────────────
+    // ── Weights ──
     let weights = {
       fundamentals: 30,
       marketDynamics: 15,
@@ -213,8 +524,7 @@ export async function computeOpenBoxScore(ticker: string): Promise<OpenBoxScore 
       ethics: 10,
     };
 
-    if (!isTech) {
-      // Redistribute innovation 15 pts to other pillars proportionally
+    if (isETF || innovationRaw === 0) {
       weights = {
         fundamentals: 35,
         marketDynamics: 18.75,
@@ -225,48 +535,45 @@ export async function computeOpenBoxScore(ticker: string): Promise<OpenBoxScore 
       };
     }
 
-    const weightedFundamentals = (fundamentalsRaw / 100) * weights.fundamentals;
-    const weightedMarket = (marketDynamicsRaw / 100) * weights.marketDynamics;
-    const weightedBalance = (balanceSheetRaw / 100) * weights.balanceSheet;
-    const weightedLeadership = (leadershipRaw / 100) * weights.leadership;
-    const weightedInnovation = (innovationRaw / 100) * weights.innovation;
-    const weightedEthics = ethicsScore; // already 0-10
+    const wf = (fundamentalsRaw / 100) * weights.fundamentals;
+    const wm = (marketRaw / 100) * weights.marketDynamics;
+    const wb = (balanceRaw / 100) * weights.balanceSheet;
+    const wl = (leadershipRaw / 100) * weights.leadership;
+    const wi = (innovationRaw / 100) * weights.innovation;
+    const we = 10;
 
-    let subtotal = weightedFundamentals + weightedMarket + weightedBalance + weightedLeadership + weightedInnovation + weightedEthics;
+    let subtotal = wf + wm + wb + wl + wi + we;
 
-    // ── 9. Adjustments ──────────────────────────────────────────────────────
-    const pe = toNum(sd?.trailingPE);
-    const peer = computePeerDelta(pe, sector, industry);
-    const dom = checkDominance(upperTicker, sector);
+    // ── Adjustments ──
+    const peVal = toNum(sd?.trailingPE);
+    const peer = computePeerDelta(peVal, sector, industry);
+    const dom = checkDominance(upper, sector);
 
     subtotal += peer.peerDelta + dom.dominanceBonus;
 
     const finalScore = clamp(Math.round(subtotal), 0, 100);
 
-    // ── 10. Risk flags & narrative ─────────────────────────────────────────
-    const riskResult = analyzeRisks({
-      operatingCashflow: fd?.operatingCashflow !== undefined ? toNum(fd?.operatingCashflow) : undefined,
-      debtToEquity: localScore.metrics.debt_to_equity,
-      margin: localScore.metrics.margin,
-      currentRatio: localScore.metrics.current_ratio,
-      altmanZRaw: localScore.fundamentals?.altman_z.raw,
-      piotroskiRaw: localScore.fundamentals?.piotroski_f.raw,
-    }, isETF);
+    // ── Risk flags ──
+    const riskFlags = generateRiskFlags(m, isETF, sector, industry, name, priceChange6m, priceChangeYtd);
 
-    const narrative = generateNarrative(fundamentalsRaw, marketDynamicsRaw, balanceSheetRaw);
+    // ── Narrative ──
+    const narrative = generateNarrative(
+      fundamentalsRaw, marketRaw, balanceRaw, isETF, sector, industry, name,
+      riskFlags, finalScore, priceChange6m, priceChangeYtd
+    );
 
     return {
       finalScore,
       pillars: {
-        fundamentals: clamp(Math.round(weightedFundamentals), 0, weights.fundamentals),
-        marketDynamics: clamp(Math.round(weightedMarket), 0, weights.marketDynamics),
-        balanceSheet: clamp(Math.round(weightedBalance), 0, weights.balanceSheet),
-        leadership: clamp(Math.round(weightedLeadership), 0, weights.leadership),
-        innovation: clamp(Math.round(weightedInnovation), 0, weights.innovation),
-        ethics: ethicsScore,
+        fundamentals: clamp(Math.round(wf), 0, weights.fundamentals),
+        marketDynamics: clamp(Math.round(wm), 0, weights.marketDynamics),
+        balanceSheet: clamp(Math.round(wb), 0, weights.balanceSheet),
+        leadership: clamp(Math.round(wl), 0, weights.leadership),
+        innovation: clamp(Math.round(wi), 0, weights.innovation),
+        ethics: 10,
       },
-      riskFlags: riskResult.flags,
-      narrative: narrative.sentence,
+      riskFlags,
+      narrative,
       ethicsPass: true,
       adjustments: {
         peerDelta: peer.peerDelta,
@@ -275,7 +582,7 @@ export async function computeOpenBoxScore(ticker: string): Promise<OpenBoxScore 
     };
 
   } catch (err) {
-    logger.error('OpenBox engine failed', { ticker: upperTicker, error: (err as Error).message });
+    logger.error('OpenBox engine failed', { ticker: upper, error: (err as Error).message });
     return null;
   }
 }

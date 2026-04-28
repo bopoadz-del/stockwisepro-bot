@@ -229,7 +229,7 @@ async function runScoreTests() {
     assert.ok(reply.includes('78/100'), 'should show final score');
     // Pillars shown as normalized %
     assert.ok(reply.includes('Fundamentals: 70/100 (weight: 30%)'), 'should show normalized fundamentals');
-    assert.ok(reply.includes('Ethics: PASS/10'), 'should show ethics pass');
+    assert.ok(reply.includes('Ethics: PASS/10 (weight: 10%)'), 'should show ethics pass');
     assert.ok(reply.includes('NARRATIVE'), 'should show narrative section');
     assert.ok(reply.includes('core holding'), 'should show action');
   });

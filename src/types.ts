@@ -79,4 +79,5 @@ export interface OpenBoxResult {
     peerDelta: number;
     dominanceBonus: number;
   };
+  isETF?: boolean;
 }

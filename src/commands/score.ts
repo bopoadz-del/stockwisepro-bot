@@ -13,7 +13,6 @@ const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 async function fetchLivePrice(ticker: string): Promise<number> {
   const upper = ticker.toUpperCase();
 
-  // 1. Yahoo search — some results include price
   try {
     const search = await yahooSearch(upper);
     if (search.data && search.data.length > 0) {
@@ -24,7 +23,6 @@ async function fetchLivePrice(ticker: string): Promise<number> {
     }
   } catch { /* ignore */ }
 
-  // 2. Yahoo quoteSummary price module
   try {
     const summary = await yf.quoteSummary(upper, { modules: ['price'] });
     const price = (summary as any)?.price?.regularMarketPrice;
@@ -33,7 +31,6 @@ async function fetchLivePrice(ticker: string): Promise<number> {
     }
   } catch { /* ignore */ }
 
-  // 3. Yahoo historical prices — last close
   try {
     const hist = await getHistoricalPrices(upper, '1y');
     if (hist.data && hist.data.length > 0) {
@@ -44,7 +41,6 @@ async function fetchLivePrice(ticker: string): Promise<number> {
     }
   } catch { /* ignore */ }
 
-  // 4. Databento latest trade
   try {
     const trade = await databento.getLatestTrade(upper);
     if (trade && trade.price > 0) {
@@ -91,11 +87,9 @@ export async function scoreCommand(ctx: Context) {
 
   if (!error && data) {
     const s = data as any;
-    // Extract price from API response if available
     if (s.price && Number(s.price) > 0) {
       price = Number(s.price);
     }
-    // Detect OpenBox-shaped JSON
     if (
       typeof s.finalScore === 'number' &&
       s.pillars &&
@@ -110,6 +104,7 @@ export async function scoreCommand(ctx: Context) {
         narrative: s.narrative,
         ethicsPass: s.ethicsPass !== false,
         adjustments: s.adjustments || { peerDelta: 0, dominanceBonus: 0 },
+        isETF: s.isETF,
       };
     }
   }
@@ -152,10 +147,22 @@ export async function scoreCommand(ctx: Context) {
   const p = openBoxData.pillars;
   const action = getAction(openBoxData.finalScore);
   const priceStr = formatPrice(price);
+  const isETF = openBoxData.isETF;
 
   const riskText = openBoxData.riskFlags.length > 0
     ? openBoxData.riskFlags.map(f => `• ${f}`).join('\n')
     : 'None detected';
+
+  // Normalized percentages using base weights
+  const fundPct = Math.min(Math.round(p.fundamentals * 100 / 30), 100);
+  const marketPct = Math.min(Math.round(p.marketDynamics * 100 / 15), 100);
+  const balancePct = Math.min(Math.round(p.balanceSheet * 100 / 15), 100);
+  const leadPct = Math.min(Math.round(p.leadership * 100 / 15), 100);
+  const innovPct = Math.min(Math.round(p.innovation * 100 / 15), 100);
+
+  const innovLine = isETF
+    ? `Innovation: — (weight: 15%) — redistributed to other pillars`
+    : `Innovation: ${innovPct}/100 (weight: 15%)`;
 
   const msg = `
 📊 OPENBOX SCORE: ${ticker}
@@ -164,12 +171,12 @@ export async function scoreCommand(ctx: Context) {
 ⚡ Action: ${action}
 
 📊 PILLAR BREAKDOWN
-Fundamentals: ${Math.round(p.fundamentals * 100 / 30)}/100 (weight: 30%)
-Market Dynamics: ${Math.round(p.marketDynamics * 100 / 15)}/100 (weight: 15%)
-Balance Sheet: ${Math.round(p.balanceSheet * 100 / 15)}/100 (weight: 15%)
-Leadership: ${Math.round(p.leadership * 100 / 15)}/100 (weight: 15%)
-Innovation: ${Math.round(p.innovation * 100 / 15)}/100 (weight: 15%)
-Ethics: ${p.ethics === 10 ? 'PASS' : 'FAIL'}/10
+Fundamentals: ${fundPct}/100 (weight: 30%)
+Market Dynamics: ${marketPct}/100 (weight: 15%)
+Balance Sheet: ${balancePct}/100 (weight: 15%)
+Leadership: ${leadPct}/100 (weight: 15%)
+${innovLine}
+Ethics: ${p.ethics === 10 ? 'PASS' : 'FAIL'}/10 (weight: 10%)
 
 ⚠️ RISK FLAGS
 ${riskText}
