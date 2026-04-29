@@ -144,8 +144,22 @@ export async function runMimicFromAmount(ctx: Context, amountText: string) {
     return;
   }
 
-  // Fetch prices for all holdings
-  const priceMap = await fetchMimicPrices(holdings, telegramId);
+  // Fetch prices for all holdings — with 15s timeout to avoid hanging on API failures
+  let priceMap: Map<string, number | null>;
+  try {
+    priceMap = await Promise.race([
+      fetchMimicPrices(holdings, telegramId),
+      new Promise<Map<string, number | null>>((_, reject) =>
+        setTimeout(() => reject(new Error('Price fetch timeout')), 15000)
+      )
+    ]);
+  } catch {
+    // If prices fail entirely, show allocation without share counts
+    priceMap = new Map();
+    for (const h of holdings) {
+      priceMap.set(h.ticker, null);
+    }
+  }
 
   let totalAllocated = 0;
   const lines = holdings.map((h: any) => {
@@ -238,7 +252,21 @@ export async function handleMimicReplacement(ctx: Context, text: string) {
   const investorName = getInvestorName(last.investorId);
   const holdings = mimicResult.holdings;
 
-  const priceMap = await fetchMimicPrices(holdings, telegramId);
+  // Fetch prices for all holdings — with 15s timeout
+  let priceMap: Map<string, number | null>;
+  try {
+    priceMap = await Promise.race([
+      fetchMimicPrices(holdings, telegramId),
+      new Promise<Map<string, number | null>>((_, reject) =>
+        setTimeout(() => reject(new Error('Price fetch timeout')), 15000)
+      )
+    ]);
+  } catch {
+    priceMap = new Map();
+    for (const h of holdings) {
+      priceMap.set(h.ticker, null);
+    }
+  }
 
   const lines = holdings.map((h: any) => {
     const ticker = h.ticker || h.symbol || '?';
