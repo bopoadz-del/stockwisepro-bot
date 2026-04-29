@@ -105,26 +105,14 @@ export async function handleChatMessage(ctx: Context) {
   const tickers = extractTickerCandidates(text);
   const firstTicker = tickers[0];
 
-  const telegramId = ctx.from?.id || 0;
-
   // 0. Replacement / removal commands (remove AAPL, don't like AAPL, replace AAPL with MSFT)
-  if (!text.startsWith('/') && /^(replace|remove|don't like|hate|swap out|drop|add|confirm|yes|ok)\s+/i.test(text)) {
-    // Check if user is in mimic review stage
-    if (pendingMimic.has(telegramId)) {
-      const state = pendingMimic.get(telegramId);
-      if (state?.stage === 'review') {
-        const { handleMimicReviewMessage } = await import('./mimic');
-        const handled = await handleMimicReviewMessage(ctx, text.trim());
-        if (handled) return;
-      }
-    }
-
-    // Legacy replacement handler
+  if (!text.startsWith('/') && /^(replace|remove|don't like|hate|swap out|drop)\s+/i.test(text)) {
     const handled = await handleMimicReplacement(ctx, text.trim());
     if (handled) return;
   }
 
   // 1. Pending flows (experiment, mimic amount)
+  const telegramId = ctx.from?.id || 0;
 
   if (!text.startsWith('/') && pendingMimic.has(telegramId)) {
     recordIntent(ctx, 'mimic', { command: 'mimic' });
