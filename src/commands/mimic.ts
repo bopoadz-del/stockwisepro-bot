@@ -144,8 +144,18 @@ export async function runMimicFromAmount(ctx: Context, amountText: string) {
     return;
   }
 
-  // Fetch prices for all holdings
-  const priceMap = await fetchMimicPrices(holdings, telegramId);
+  // Fetch prices for all holdings — with a global timeout so the user always gets a reply
+  let priceMap = new Map<string, number | null>();
+  try {
+    priceMap = await Promise.race([
+      fetchMimicPrices(holdings, telegramId),
+      new Promise<Map<string, number | null>>((resolve) =>
+        setTimeout(() => resolve(new Map()), 25000)
+      ),
+    ]);
+  } catch (err) {
+    logger.warn('fetchMimicPrices failed completely', { error: (err as Error).message });
+  }
 
   let totalAllocated = 0;
   const lines = holdings.map((h: any) => {
@@ -178,8 +188,13 @@ export async function runMimicFromAmount(ctx: Context, amountText: string) {
   }
   msg += `\n💵 *Investment:* $${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}\n\n` +
     `*Suggested allocation:*\n${lines.join('\n')}\n\n` +
-    `*Total Allocated:* ~$${totalAllocated.toFixed(2)}\n\n` +
-    `_Reply with \`remove AAPL\` to auto-swap with a style-matched alternative._`;
+    `*Total Allocated:* ~$${totalAllocated.toFixed(2)}\n\n`;
+
+  if (priceMap.size === 0 || [...priceMap.values()].every(v => v === null)) {
+    msg += `_Price data temporarily unavailable — showing dollar allocations only._\n\n`;
+  }
+
+  msg += `_Reply with \`remove AAPL\` to auto-swap with a style-matched alternative._`;
 
   await ctx.replyWithMarkdown(msg);
 }
