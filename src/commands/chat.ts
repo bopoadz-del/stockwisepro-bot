@@ -120,6 +120,15 @@ export async function handleChatMessage(ctx: Context) {
     return;
   }
 
+  // If user sends an amount-looking number but mimic state was lost (redeploy), tell them to restart
+  if (!text.startsWith('/') && /^\$?\d+[\d,]*\.?\d*\s*$/.test(text.trim())) {
+    await ctx.reply(
+      `⚠️ Your mimic session expired (bot restarted).\n\n` +
+      `Please run /mimic again to select an investor and enter your amount.`
+    );
+    return;
+  }
+
   if (!text.startsWith('/') && lower.startsWith('exp:')) {
     recordIntent(ctx, 'experiment', { command: 'experiment' });
     await runExperimentFromText(ctx, text.slice(4).trim());
@@ -263,10 +272,14 @@ export async function handleChatMessage(ctx: Context) {
   if (/^[a-zA-Z0-9\s\.\&\-]+$/.test(text) && text.length > 1 && text.length < 40 && wordCount <= 4) {
     await ctx.replyWithChatAction('typing');
 
-    const { data, error } = await stockwise.searchStocks(text);
     let stocks = [] as any[];
-    if (!error && data) {
-      stocks = Array.isArray(data) ? data : [data];
+    try {
+      const { data, error } = await stockwise.searchStocks(text);
+      if (!error && data) {
+        stocks = Array.isArray(data) ? data : [data];
+      }
+    } catch {
+      // ignore API errors, fall through to Yahoo
     }
 
     if (stocks.length > 0) {
@@ -280,16 +293,20 @@ export async function handleChatMessage(ctx: Context) {
       return;
     }
 
-    const yahoo = await yahooSearch(text);
-    if (yahoo.data && yahoo.data.length > 0) {
-      const lines = yahoo.data.slice(0, 6).map((q) => {
-        const name = q.longname || q.shortname || '';
-        return `• *${q.symbol}* — ${name} (${q.exchange || 'N/A'})`;
-      });
-      await ctx.replyWithMarkdown(
-        `🔍 *Did you mean:*\n\n${lines.join('\n')}\n\n_Use /score <ticker> for details._`
-      );
-      return;
+    try {
+      const yahoo = await yahooSearch(text);
+      if (yahoo.data && yahoo.data.length > 0) {
+        const lines = yahoo.data.slice(0, 6).map((q) => {
+          const name = q.longname || q.shortname || '';
+          return `• *${q.symbol}* — ${name} (${q.exchange || 'N/A'})`;
+        });
+        await ctx.replyWithMarkdown(
+          `🔍 *Did you mean:*\n\n${lines.join('\n')}\n\n_Use /score <ticker> for details._`
+        );
+        return;
+      }
+    } catch {
+      // ignore yahoo errors
     }
 
     await ctx.reply(`No results found for "${text}". Try /search <name> or a ticker like AAPL.`);
