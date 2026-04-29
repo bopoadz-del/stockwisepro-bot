@@ -5,7 +5,7 @@ dotenv.config();
 
 export const config = {
   telegramToken: process.env.TELEGRAM_BOT_TOKEN || '',
-  stockwiseApiBaseUrl: process.env.STOCKWISE_API_BASE_URL || 'http://localhost:3001',
+  stockwiseApiBaseUrl: process.env.STOCKWISE_API_BASE_URL || 'https://stockwise-pro-api.onrender.com',
   stockwiseApiKey: process.env.STOCKWISE_API_KEY || '',
   braveApiKey: process.env.BRAVE_API_KEY || '',
   dataDir: process.env.DATA_DIR || './data',
