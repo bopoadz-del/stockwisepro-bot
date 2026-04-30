@@ -59,8 +59,15 @@ async function main() {
     bot.catch((err, ctx) => {
       const errorMessage = err instanceof Error ? err.message : String(err);
       const stack = err instanceof Error ? err.stack : 'No stack';
-      logger.error('Bot error', { error: errorMessage, stack, updateType: ctx.updateType });
-      ctx.reply('❌ Something went wrong. Please try again later.').catch(() => { });
+      const userId = ctx.from?.id;
+      logger.error('Bot error', { error: errorMessage, stack, updateType: ctx.updateType, userId });
+      // Show stack trace to admin for debugging
+      if (userId === 7761120195) {
+        const shortStack = stack ? stack.split('\n').slice(0, 4).join('\n') : 'No stack';
+        ctx.reply(`❌ Error: ${errorMessage}\n\n\`\`\`${shortStack}\`\`\``).catch(() => { });
+      } else {
+        ctx.reply('❌ Something went wrong. Please try again later.').catch(() => { });
+      }
     });
 
     // Health-check command
