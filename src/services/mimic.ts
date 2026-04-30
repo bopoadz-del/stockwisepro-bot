@@ -133,6 +133,61 @@ const EXAMPLE_PORTFOLIOS: Record<string, MimicResult> = {
       { ticker: 'AXP', percentage: 4.5 },
     ],
   },
+  lynch: {
+    investorName: 'Peter Lynch',
+    ethicsApplied: true,
+    holdings: [
+      { ticker: 'F', percentage: 12 },
+      { ticker: 'GE', percentage: 10 },
+      { ticker: 'KO', percentage: 10 },
+      { ticker: 'WMT', percentage: 10 },
+      { ticker: 'PG', percentage: 8 },
+      { ticker: 'MO', percentage: 8 },
+      { ticker: 'XOM', percentage: 7 },
+      { ticker: 'IBM', percentage: 7 },
+      { ticker: 'BAC', percentage: 7 },
+      { ticker: 'JNJ', percentage: 6 },
+      { ticker: 'PEP', percentage: 5 },
+      { ticker: 'MMM', percentage: 5 },
+      { ticker: 'T', percentage: 5 },
+    ],
+  },
+  graham: {
+    investorName: 'Benjamin Graham',
+    ethicsApplied: true,
+    holdings: [
+      { ticker: 'BRK.B', percentage: 15 },
+      { ticker: 'JNJ', percentage: 12 },
+      { ticker: 'PG', percentage: 10 },
+      { ticker: 'KO', percentage: 10 },
+      { ticker: 'WMT', percentage: 10 },
+      { ticker: 'XOM', percentage: 8 },
+      { ticker: 'CVX', percentage: 8 },
+      { ticker: 'IBM', percentage: 7 },
+      { ticker: 'T', percentage: 7 },
+      { ticker: 'GE', percentage: 7 },
+      { ticker: 'INTC', percentage: 6 },
+    ],
+  },
+  templeton: {
+    investorName: 'John Templeton',
+    ethicsApplied: true,
+    holdings: [
+      { ticker: 'INTC', percentage: 12 },
+      { ticker: 'MU', percentage: 10 },
+      { ticker: 'TSM', percentage: 10 },
+      { ticker: 'BABA', percentage: 10 },
+      { ticker: 'JD', percentage: 8 },
+      { ticker: 'SAP', percentage: 8 },
+      { ticker: 'SIEGY', percentage: 7 },
+      { ticker: 'SONY', percentage: 7 },
+      { ticker: 'TM', percentage: 7 },
+      { ticker: 'NVO', percentage: 6 },
+      { ticker: 'SHEL', percentage: 6 },
+      { ticker: 'BP', percentage: 5 },
+      { ticker: 'GSK', percentage: 4 },
+    ],
+  },
 };
 
 export function getLocalMimicAllocation(
@@ -182,6 +237,11 @@ const HARDCODED_PRICES: Record<string, number> = {
   HLT: 245.60, QSR: 72.80, HCMLF: 12.40, NKE: 82.50, LOW: 232.40,
   A: 155.30, HHC: 88.50, BN: 52.30, NVDA: 128.40, AMZN: 198.50,
   CRM: 285.40, DIS: 98.50, RBLX: 48.30,
+  // Additional tickers for Lynch, Graham, Templeton
+  F: 12.50, WMT: 98.20, MO: 48.30, IBM: 228.40, PEP: 172.50, MMM: 142.80,
+  'BRK.B': 489.50, T: 22.80, INTC: 20.50, TSM: 192.30, SAP: 272.40,
+  SIEGY: 92.10, SONY: 22.40, TM: 175.20, NVO: 142.80, SHEL: 71.50,
+  BP: 35.20, GSK: 42.80,
 };
 
 async function fetchYahooPrice(ticker: string): Promise<number | null> {
