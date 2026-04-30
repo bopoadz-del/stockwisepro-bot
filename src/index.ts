@@ -58,7 +58,8 @@ async function main() {
     // Global error handler
     bot.catch((err, ctx) => {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      logger.error('Bot error', { error: errorMessage, updateType: ctx.updateType });
+      const stack = err instanceof Error ? err.stack : 'No stack';
+      logger.error('Bot error', { error: errorMessage, stack, updateType: ctx.updateType });
       ctx.reply('❌ Something went wrong. Please try again later.').catch(() => { });
     });
 
