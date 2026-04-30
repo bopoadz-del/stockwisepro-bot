@@ -140,24 +140,30 @@ export function getLocalMimicAllocation(
   ethicsEnabled: boolean = false,
   userReplacements?: Array<{ oldTicker: string; newTicker?: string }>
 ): MimicResult | null {
-  const result = screenPortfolio(investorId, ethicsEnabled, userReplacements);
-  if (!result) {
-    logger.warn('Screening returned null for investor', { investorId });
-    // Fall back to hardcoded example portfolio
-    const hardcoded = EXAMPLE_PORTFOLIOS[investorId];
-    if (hardcoded) {
-      logger.info('Using hardcoded portfolio', { investorId });
-      return { ...hardcoded, ethicsApplied: ethicsEnabled };
+  try {
+    const result = screenPortfolio(investorId, ethicsEnabled, userReplacements);
+    if (result) {
+      return {
+        holdings: result.holdings.map(h => ({ ticker: h.ticker, percentage: h.percentage })),
+        investorName: result.investorName,
+        ethicsApplied: result.ethicsApplied,
+        replacedTickers: result.replacedTickers,
+      };
     }
-    return null;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error('Screening crashed, falling back to hardcoded', { error: msg, investorId });
   }
 
-  return {
-    holdings: result.holdings.map(h => ({ ticker: h.ticker, percentage: h.percentage })),
-    investorName: result.investorName,
-    ethicsApplied: result.ethicsApplied,
-    replacedTickers: result.replacedTickers,
-  };
+  // Fall back to hardcoded example portfolio
+  const hardcoded = EXAMPLE_PORTFOLIOS[investorId];
+  if (hardcoded) {
+    logger.info('Using hardcoded portfolio', { investorId });
+    return { ...hardcoded, ethicsApplied: ethicsEnabled };
+  }
+
+  logger.error('No hardcoded portfolio for investor', { investorId });
+  return null;
 }
 
 // Hardcoded prices as fallback when all APIs fail
