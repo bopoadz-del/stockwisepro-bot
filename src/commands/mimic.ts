@@ -3,7 +3,7 @@ import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
 import { userSafeError } from '../utils/logger';
 import { logger } from '../utils/logger';
-import { getLocalMimicAllocation, findReplacement, fetchMimicPrices, findReplacementCandidates } from '../services/mimic';
+import { getLocalMimicAllocation, findReplacement, fetchMimicPrices } from '../services/mimic';
 import { findReplacements } from '../services/screener';
 import { loadCongressTraders } from '../services/universe';
 
@@ -248,7 +248,7 @@ export async function handleMimicReplacement(ctx: Context, text: string) {
 
   // Auto-replace: find multiple candidates and show inline keyboard
   if (autoReplaced && oldTicker) {
-    const candidates = findReplacementCandidates(oldTicker, last.investorId, last.ethicsEnabled, 3);
+    const candidates = findReplacements(oldTicker, last.investorId, last.ethicsEnabled, 3);
     if (candidates.length === 0) {
       await ctx.reply(`❌ Could not find a suitable replacement for *${oldTicker}* with the current filters.`, { parse_mode: 'Markdown' });
       return true;

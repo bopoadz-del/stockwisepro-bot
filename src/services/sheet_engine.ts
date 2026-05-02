@@ -132,8 +132,8 @@ export function buildPortfolioFromSheet(
   const usedTickers = new Set<string>();
 
   // 1. Core holdings
-  const core = formula.core_holdings || [];
-  const coreWeight = formula.core_weight || 0;
+  const core = isCongress ? [] : ((def as InvestorDef).formula.core_holdings || []);
+  const coreWeight = isCongress ? 0 : ((def as InvestorDef).formula.core_weight || 0);
   const corePerStock = core.length > 0 ? coreWeight / core.length : 0;
   for (const ticker of core) {
     const cat = findCategoryForTicker(ticker, sheet);
