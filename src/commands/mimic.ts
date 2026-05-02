@@ -3,7 +3,8 @@ import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
 import { userSafeError } from '../utils/logger';
 import { logger } from '../utils/logger';
-import { getLocalMimicAllocation, findReplacement, fetchMimicPrices } from '../services/mimic';
+import { getLocalMimicAllocation, findReplacement, fetchMimicPrices, findReplacementCandidates } from '../services/mimic';
+import { findReplacements } from '../services/screener';
 import { loadCongressTraders } from '../services/universe';
 
 const INVESTORS = [
@@ -28,6 +29,9 @@ export interface MimicState {
   stage: 'select' | 'ethics' | 'amount' | 'done';
 }
 export const pendingMimic = new Map<number, MimicState>();
+
+// Tracks pending replacement options for inline keyboard selection
+export const pendingReplacements = new Map<number, { oldTicker: string; candidates: string[] }>();
 
 // Remember last mimic settings for replacement commands
 export const lastMimic = new Map<number, { investorId: string; ethicsEnabled: boolean }>();
@@ -229,27 +233,52 @@ export async function handleMimicReplacement(ctx: Context, text: string) {
 
   await ctx.replyWithChatAction('typing');
 
-  // If user didn't specify replacement, pass undefined so the screener auto-finds
-  // one that avoids existing holdings
+  // Explicit replacement: apply directly
+  if (!autoReplaced && oldTicker && newTicker) {
+    const mimicResult = getLocalMimicAllocation(last.investorId, last.ethicsEnabled, [
+      { oldTicker: oldTicker!, newTicker },
+    ]);
+    if (!mimicResult) {
+      await ctx.reply('❌ Could not build replacement portfolio.');
+      return true;
+    }
+    await sendReplacementPortfolio(ctx, mimicResult, last.investorId, last.ethicsEnabled);
+    return true;
+  }
+
+  // Auto-replace: find multiple candidates and show inline keyboard
   if (autoReplaced && oldTicker) {
-    newTicker = undefined;
-  }
+    const candidates = findReplacementCandidates(oldTicker, last.investorId, last.ethicsEnabled, 3);
+    if (candidates.length === 0) {
+      await ctx.reply(`❌ Could not find a suitable replacement for *${oldTicker}* with the current filters.`, { parse_mode: 'Markdown' });
+      return true;
+    }
 
-  const mimicResult = getLocalMimicAllocation(last.investorId, last.ethicsEnabled, [
-    { oldTicker: oldTicker!, newTicker },
-  ]);
+    pendingReplacements.set(telegramId, { oldTicker, candidates });
 
-  if (autoReplaced && oldTicker && (!mimicResult || !mimicResult.replacedTickers || mimicResult.replacedTickers.length === 0)) {
-    await ctx.reply(`❌ Could not find a suitable replacement for *${oldTicker}* with the current filters.`, { parse_mode: 'Markdown' });
+    const buttons = candidates.map(c =>
+      Markup.button.callback(`🔄 Replace with ${c}`, `replace_select:${oldTicker}:${c}`)
+    );
+    buttons.push(Markup.button.callback('❌ Cancel', `replace_cancel:${oldTicker}`));
+
+    await ctx.replyWithMarkdown(
+      `*${getInvestorName(last.investorId)}* — replace *${oldTicker}* with:`,
+      Markup.inlineKeyboard(buttons.map(b => [b]))
+    );
     return true;
   }
 
-  if (!mimicResult) {
-    await ctx.reply('❌ Could not build replacement portfolio.');
-    return true;
-  }
+  return false;
+}
 
-  const investorName = getInvestorName(last.investorId);
+async function sendReplacementPortfolio(
+  ctx: Context,
+  mimicResult: any,
+  investorId: string,
+  ethicsEnabled: boolean
+) {
+  const telegramId = ctx.from?.id || 0;
+  const investorName = getInvestorName(investorId);
   const holdings = mimicResult.holdings;
 
   // Fetch prices for all holdings — with 15s timeout
@@ -286,16 +315,52 @@ export async function handleMimicReplacement(ctx: Context, text: string) {
 
   if (mimicResult.replacedTickers && mimicResult.replacedTickers.length > 0) {
     const r = mimicResult.replacedTickers[0];
-    const reason = last.ethicsEnabled
+    const reason = ethicsEnabled
       ? 'same sector & style, ethics-compliant'
       : 'same sector & style';
-    msg += `\n\n✅ *Auto-replaced:* ${r.old} → ${r.new}\n_(${reason})_`;
+    msg += `\n\n✅ *Replaced:* ${r.old} → ${r.new}\n_(${reason})_`;
   }
 
-  msg += `\n\n_Type \`remove TICKER\` to swap another.`;
+  msg += `\n\n_Type \`remove TICKER\` to swap another._`;
 
   await ctx.replyWithMarkdown(msg);
-  return true;
+}
+
+export async function handleReplaceSelectCallback(ctx: Context) {
+  const match = (ctx as any).match as RegExpExecArray;
+  if (!match) return;
+
+  const oldTicker = match[1].toUpperCase();
+  const newTicker = match[2].toUpperCase();
+  const telegramId = ctx.from?.id || 0;
+
+  await ctx.answerCbQuery(`Replacing ${oldTicker} with ${newTicker}...`);
+
+  const last = lastMimic.get(telegramId);
+  if (!last) {
+    await ctx.editMessageText('⚠️ Session expired. Run /mimic again.');
+    return;
+  }
+
+  pendingReplacements.delete(telegramId);
+
+  const mimicResult = getLocalMimicAllocation(last.investorId, last.ethicsEnabled, [
+    { oldTicker, newTicker },
+  ]);
+
+  if (!mimicResult) {
+    await ctx.editMessageText('❌ Could not build replacement portfolio.');
+    return;
+  }
+
+  await sendReplacementPortfolio(ctx, mimicResult, last.investorId, last.ethicsEnabled);
+}
+
+export async function handleReplaceCancelCallback(ctx: Context) {
+  const telegramId = ctx.from?.id || 0;
+  pendingReplacements.delete(telegramId);
+  await ctx.answerCbQuery('Cancelled.');
+  await ctx.editMessageText('❌ Replacement cancelled.');
 }
 
 function getInvestorName(investorId: string): string {

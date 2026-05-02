@@ -274,11 +274,20 @@ export function findReplacement(
   investorId: string,
   ethicsEnabled: boolean = false
 ): string | null {
+  const candidates = findReplacements(ticker, investorId, ethicsEnabled, 1);
+  return candidates[0] || null;
+}
+
+export function findReplacements(
+  ticker: string,
+  investorId: string,
+  ethicsEnabled: boolean = false,
+  count: number = 3
+): string[] {
   const profiles = loadInvestorProfiles();
-  const traders = loadCongressTraders();
   const universe = loadStockUniverse();
   const stock = getStockByTicker(ticker);
-  if (!stock) return null;
+  if (!stock) return [];
 
   const cleanId = investorId.startsWith('congress:') ? investorId.replace('congress:', '') : investorId;
   const profile = profiles[cleanId];
@@ -290,5 +299,5 @@ export function findReplacement(
   if (ethicsEnabled) candidates = applyEthicsFilter(candidates);
   candidates = sortByStyleMatch(candidates, preferredStyles);
 
-  return candidates[0]?.ticker || null;
+  return candidates.slice(0, count).map(c => c.ticker);
 }

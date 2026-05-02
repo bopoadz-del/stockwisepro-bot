@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger';
 import { stockwise } from '../api/stockwise';
 import { screenPortfolio, findReplacement, ScreenResult } from './screener';
+import { buildPortfolioFromSheet, findReplacementCandidates } from './sheet_engine';
 import YahooFinance from 'yahoo-finance2';
 
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
@@ -195,6 +196,23 @@ export function getLocalMimicAllocation(
   ethicsEnabled: boolean = false,
   userReplacements?: Array<{ oldTicker: string; newTicker?: string }>
 ): MimicResult | null {
+  // 1. Try sheet engine first (formula-based portfolio builder)
+  try {
+    const sheetResult = buildPortfolioFromSheet(investorId, ethicsEnabled, userReplacements);
+    if (sheetResult) {
+      return {
+        holdings: sheetResult.holdings.map(h => ({ ticker: h.ticker, percentage: h.percentage })),
+        investorName: sheetResult.investorName,
+        ethicsApplied: sheetResult.ethicsApplied,
+        replacedTickers: sheetResult.replacedTickers,
+      };
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error('Sheet engine crashed, falling back', { error: msg, investorId });
+  }
+
+  // 2. Try legacy screener
   try {
     const result = screenPortfolio(investorId, ethicsEnabled, userReplacements);
     if (result) {
@@ -207,17 +225,17 @@ export function getLocalMimicAllocation(
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    logger.error('Screening crashed, falling back to hardcoded', { error: msg, investorId });
+    logger.error('Screener crashed, using hardcoded fallback', { error: msg, investorId });
   }
 
-  // Fall back to hardcoded example portfolio
+  // 3. Ultimate fallback: hardcoded portfolio
   const hardcoded = EXAMPLE_PORTFOLIOS[investorId];
   if (hardcoded) {
     logger.info('Using hardcoded portfolio', { investorId });
     return { ...hardcoded, ethicsApplied: ethicsEnabled };
   }
 
-  logger.error('No hardcoded portfolio for investor', { investorId });
+  logger.error('No portfolio available for investor', { investorId });
   return null;
 }
 
@@ -291,5 +309,5 @@ export async function fetchMimicPrices(
   return priceMap;
 }
 
-export { findReplacement };
+export { findReplacement, findReplacementCandidates };
 export type { ScreenResult };

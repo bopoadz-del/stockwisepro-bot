@@ -7,7 +7,7 @@ import { searchCommand } from './search';
 import { scoreCommand } from './score';
 import { watchlistCommand, watchlistAddCommand, watchlistRemoveCommand } from './watchlist';
 import { portfolioCommand } from './portfolio';
-import { mimicCommand, handleMimicCallback, handleMimicEthicsCallback, pendingMimic } from './mimic';
+import { mimicCommand, handleMimicCallback, handleMimicEthicsCallback, handleReplaceSelectCallback, handleReplaceCancelCallback, pendingMimic } from './mimic';
 import { experimentCommand, pendingExperiment } from './experiment';
 import { handleChatMessage } from './chat';
 import { alertCommand } from './alert';
@@ -61,6 +61,8 @@ export function registerCommands(bot: Telegraf<BotContext>) {
   // Inline callbacks
   bot.action(/^mimic_select:(.+)$/, handleMimicCallback);
   bot.action(/^mimic_ethics:(.+)$/, handleMimicEthicsCallback);
+  bot.action(/^replace_select:(\w+):(\w+)$/, handleReplaceSelectCallback);
+  bot.action(/^replace_cancel:(\w+)$/, handleReplaceCancelCallback);
   bot.action(/^weight:(.+)$/, handleWeightCallback);
 
   // Intent correction callbacks (learning)
