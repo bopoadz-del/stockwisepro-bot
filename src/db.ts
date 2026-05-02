@@ -381,7 +381,7 @@ export function getLearningStats(days = 7) {
   `).get() as { count: number };
 
   const fallbackRate = conn.prepare(`
-    SELECT COUNT(*) as total, SUM(is_fallback) as fallbacks
+    SELECT COUNT(*) as total, COALESCE(SUM(is_fallback), 0) as fallbacks
     FROM nl_logs WHERE created_at >= datetime('now', '-${safeDays} days')
   `).get() as { total: number; fallbacks: number };
 

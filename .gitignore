@@ -4,6 +4,7 @@ data/*
 !data/stock_universe.json
 !data/investor_profiles.json
 !data/congress_traders.json
+!data/investor_sheet.json
 *.db
 *.sqlite
 *.sqlite3

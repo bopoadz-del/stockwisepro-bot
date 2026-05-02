@@ -7,7 +7,7 @@ services:
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: STOCKWISE_API_BASE_URL
-        sync: false
+        value: https://stockwise-pro-api.onrender.com
       - key: STOCKWISE_API_KEY
         sync: false
       - key: BOT_ADMIN_TELEGRAM_IDS
@@ -21,6 +21,16 @@ services:
       - key: STOCKWISE_BOT_USER_PASSWORD
         sync: false
       - key: BRAVE_API_KEY
+        sync: false
+      - key: HEALTH_PORT
+        value: 3000
+      - key: DATABENTO_API_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
     disk:
       name: bot-data
