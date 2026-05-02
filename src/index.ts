@@ -12,6 +12,7 @@ import { registerCommands } from './commands';
 import { registerScenes } from './scenes';
 import { startAlertService } from './services/alerts';
 import { startLearningReportService } from './services/learning';
+import { getLocalMimicAllocation } from './services/mimic';
 import { BotContext } from './types';
 
 async function main() {
@@ -84,14 +85,54 @@ async function main() {
     logger.info('Step 6b: Learning report service started');
 
     logger.info('Step 7: Starting health check server...');
-    const healthServer = http.createServer((req, res) => {
+    const healthServer = http.createServer(async (req, res) => {
+      // Health check
       if (req.url === '/health') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
-      } else {
-        res.writeHead(404);
-        res.end();
+        return;
       }
+
+      // Local mimic API endpoint (self-contained fallback)
+      if (req.url === '/api/portfolio/mimic' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', () => {
+          try {
+            const payload = JSON.parse(body);
+            const investorId = payload.investorId;
+            const ethicsEnabled = !!payload.ethicsEnabled;
+
+            if (!investorId || typeof investorId !== 'string') {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'investorId is required' }));
+              return;
+            }
+
+            const result = getLocalMimicAllocation(investorId, ethicsEnabled);
+            if (!result) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Failed to build portfolio' }));
+              return;
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              holdings: result.holdings,
+              investorName: result.investorName,
+              ethicsApplied: result.ethicsApplied,
+              replacedTickers: result.replacedTickers || [],
+            }));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Invalid JSON' }));
+          }
+        });
+        return;
+      }
+
+      res.writeHead(404);
+      res.end();
     });
     healthServer.listen(config.healthPort, () => {
       logger.info(`Health check server listening on port ${config.healthPort}`);
