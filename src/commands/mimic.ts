@@ -3,7 +3,7 @@ import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
 import { userSafeError } from '../utils/logger';
 import { logger } from '../utils/logger';
-import { getLocalMimicAllocation, findReplacement, fetchMimicPrices } from '../services/mimic';
+import { getLocalMimicAllocation, findReplacement, fetchMimicPrices, MimicResult } from '../services/mimic';
 import { findReplacements } from '../services/screener';
 import { loadCongressTraders } from '../services/universe';
 
@@ -127,17 +127,57 @@ export async function runMimicFromAmount(ctx: Context, amountText: string) {
 
   await ctx.replyWithChatAction('typing');
 
-  // Build portfolio using local screener
-  const mimicResult = getLocalMimicAllocation(pending.investorId, pending.ethicsEnabled);
+  // ── Try online API first ──
+  let mimicResult: MimicResult | null = null;
+  let apiDuration = 0;
+  const apiRes = await stockwise.mimicInvestor(
+    pending.investorId,
+    amount,
+    telegramId
+  );
+  apiDuration = apiRes.duration;
+  if (!apiRes.error && apiRes.data) {
+    const apiData = apiRes.data as any;
+    if (Array.isArray(apiData.holdings) && apiData.holdings.length > 0) {
+      mimicResult = {
+        holdings: apiData.holdings.map((h: any) => ({
+          ticker: h.ticker || h.symbol,
+          percentage: parseFloat(h.percentage ?? h.weight ?? 0),
+        })),
+        investorName: apiData.investorName || investorName,
+        ethicsApplied: apiData.ethicsApplied ?? pending.ethicsEnabled ?? false,
+        replacedTickers: apiData.replacedTickers,
+      };
+      logger.info('Mimic portfolio built online', {
+        investorId: pending.investorId,
+        holdingsCount: mimicResult.holdings.length,
+      });
+    }
+  }
+
+  // ── Fallback to local sheet → screener → hardcoded ──
+  if (!mimicResult) {
+    logger.info('Online mimic failed, falling back to local', {
+      investorId: pending.investorId,
+      error: apiRes.error || 'empty holdings',
+    });
+    mimicResult = getLocalMimicAllocation(pending.investorId, pending.ethicsEnabled);
+  }
+
   if (!mimicResult) {
     await ctx.reply(userSafeError());
+    Object.assign(ctx.state, {
+      ticker: pending.investorId,
+      apiDuration,
+      success: false,
+      errorMessage: 'Local mimic allocation failed',
+    });
     return;
   }
 
-  const data = { holdings: mimicResult.holdings };
-  Object.assign(ctx.state, { ticker: pending.investorId, apiDuration: 0, success: true });
+  Object.assign(ctx.state, { ticker: pending.investorId, apiDuration, success: true });
 
-  const holdings = data.holdings;
+  const holdings = mimicResult.holdings;
   if (holdings.length === 0) {
     await ctx.replyWithMarkdown(
       `⚠️ *Mimic returned empty portfolio*\n\n` +
@@ -192,7 +232,7 @@ export async function runMimicFromAmount(ctx: Context, amountText: string) {
     msg += `🛡️ *Ethics filter: ON*\n`;
   }
   if (mimicResult.replacedTickers && mimicResult.replacedTickers.length > 0) {
-    msg += `🔄 *Replacements:* ${mimicResult.replacedTickers.map(r => `${r.old}→${r.new}`).join(', ')}\n`;
+    msg += `🔄 *Replacements:* ${mimicResult.replacedTickers.map((r: { old: string; new: string }) => `${r.old}→${r.new}`).join(', ')}\n`;
   }
   msg += `\n💵 *Investment:* $${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}\n\n` +
     `*Suggested allocation:*\n${lines.join('\n')}\n\n` +
