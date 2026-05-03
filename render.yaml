@@ -21,7 +21,7 @@ services:
       - key: STOCKWISE_BOT_USER_PASSWORD
         sync: false
       - key: BRAVE_API_KEY
-        value: BSACnkPWO1lSSZ7w3gHeg_esdr6sj8l
+        sync: false
       - key: HEALTH_PORT
         value: 3000
       - key: DATABENTO_API_KEY
