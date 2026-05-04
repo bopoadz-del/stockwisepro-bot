@@ -19,6 +19,7 @@ import { metricsCommand } from './metrics';
 import { alpacaCommand } from './alpaca';
 import { dcfCommand } from './dcf';
 import { insiderCommand } from './insider';
+import { websearchCommand } from './websearch';
 
 export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('start', startCommand);
@@ -63,6 +64,7 @@ export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('alpaca', alpacaCommand);
   bot.command('dcf', dcfCommand);
   bot.command('insider', insiderCommand);
+  bot.command('websearch', websearchCommand);
 
   // Inline callbacks
   bot.action(/^mimic_select:(.+)$/, handleMimicCallback);
