@@ -1,97 +1,118 @@
-# Session Log — 2026-04-25
+# Session Log — 2026-05-04
 
 ## Summary
-Fixed critical bot startup issue, built a local Yahoo Finance scoring fallback, and improved the `/mimic` investor flow.
+Major session: fixed compromised bot token, resolved API endpoint bugs, added screenshot OCR parser, integrated DuckDuckGo fallback, and improved deployment stability.
 
 ---
 
-## 1. Bot Token Fixed
+## 1. Security Fix — Compromised Bot Token
 
-- **Problem:** Fatal `401 Unauthorized` on startup — old Telegram bot token expired.
-- **Fix:** Updated `TELEGRAM_BOT_TOKEN` on Render via API.
-- **New token:** `8030061746:AAGYUJR_jABPTTjrHMLPVm1CO7Y_nLPSu5U`
-- **Status:** ✅ Live
-
----
-
-## 2. Local Scoring Engine (`/score`)
-
-- **Problem:** `/score` returned "Something went wrong" because the StockWisePro API stock endpoints were down (`{"error":"Failed to get stock"}`).
-- **Fix:** Built `src/services/scoring.ts` using the `yahoo-finance2` package to fetch real stock fundamentals and compute scores locally.
-
-### Scoring Categories (0–100 each)
-| Category | Metrics Used | Logic |
-|----------|-------------|-------|
-| **Valuation** | P/E, P/B | Lower = better value |
-| **Profitability** | ROE, Profit Margin | Higher = better |
-| **Growth** | Revenue Growth, Earnings Growth | Higher = better |
-| **Financial Health** | Debt/Equity, Current Ratio | Balanced = better |
-| **Momentum** | 6M Price Change, RSI | Trend strength |
-
-### Command Behavior
-`/score` now tries the StockWise API first, then automatically falls back to local Yahoo Finance scoring so users always get a result.
-
-- **Files changed:** `src/services/scoring.ts`, `src/commands/score.ts`, `package.json`, `package-lock.json`
-- **Status:** ✅ Live — `/score AAPL` works now
+- **Problem:** Bot name changed to `⚡️ VPN SECURE | Bot #929`. Token was compromised.
+- **Fix:** User regenerated token via @BotFather. Updated `TELEGRAM_BOT_TOKEN` in `.env` and on Render.
+- **Status:** ✅ Bot is alive and polling
 
 ---
 
-## 3. Mimic Investor Flow (`/mimic`)
+## 2. API Endpoint Bugs Fixed
 
-- **Problem:** Selecting an investor immediately called the API with `undefined` amount — users couldn't specify how much to invest.
-- **Fix:** Implemented a multi-step prompt flow:
+### Alpaca 401 → Fixed
+- **Root cause:** Key-length heuristic (`keyId.length > 20`) wrongly detected Trading API keys as Broker API keys
+- **Fix:** Removed auto-detection. Now always uses Trading API (paper/live) unless `ALPACA_BROKER_MODE=true` is set
+- **Before:** `broker-api.sandbox.alpaca.markets` with Basic Auth → 401
+- **After:** `paper-api.alpaca.markets` with `APCA-API-KEY-ID` headers → works
 
+### FMP 402/403 → Fixed
+- **Root cause:** Code used `/stable` paid-tier endpoints (`/key-metrics-ttm`, `/ratings-snapshot`)
+- **Fix:** Switched to `/api/v3` free-tier endpoints first, with fallback to `/stable`
+  - `/api/v3/quote/{symbol}`
+  - `/api/v3/key-metrics/{symbol}` → fallback `/stable/key-metrics-ttm`
+  - `/api/v3/rating/{symbol}` → fallback `/stable/ratings-snapshot`
+  - `/api/v3/discounted-cash-flow/{symbol}`
+  - `/api/v4/insider-trading`
+
+---
+
+## 3. DuckDuckGo Web Search Fallback
+
+- **Removed:** Standalone `/websearch` command (user never asked for it)
+- **Added:** DuckDuckGo as automatic fallback when APIs fail
+  - `/search` fallback chain: StockWise → Yahoo → Brave → **DuckDuckGo**
+  - Chat fallback: when bot can't understand query, it searches DuckDuckGo and returns web results
+- **Implementation:** `duck-duck-scrape` package + cheerio HTML fallback (no API key needed)
+
+---
+
+## 4. Screenshot Portfolio Parser (NEW FEATURE)
+
+**File:** `src/commands/screenshot.ts`
+
+**Flow:**
+1. User sends screenshot of portfolio/brokerage app
+2. Bot downloads highest-res photo from Telegram
+3. **OCR** with `tesseract.js` extracts text
+4. Extracts ticker symbols (`$AAPL`, uppercase words)
+5. Scores up to 10 tickers via OpenBox engine
+6. Returns formatted summary with score emojis
+
+**Yahoo 429 mitigation:**
+- 1.2-second delay between each ticker score
+- FMP quote fallback when OpenBox fails (shows price + change%)
+
+**Example output:**
 ```
-User: /mimic
-Bot:  [Warren Buffett] [Ray Dalio] [Cathie Wood] ...
-User: (clicks Buffett)
-Bot:  How much do you want to invest?
-User: 10000
-Bot:  ✅ Mimicking Warren Buffett
-      💵 Investment: $10,000
-      • AAPL — 50% ($5,000)
-      • KO   — 50% ($5,000)
+📸 Screenshot parsed — 4 ticker(s) found:
+
+1. *AAPL* — 🟢 72/100
+2. *TSLA* — $173.50 (+1.23%) _(score unavailable)_
+3. *NVDA* — 🟢 81/100
+4. *AMZN* — 🟡 54/100
 ```
 
-### Safety Features
-- Invalid input (letters, negatives) → retry prompt, keeps pending state
-- `/cancel` → clears pending mimic state
-- Works alongside existing `/experiment` pending flow
+---
 
-- **Files changed:** `src/commands/mimic.ts`, `src/commands/chat.ts`, `src/commands/index.ts`
-- **Status:** ✅ Live
+## 5. Telegram Command Menu
+
+- Added `bot.telegram.setMyCommands()` on startup
+- Non-blocking with 5s timeout to prevent hangs
+- Registers all user-facing commands (`/search`, `/score`, `/mimic`, etc.)
 
 ---
 
-## 4. Tests & Quality
+## 6. Missing Env Var Added
 
-- Fixed E2E test dummy token (`dummy_token_for_testing` → `123456:TESTTESTTESTTESTTESTTESTTESTTESTTEST`) to pass regex validation.
-- Added 3 new E2E tests for mimic amount flow.
-- **Result:** All **46 tests pass**.
+- `FMP_API_KEY=W0ZNDulEbCUkYvy20BcDJIjN91dn4lTJ` — added to `.env` and Render
 
 ---
 
-## 5. Deploy
+## Commits This Session
 
 | Commit | Message |
-|--------|---------|
-| `f9d270b` | feat: add local Yahoo Finance scoring fallback for /score command |
-| `04b1145` | feat: mimic investor flow now asks for investment amount |
-
-- **Render deploy:** `dep-d7mhnqsm0tmc73apphmg`
-- **Status:** ✅ **Live**
-
----
-
-## Known Issues (Out of Scope)
-
-- **StockWisePro API** (`stockwise-pro-api.onrender.com`) — stock lookup endpoints remain broken. The bot now works around this with the Yahoo Finance fallback.
+|---|---|
+| `b2b2368` | fix(screenshot): add 1.2s delay + FMP fallback |
+| `d69aaac` | feat: screenshot portfolio parser |
+| `4737a20` | debug: crash handlers + non-blocking setMyCommands |
+| `e26aa8e` | fix: Alpaca and FMP API endpoint bugs |
+| `bc877d1` | fix: DuckDuckGo fallback instead of /websearch command |
+| `e75587d` | feat: register Telegram command menu |
+| `4fe7dab` | feat: add /websearch command (later reverted) |
 
 ---
 
-## Quick Test Commands
+## Known Issues Remaining
+
+| Issue | Status | Notes |
+|---|---|---|
+| **Yahoo Finance 429** | Mitigated | 1.2s delays + caching. Still rate-limited on Render shared IP |
+| **StockWise API 500** | Server-side | Bot skips auth, runs in guest mode |
+| **Databento 401** | Invalid key | Key present but unauthenticated |
+| **Brave Search 422** | Invalid key | "subscription token is invalid" |
+
+---
+
+## Test Commands
 
 ```
 /score AAPL
 /mimic → select Buffett → 10000
+[send screenshot of portfolio]
 ```
