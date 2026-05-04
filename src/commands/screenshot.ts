@@ -4,6 +4,7 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import { computeOpenBoxScore } from '../services/openbox/engine';
+import { fmp } from '../api/fmp';
 import { logger } from '../utils/logger';
 
 const TMP_DIR = process.env.DATA_DIR ? path.join(process.env.DATA_DIR, 'tmp') : '/tmp';
@@ -127,14 +128,38 @@ export async function handleScreenshot(ctx: Context) {
 
     await ctx.replyWithChatAction('typing');
 
-    // Score each ticker
-    const results: { ticker: string; score: number | null; error?: string }[] = [];
+    // Score each ticker with delay to avoid rate limits
+    const results: { ticker: string; score: number | null; price?: number; changePct?: number }[] = [];
     for (const ticker of tickers.slice(0, 10)) {
       try {
         const scoreResult = await computeOpenBoxScore(ticker, telegramId);
-        results.push({ ticker, score: scoreResult?.finalScore ?? null });
+        if (scoreResult) {
+          results.push({ ticker, score: scoreResult.finalScore });
+        } else {
+          // Fallback: get basic quote from FMP
+          const quote = await fmp.getQuote(ticker);
+          if (quote) {
+            results.push({ ticker, score: null, price: quote.price, changePct: quote.changesPercentage });
+          } else {
+            results.push({ ticker, score: null });
+          }
+        }
       } catch (err) {
-        results.push({ ticker, score: null, error: 'Failed to score' });
+        // Fallback: get basic quote from FMP
+        try {
+          const quote = await fmp.getQuote(ticker);
+          if (quote) {
+            results.push({ ticker, score: null, price: quote.price, changePct: quote.changesPercentage });
+          } else {
+            results.push({ ticker, score: null });
+          }
+        } catch {
+          results.push({ ticker, score: null });
+        }
+      }
+      // Delay to avoid hammering Yahoo
+      if (tickers.length > 1) {
+        await new Promise(r => setTimeout(r, 1200));
       }
     }
 
@@ -143,6 +168,12 @@ export async function handleScreenshot(ctx: Context) {
       if (r.score !== null) {
         const emoji = r.score >= 70 ? '🟢' : r.score >= 50 ? '🟡' : '🔴';
         return `${i + 1}. *${r.ticker}* — ${emoji} ${r.score}/100`;
+      }
+      if (r.price !== undefined) {
+        const changeStr = r.changePct !== undefined
+          ? `(${r.changePct >= 0 ? '+' : ''}${r.changePct.toFixed(2)}%)`
+          : '';
+        return `${i + 1}. *${r.ticker}* — $${r.price.toFixed(2)} ${changeStr} _(score unavailable)_`;
       }
       return `${i + 1}. *${r.ticker}* — ❌ Could not score`;
     });
