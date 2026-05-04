@@ -16,6 +16,7 @@ export async function helpCommand(ctx: Context) {
 /watchlist_remove <ticker> — Remove stock
 /portfolio — View your portfolio
 /mimic — Copy investor strategy
+📸 Send a screenshot — Bot parses tickers & scores them
 
 *Tools*
 /experiment — Test custom formulas

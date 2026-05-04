@@ -19,6 +19,7 @@ import { metricsCommand } from './metrics';
 import { alpacaCommand } from './alpaca';
 import { dcfCommand } from './dcf';
 import { insiderCommand } from './insider';
+import { handleScreenshot } from './screenshot';
 
 export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('start', startCommand);
@@ -92,6 +93,11 @@ export function registerCommands(bot: Telegraf<BotContext>) {
     saveFeedback(telegramId, eventId, rating);
     await ctx.answerCbQuery('Thanks for your feedback!');
     await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
+  });
+
+  // Photo / screenshot handler
+  bot.on('photo', async (ctx) => {
+    await handleScreenshot(ctx);
   });
 
   // Chat & natural-language handler
