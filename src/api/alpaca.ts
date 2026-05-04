@@ -89,10 +89,11 @@ class AlpacaClient {
       return;
     }
 
-    // Detect Broker API keys (longer format, often used with sandbox)
-    const looksLikeBrokerKey = keyId.length > 20;
+    // Only use Broker API mode if explicitly requested (no env var set)
+    // Trading API keys can also be 20+ chars, so length-based detection is wrong
+    const useBroker = process.env.ALPACA_BROKER_MODE === 'true';
 
-    if (looksLikeBrokerKey) {
+    if (useBroker) {
       // Broker API: uses Basic Auth on broker-api.sandbox.alpaca.markets
       const auth = Buffer.from(keyId + ':' + secretKey).toString('base64');
       this.brokerClient = axios.create({

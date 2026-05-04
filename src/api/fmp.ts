@@ -2,7 +2,9 @@ import axios from 'axios';
 import { config } from '../config';
 import { logger } from '../utils/logger';
 
-const BASE = 'https://financialmodelingprep.com/stable';
+const BASE_V3 = 'https://financialmodelingprep.com/api/v3';
+const BASE_STABLE = 'https://financialmodelingprep.com/stable';
+const BASE_V4 = 'https://financialmodelingprep.com/api/v4';
 
 export interface FMPQuote {
   symbol: string;
@@ -120,42 +122,76 @@ class FMPClient {
     }
   }
 
-  private async get<T>(path: string, params: Record<string, string | number> = {}): Promise<T | null> {
+  private async getV3<T>(path: string, params: Record<string, string | number> = {}): Promise<T | null> {
     if (!this.enabled) return null;
     try {
-      const res = await axios.get<T>(`${BASE}${path}`, {
+      const res = await axios.get<T>(`${BASE_V3}${path}`, {
         params: { ...params, apikey: config.fmpApiKey },
         timeout: 10000,
       });
       return res.data;
     } catch (err) {
-      logger.warn('FMP request failed', { path, error: String(err) });
+      logger.warn('FMP v3 request failed', { path, error: String(err) });
+      return null;
+    }
+  }
+
+  private async getStable<T>(path: string, params: Record<string, string | number> = {}): Promise<T | null> {
+    if (!this.enabled) return null;
+    try {
+      const res = await axios.get<T>(`${BASE_STABLE}${path}`, {
+        params: { ...params, apikey: config.fmpApiKey },
+        timeout: 10000,
+      });
+      return res.data;
+    } catch (err) {
+      logger.warn('FMP stable request failed', { path, error: String(err) });
+      return null;
+    }
+  }
+
+  private async getV4<T>(path: string, params: Record<string, string | number> = {}): Promise<T | null> {
+    if (!this.enabled) return null;
+    try {
+      const res = await axios.get<T>(`${BASE_V4}${path}`, {
+        params: { ...params, apikey: config.fmpApiKey },
+        timeout: 10000,
+      });
+      return res.data;
+    } catch (err) {
+      logger.warn('FMP v4 request failed', { path, error: String(err) });
       return null;
     }
   }
 
   async getQuote(symbol: string): Promise<FMPQuote | null> {
-    const data = await this.get<FMPQuote[]>('/quote', { symbol: symbol.toUpperCase() });
+    const data = await this.getV3<FMPQuote[]>(`/quote/${symbol.toUpperCase()}`);
     return data?.[0] || null;
   }
 
   async getKeyMetrics(symbol: string): Promise<FMPKeyMetrics | null> {
-    const data = await this.get<FMPKeyMetrics[]>('/key-metrics-ttm', { symbol: symbol.toUpperCase() });
-    return data?.[0] || null;
+    // Try free tier v3 endpoint first, fall back to stable ttm
+    const data = await this.getV3<FMPKeyMetrics[]>(`/key-metrics/${symbol.toUpperCase()}`);
+    if (data && data.length > 0) return data[0];
+    const stable = await this.getStable<FMPKeyMetrics[]>(`/key-metrics-ttm/${symbol.toUpperCase()}`);
+    return stable?.[0] || null;
   }
 
   async getRatings(symbol: string): Promise<FMPRating | null> {
-    const data = await this.get<FMPRating[]>('/ratings-snapshot', { symbol: symbol.toUpperCase() });
-    return data?.[0] || null;
+    // Try free tier v3 endpoint first, fall back to stable snapshot
+    const data = await this.getV3<FMPRating[]>(`/rating/${symbol.toUpperCase()}`);
+    if (data && data.length > 0) return data[0];
+    const stable = await this.getStable<FMPRating[]>(`/ratings-snapshot/${symbol.toUpperCase()}`);
+    return stable?.[0] || null;
   }
 
   async getDCF(symbol: string): Promise<FMPDCF | null> {
-    const data = await this.get<FMPDCF[]>('/discounted-cash-flow', { symbol: symbol.toUpperCase() });
+    const data = await this.getV3<FMPDCF[]>(`/discounted-cash-flow/${symbol.toUpperCase()}`);
     return data?.[0] || null;
   }
 
   async getInsiderTrading(symbol: string, limit = 20): Promise<FMPInsiderTrade[]> {
-    const data = await this.get<FMPInsiderTrade[]>('/insider-trading/search', {
+    const data = await this.getV4<FMPInsiderTrade[]>(`/insider-trading`, {
       symbol: symbol.toUpperCase(),
       page: 0,
       limit,
