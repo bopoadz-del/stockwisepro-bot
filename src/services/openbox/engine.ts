@@ -247,7 +247,6 @@ export async function computeOpenBoxScore(ticker: string): Promise<OpenBoxScore 
           'balanceSheetHistory',
           'price',
           'fundProfile',
-          'fundPerformance',
         ],
       }).catch(() => null),
       getHistoricalPrices(upper, '1y'),
