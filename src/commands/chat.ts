@@ -15,6 +15,7 @@ import { metricsCommand } from './metrics';
 import { runExperimentFromText, pendingExperiment } from './experiment';
 import { stockwise } from '../api/stockwise';
 import { yahooSearch } from '../api/yahoo';
+import { duckduckgo } from '../api/duckduckgo';
 
 // Common English words that could be mistaken for tickers
 const COMMON_WORDS = new Set([
@@ -313,7 +314,22 @@ export async function handleChatMessage(ctx: Context) {
     return;
   }
 
-  // 5. Fallback — log and ask for correction
+  // 5. Fallback — try web search via DuckDuckGo, then log and ask for correction
+  await ctx.replyWithChatAction('typing');
+  const ddgRes = await duckduckgo.webSearch(text, 5);
+
+  if (!ddgRes.error && ddgRes.data.length > 0) {
+    const lines = ddgRes.data.slice(0, 5).map((s: any, i: number) => {
+      const desc = s.description ? s.description.slice(0, 120) + (s.description.length > 120 ? '…' : '') : '';
+      return `${i + 1}. *${s.title || 'No title'}*\n   _${desc}_\n   ${s.url || ''}`;
+    });
+    await ctx.replyWithMarkdown(
+      `🌐 *I searched the web for "${text}"* (via DuckDuckGo):\n\n${lines.join('\n\n')}\n\n` +
+      `_Did you mean something else? Try /help or type a ticker like AAPL._`
+    );
+    return;
+  }
+
   const logResult = recordIntent(ctx, 'fallback', { isFallback: true });
   const logId = logResult.lastInsertRowid as number;
 

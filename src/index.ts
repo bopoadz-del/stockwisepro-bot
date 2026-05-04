@@ -181,7 +181,6 @@ async function main() {
         { command: 'score', description: 'AI scoring & metrics' },
         { command: 'simulate', description: 'Monte Carlo simulation' },
         { command: 'metrics', description: 'Risk stats (vol, Sharpe, VaR)' },
-        { command: 'websearch', description: 'Search the web' },
         { command: 'news', description: 'Latest news for a ticker' },
         { command: 'watchlist', description: 'View your watchlist' },
         { command: 'watchlist_add', description: 'Add stock to watchlist' },

@@ -2,6 +2,7 @@ import { Context } from 'telegraf';
 import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
 import { brave } from '../api/brave';
+import { duckduckgo } from '../api/duckduckgo';
 import { yahooSearch } from '../api/yahoo';
 import { userSafeError } from '../utils/logger';
 
@@ -50,7 +51,7 @@ export async function searchCommand(ctx: Context) {
     return;
   }
 
-  // 3. Final fallback to Brave web search
+  // 3. Fallback to Brave web search
   await ctx.replyWithChatAction('typing');
   const braveRes = await brave.webSearch(`${query} stock ticker`, 5);
 
@@ -59,6 +60,19 @@ export async function searchCommand(ctx: Context) {
       return `${i + 1}. *${s.title || 'No title'}*\n   ${s.url || ''}`;
     });
     await ctx.replyWithMarkdown(`🔍 *Web results for "${query}"* (via Brave):\n\n${lines.join('\n')}`);
+    return;
+  }
+
+  // 4. Final fallback to DuckDuckGo web search
+  await ctx.replyWithChatAction('typing');
+  const ddgRes = await duckduckgo.webSearch(`${query} stock ticker`, 5);
+
+  if (!ddgRes.error && ddgRes.data.length > 0) {
+    const lines = ddgRes.data.slice(0, 5).map((s: any, i: number) => {
+      const desc = s.description ? s.description.slice(0, 120) + (s.description.length > 120 ? '…' : '') : '';
+      return `${i + 1}. *${s.title || 'No title'}*\n   _${desc}_\n   ${s.url || ''}`;
+    });
+    await ctx.replyWithMarkdown(`🔍 *Web results for "${query}"* (via DuckDuckGo):\n\n${lines.join('\n\n')}`);
     return;
   }
 

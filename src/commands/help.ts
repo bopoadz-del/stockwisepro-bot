@@ -9,7 +9,6 @@ export async function helpCommand(ctx: Context) {
 /score <ticker> — AI scoring & metrics
 /simulate <ticker> <days> — Monte Carlo price simulation
 /metrics <ticker> — Risk stats (vol, Sharpe, VaR, drawdown)
-/websearch <query> — Search the web via DuckDuckGo
 
 *Portfolio*
 /watchlist — View watchlist
