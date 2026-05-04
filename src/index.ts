@@ -138,6 +138,14 @@ async function main() {
       logger.info(`Health check server listening on port ${config.healthPort}`);
     });
 
+    // Global crash handlers for silent failures
+    process.on('uncaughtException', (err) => {
+      logger.error('Uncaught exception', { error: err.message, stack: err.stack });
+    });
+    process.on('unhandledRejection', (reason) => {
+      logger.error('Unhandled rejection', { error: String(reason) });
+    });
+
     logger.info('Step 8: Launching bot...');
     let launchRetries = 0;
     const maxLaunchRetries = 10;
@@ -172,9 +180,9 @@ async function main() {
     }
     logger.info('Step 8: Bot is polling Telegram successfully');
 
-    // Register command menu with Telegram
-    try {
-      await bot.telegram.setMyCommands([
+    // Register command menu with Telegram (non-blocking, 5s timeout)
+    Promise.race([
+      bot.telegram.setMyCommands([
         { command: 'start', description: 'Welcome message' },
         { command: 'help', description: 'Show all commands' },
         { command: 'search', description: 'Search stocks' },
@@ -196,11 +204,11 @@ async function main() {
         { command: 'dcf', description: 'DCF valuation' },
         { command: 'insider', description: 'Insider trading' },
         { command: 'cancel', description: 'Cancel pending action' },
-      ]);
-      logger.info('Command menu registered with Telegram');
-    } catch (cmdErr) {
-      logger.warn('Failed to register command menu', { error: String(cmdErr) });
-    }
+      ]),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('setMyCommands timeout')), 5000)),
+    ])
+      .then(() => logger.info('Command menu registered with Telegram'))
+      .catch((cmdErr) => logger.warn('Failed to register command menu', { error: String(cmdErr) }));
 
     process.once('SIGINT', () => {
       logger.info('Shutting down (SIGINT)...');
