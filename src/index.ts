@@ -172,6 +172,37 @@ async function main() {
     }
     logger.info('Step 8: Bot is polling Telegram successfully');
 
+    // Register command menu with Telegram
+    try {
+      await bot.telegram.setMyCommands([
+        { command: 'start', description: 'Welcome message' },
+        { command: 'help', description: 'Show all commands' },
+        { command: 'search', description: 'Search stocks' },
+        { command: 'score', description: 'AI scoring & metrics' },
+        { command: 'simulate', description: 'Monte Carlo simulation' },
+        { command: 'metrics', description: 'Risk stats (vol, Sharpe, VaR)' },
+        { command: 'websearch', description: 'Search the web' },
+        { command: 'news', description: 'Latest news for a ticker' },
+        { command: 'watchlist', description: 'View your watchlist' },
+        { command: 'watchlist_add', description: 'Add stock to watchlist' },
+        { command: 'watchlist_remove', description: 'Remove stock from watchlist' },
+        { command: 'portfolio', description: 'View your portfolio' },
+        { command: 'mimic', description: 'Copy investor strategy' },
+        { command: 'experiment', description: 'Test custom formulas' },
+        { command: 'alert', description: 'Set price alerts' },
+        { command: 'alerts', description: 'View your alerts' },
+        { command: 'weights', description: 'Set scoring weights' },
+        { command: 'weights_set', description: 'Configure scoring weights' },
+        { command: 'alpaca', description: 'Alpaca trading info' },
+        { command: 'dcf', description: 'DCF valuation' },
+        { command: 'insider', description: 'Insider trading' },
+        { command: 'cancel', description: 'Cancel pending action' },
+      ]);
+      logger.info('Command menu registered with Telegram');
+    } catch (cmdErr) {
+      logger.warn('Failed to register command menu', { error: String(cmdErr) });
+    }
+
     process.once('SIGINT', () => {
       logger.info('Shutting down (SIGINT)...');
       flushAnalytics();
