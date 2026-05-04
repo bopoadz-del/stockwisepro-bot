@@ -1,14 +1,44 @@
 import YahooFinance from 'yahoo-finance2';
 import { getHistoricalPrices } from '../../api/yahoo';
+import { fmp, FMPKeyMetrics } from '../../api/fmp';
 import { logger } from '../../utils/logger';
 import { checkEthics } from './ethics';
 import { computePeerDelta } from './peers';
 import { checkDominance } from './dominance';
+import { getUserWeights } from '../../db';
 
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
 function clamp(num: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, num));
+}
+
+// In-memory cache for Yahoo quoteSummary to avoid 429 rate limits
+const quoteSummaryCache = new Map<string, { data: any; expires: number }>();
+const QUOTE_SUMMARY_TTL_MS = 5 * 60 * 1000;
+
+function getCachedQuoteSummary(ticker: string): any | null {
+  const entry = quoteSummaryCache.get(ticker.toUpperCase());
+  if (!entry) return null;
+  if (Date.now() > entry.expires) {
+    quoteSummaryCache.delete(ticker.toUpperCase());
+    return null;
+  }
+  return entry.data;
+}
+
+function setCachedQuoteSummary(ticker: string, data: any): void {
+  quoteSummaryCache.set(ticker.toUpperCase(), { data, expires: Date.now() + QUOTE_SUMMARY_TTL_MS });
+}
+
+async function fetchQuoteSummary(ticker: string, modules: string[]): Promise<any> {
+  const upper = ticker.toUpperCase();
+  const cacheKey = upper + ':' + modules.sort().join(',');
+  const cached = getCachedQuoteSummary(cacheKey);
+  if (cached) return cached;
+  const result = await yf.quoteSummary(upper, { modules: modules as any });
+  setCachedQuoteSummary(cacheKey, result);
+  return result;
 }
 
 function toNum(v: unknown): number {
@@ -232,25 +262,24 @@ function generateNarrative(
 }
 
 // ── Main engine ──────────────────────────────────────────────────────────────
-export async function computeOpenBoxScore(ticker: string): Promise<OpenBoxScore | null> {
+export async function computeOpenBoxScore(ticker: string, telegramId?: number): Promise<OpenBoxScore | null> {
   const upper = ticker.toUpperCase();
 
   try {
-    const [fullSummary, hist, spyHist] = await Promise.all([
-      yf.quoteSummary(upper, {
-        modules: [
-          'financialData',
-          'defaultKeyStatistics',
-          'summaryDetail',
-          'summaryProfile',
-          'incomeStatementHistory',
-          'balanceSheetHistory',
-          'price',
-          'fundProfile',
-        ],
-      }).catch(() => null),
+    const [fullSummary, hist, spyHist, fmpMetrics] = await Promise.all([
+      fetchQuoteSummary(upper, [
+        'financialData',
+        'defaultKeyStatistics',
+        'summaryDetail',
+        'summaryProfile',
+        'incomeStatementHistory',
+        'balanceSheetHistory',
+        'price',
+        'fundProfile',
+      ]).catch(() => null),
       getHistoricalPrices(upper, '1y'),
       getHistoricalPrices('SPY', '1y').catch(() => ({ data: [], error: 'SPY fetch failed' })),
+      fmp.getKeyMetrics(upper).catch(() => null),
     ]);
 
     if (!fullSummary) {
@@ -267,6 +296,13 @@ export async function computeOpenBoxScore(ticker: string): Promise<OpenBoxScore 
     const priceMod = fullSummary.price;
     const fundProf = fullSummary.fundProfile;
     const fundPerf = fullSummary.fundPerformance;
+
+    // FMP fallback helpers: use FMP data when Yahoo returns undefined/0
+    const fmpNum = (k: keyof FMPKeyMetrics): number | undefined => {
+      const v = fmpMetrics?.[k];
+      if (typeof v === 'number' && Number.isFinite(v)) return v;
+      return undefined;
+    };
 
     const price = toNum(priceMod?.regularMarketPrice ?? sd?.previousClose);
     const marketCap = toNum(sd?.marketCap ?? price * toNum(dks?.sharesOutstanding));
@@ -304,26 +340,26 @@ export async function computeOpenBoxScore(ticker: string): Promise<OpenBoxScore 
       priceChangeYtd = safeDivide(prices[prices.length - 1] - prices[0], prices[0]);
     }
 
-    // Build metrics object
+    // Build metrics object (FMP fills Yahoo gaps)
     const m = {
       price,
-      marketCap,
-      revenueGrowth: toNumOpt(fd?.revenueGrowth),
-      earningsGrowth: toNumOpt(fd?.earningsGrowth),
-      profitMargin: toNumOpt(fd?.profitMargins),
-      roe: toNumOpt(fd?.returnOnEquity),
-      operatingCashflow: toNumOpt(fd?.operatingCashflow),
-      freeCashflow: toNumOpt(fd?.freeCashflow),
+      marketCap: marketCap || fmpNum('marketCap') || 0,
+      revenueGrowth: toNumOpt(fd?.revenueGrowth) ?? fmpNum('revenueGrowth'),
+      earningsGrowth: toNumOpt(fd?.earningsGrowth) ?? fmpNum('netIncomeGrowth'),
+      profitMargin: toNumOpt(fd?.profitMargins) ?? fmpNum('netProfitMargin'),
+      roe: toNumOpt(fd?.returnOnEquity) ?? fmpNum('returnOnEquity'),
+      operatingCashflow: toNumOpt(fd?.operatingCashflow) ?? fmpNum('freeCashFlowPerShare'),
+      freeCashflow: toNumOpt(fd?.freeCashflow) ?? fmpNum('freeCashFlowPerShare'),
       totalDebt: toNumOpt(fd?.totalDebt),
       totalCash: toNumOpt(fd?.totalCash),
-      currentRatio: toNumOpt(fd?.currentRatio),
-      debtToEquity: toNumOpt(fd?.debtToEquity),
-      trailingPE: toNumOpt(sd?.trailingPE),
+      currentRatio: toNumOpt(fd?.currentRatio) ?? fmpNum('currentRatio'),
+      debtToEquity: toNumOpt(fd?.debtToEquity) ?? fmpNum('debtToEquity'),
+      trailingPE: toNumOpt(sd?.trailingPE) ?? fmpNum('peRatio'),
       forwardPE: toNumOpt(dks?.forwardPE),
-      priceToBook: toNumOpt(dks?.priceToBook),
+      priceToBook: toNumOpt(dks?.priceToBook) ?? fmpNum('pbRatio'),
       beta: toNumOpt(dks?.beta),
       avgVolume: toNumOpt(sd?.averageVolume),
-      dividendYield: toNumOpt(sd?.dividendYield),
+      dividendYield: toNumOpt(sd?.dividendYield) ?? fmpNum('dividendYield'),
       sharesOutstanding: toNumOpt(dks?.sharesOutstanding),
       bookValue: toNumOpt(dks?.bookValue),
       ebitda: toNumOpt(fd?.ebitda),
@@ -532,6 +568,56 @@ export async function computeOpenBoxScore(ticker: string): Promise<OpenBoxScore 
         innovation: 0,
         ethics: 10,
       };
+    }
+
+    // Apply per-user custom weights if telegramId provided
+    if (telegramId) {
+      try {
+        const uw = getUserWeights(telegramId);
+        // Map user's weight categories to OpenBox pillars
+        const userFundamentals = (uw.valuation + uw.profitability + uw.growth) / 3;
+        const userMarket = uw.momentum;
+        const userBalance = uw.financial_health;
+
+        // Scale defaults by user's preference relative to 50 (midpoint)
+        const scale = (val: number) => Math.max(0.2, Math.min(3.0, val / 50));
+
+        if (isETF || innovationRaw === 0) {
+          weights = {
+            fundamentals: clamp(35 * scale(userFundamentals), 5, 60),
+            marketDynamics: clamp(18.75 * scale(userMarket), 2, 40),
+            balanceSheet: clamp(18.75 * scale(userBalance), 2, 40),
+            leadership: clamp(17.5, 2, 40),
+            innovation: 0,
+            ethics: 10,
+          };
+        } else {
+          weights = {
+            fundamentals: clamp(30 * scale(userFundamentals), 5, 55),
+            marketDynamics: clamp(15 * scale(userMarket), 2, 35),
+            balanceSheet: clamp(15 * scale(userBalance), 2, 35),
+            leadership: clamp(15, 2, 35),
+            innovation: clamp(15, 2, 35),
+            ethics: 10,
+          };
+        }
+
+        // Normalize to sum ~100
+        const total = Object.values(weights).reduce((a, b) => a + b, 0);
+        if (total > 0) {
+          const factor = 100 / total;
+          weights = {
+            fundamentals: weights.fundamentals * factor,
+            marketDynamics: weights.marketDynamics * factor,
+            balanceSheet: weights.balanceSheet * factor,
+            leadership: weights.leadership * factor,
+            innovation: weights.innovation * factor,
+            ethics: weights.ethics * factor,
+          };
+        }
+      } catch (err) {
+        logger.warn('Failed to apply user weights', { telegramId, error: (err as Error).message });
+      }
     }
 
     const wf = (fundamentalsRaw / 100) * weights.fundamentals;

@@ -32,6 +32,14 @@ services:
         sync: false
       - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
+      - key: ALPACA_API_KEY
+        sync: false
+      - key: ALPACA_SECRET_KEY
+        sync: false
+      - key: ALPACA_PAPER
+        value: true
+      - key: FMP_API_KEY
+        sync: false
     disk:
       name: bot-data
       mountPath: /app/data

@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm_config_build_from_source=true npm ci
 
 COPY . .
 RUN npm run build

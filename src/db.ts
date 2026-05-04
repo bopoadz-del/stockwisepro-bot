@@ -101,6 +101,32 @@ const MIGRATIONS: Array<{ version: number; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_nl_logs_created_at ON nl_logs(created_at);
     `,
   },
+  {
+    version: 3,
+    sql: `
+      CREATE TABLE IF NOT EXISTS user_watchlists (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        telegram_id INTEGER NOT NULL,
+        ticker TEXT NOT NULL,
+        added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(telegram_id, ticker)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_user_watchlists_telegram_id ON user_watchlists(telegram_id);
+
+      CREATE TABLE IF NOT EXISTS user_portfolios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        telegram_id INTEGER NOT NULL,
+        ticker TEXT NOT NULL,
+        shares REAL NOT NULL DEFAULT 0,
+        avg_price REAL NOT NULL DEFAULT 0,
+        added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(telegram_id, ticker)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_user_portfolios_telegram_id ON user_portfolios(telegram_id);
+    `,
+  },
 ];
 
 export function initDb() {
@@ -448,6 +474,57 @@ export function exportMissedIntentsCsv(days = 30): string {
   ].join('\n');
 
   return csv;
+}
+
+/* ─── Local Watchlist / Portfolio Fallbacks ─── */
+
+export function getLocalWatchlist(telegramId: number) {
+  const conn = ensureDb();
+  return conn.prepare(`SELECT ticker, added_at FROM user_watchlists WHERE telegram_id = ? ORDER BY added_at DESC`).all(telegramId) as Array<{
+    ticker: string;
+    added_at: string;
+  }>;
+}
+
+export function addLocalWatchlistItem(telegramId: number, ticker: string) {
+  const conn = ensureDb();
+  try {
+    conn.prepare(`INSERT INTO user_watchlists (telegram_id, ticker) VALUES (?, ?)`).run(telegramId, ticker.toUpperCase());
+    return true;
+  } catch {
+    return false; // duplicate
+  }
+}
+
+export function removeLocalWatchlistItem(telegramId: number, ticker: string) {
+  const conn = ensureDb();
+  conn.prepare(`DELETE FROM user_watchlists WHERE telegram_id = ? AND ticker = ?`).run(telegramId, ticker.toUpperCase());
+  return true;
+}
+
+export function getLocalPortfolio(telegramId: number) {
+  const conn = ensureDb();
+  return conn.prepare(`SELECT ticker, shares, avg_price FROM user_portfolios WHERE telegram_id = ? ORDER BY added_at DESC`).all(telegramId) as Array<{
+    ticker: string;
+    shares: number;
+    avg_price: number;
+  }>;
+}
+
+export function setLocalPortfolioItem(telegramId: number, ticker: string, shares: number, avgPrice: number) {
+  const conn = ensureDb();
+  conn.prepare(`
+    INSERT INTO user_portfolios (telegram_id, ticker, shares, avg_price)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(telegram_id, ticker) DO UPDATE SET
+      shares = excluded.shares,
+      avg_price = excluded.avg_price
+  `).run(telegramId, ticker.toUpperCase(), shares, avgPrice);
+}
+
+export function removeLocalPortfolioItem(telegramId: number, ticker: string) {
+  const conn = ensureDb();
+  conn.prepare(`DELETE FROM user_portfolios WHERE telegram_id = ? AND ticker = ?`).run(telegramId, ticker.toUpperCase());
 }
 
 export { db };

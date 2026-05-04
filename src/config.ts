@@ -19,6 +19,10 @@ export const config = {
   redisUrl: process.env.REDIS_URL || '',
   upstashRedisRestUrl: process.env.UPSTASH_REDIS_REST_URL || '',
   upstashRedisRestToken: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+  alpacaApiKey: process.env.ALPACA_API_KEY || '',
+  alpacaSecretKey: process.env.ALPACA_SECRET_KEY || '',
+  alpacaPaper: (process.env.ALPACA_PAPER || 'true').toLowerCase() === 'true',
+  fmpApiKey: process.env.FMP_API_KEY || '',
 };
 
 if (!config.telegramToken) {

@@ -2,6 +2,7 @@ import { Context } from 'telegraf';
 import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
 import { userSafeError } from '../utils/logger';
+import { getLocalPortfolio } from '../db';
 
 export async function portfolioCommand(ctx: Context) {
   const telegramId = ctx.from?.id || 0;
@@ -11,12 +12,26 @@ export async function portfolioCommand(ctx: Context) {
   Object.assign(ctx.state, { apiDuration: duration, success: !error });
   if (error) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
 
-  if (error) {
-    await ctx.reply(userSafeError());
-    return;
+  let portfolio = data;
+  let useLocalFallback = false;
+
+  // Fallback to local SQLite if API fails or returns empty
+  if (error || !portfolio || !portfolio.holdings || portfolio.holdings.length === 0) {
+    const localItems = getLocalPortfolio(telegramId);
+    if (localItems.length > 0) {
+      portfolio = {
+        holdings: localItems.map(l => ({
+          ticker: l.ticker,
+          shares: l.shares,
+          currentPrice: l.avg_price,
+        })),
+        totalValue: localItems.reduce((sum, l) => sum + (l.shares * l.avg_price), 0),
+      };
+      useLocalFallback = true;
+      (ctx as BotContext).state.success = true;
+    }
   }
 
-  const portfolio = data;
   if (!portfolio || !portfolio.holdings || portfolio.holdings.length === 0) {
     await ctx.reply('💼 Your portfolio is empty.\nUse /mimic to copy an investor strategy.');
     return;
@@ -30,7 +45,7 @@ export async function portfolioCommand(ctx: Context) {
   const holdings = portfolio.holdings.map((h: any) => {
     const t = h.ticker || h.stock?.ticker || '?';
     const shares = h.shares ?? h.quantity ?? 0;
-    const rawValue = h.currentValue ?? (shares * (h.currentPrice ?? h.stock?.price));
+    const rawValue = h.currentValue ?? (shares * (h.currentPrice ?? h.stock?.price ?? h.avg_price));
     return `• *${t}*: ${shares} shares — ${fmtPrice(rawValue)}`;
   }).join('\n');
 
@@ -41,6 +56,9 @@ export async function portfolioCommand(ctx: Context) {
   if (typeof pnl === 'number' && isFinite(pnl)) {
     const sign = pnl >= 0 ? '+' : '';
     msg += `\n*P&L:* ${sign}${fmtPrice(pnl)}`;
+  }
+  if (useLocalFallback) {
+    msg += '\n\n_(Showing local data — StockWise API is currently unavailable)_';
   }
 
   await ctx.replyWithMarkdown(msg);

@@ -7,6 +7,34 @@ import { mapYahooToFundamentals, FundamentalsComposite } from './fundamentals';
 
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
+// In-memory cache for Yahoo quoteSummary to avoid 429 rate limits
+const quoteSummaryCache = new Map<string, { data: any; expires: number }>();
+const QUOTE_SUMMARY_TTL_MS = 5 * 60 * 1000;
+
+function getCachedQuoteSummary(ticker: string): any | null {
+  const entry = quoteSummaryCache.get(ticker.toUpperCase());
+  if (!entry) return null;
+  if (Date.now() > entry.expires) {
+    quoteSummaryCache.delete(ticker.toUpperCase());
+    return null;
+  }
+  return entry.data;
+}
+
+function setCachedQuoteSummary(ticker: string, data: any): void {
+  quoteSummaryCache.set(ticker.toUpperCase(), { data, expires: Date.now() + QUOTE_SUMMARY_TTL_MS });
+}
+
+async function fetchQuoteSummary(ticker: string, modules: string[]): Promise<any> {
+  const upper = ticker.toUpperCase();
+  const cacheKey = upper + ':' + modules.sort().join(',');
+  const cached = getCachedQuoteSummary(cacheKey);
+  if (cached) return cached;
+  const result = await yf.quoteSummary(upper, { modules: modules as any });
+  setCachedQuoteSummary(cacheKey, result);
+  return result;
+}
+
 export interface StockMetrics {
   price: number;
   pe_ratio?: number;
@@ -128,9 +156,7 @@ export async function computeLocalScore(ticker: string): Promise<ScoreResult | n
 
     // 2b. Cache miss on fundamentals → fetch from Yahoo Finance
     if (!hasFundamentals) {
-      const summary = await yf.quoteSummary(upperTicker, {
-        modules: ['financialData', 'defaultKeyStatistics', 'summaryDetail'],
-      });
+      const summary = await fetchQuoteSummary(upperTicker, ['financialData', 'defaultKeyStatistics', 'summaryDetail']);
 
       price = toNum(summary.financialData?.currentPrice ?? summary.summaryDetail?.previousClose) ?? price;
       pe = pe ?? toNum(summary.summaryDetail?.trailingPE);
@@ -163,9 +189,7 @@ export async function computeLocalScore(ticker: string): Promise<ScoreResult | n
     // 4. Fetch income statements for Altman Z + Piotroski F
     let fundamentals: FundamentalsComposite | null = null;
     try {
-      const fullSummary = await yf.quoteSummary(upperTicker, {
-        modules: ['incomeStatementHistory', 'defaultKeyStatistics', 'financialData'],
-      });
+      const fullSummary = await fetchQuoteSummary(upperTicker, ['incomeStatementHistory', 'defaultKeyStatistics', 'financialData']);
       fundamentals = mapYahooToFundamentals(
         { regularMarketPrice: price },
         fullSummary.financialData,

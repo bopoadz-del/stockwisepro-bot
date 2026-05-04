@@ -139,18 +139,36 @@ async function main() {
     });
 
     logger.info('Step 8: Launching bot...');
-    try {
-      await bot.launch();
-    } catch (launchErr) {
-      const msg = launchErr instanceof Error ? launchErr.message : String(launchErr);
-      if (msg.includes('401') || msg.includes('Unauthorized')) {
-        throw new Error(
-          'Telegram refused the bot token (401 Unauthorized). ' +
-          'The token may be invalid, revoked, or expired. ' +
-          'Please regenerate a new token via @BotFather and update the TELEGRAM_BOT_TOKEN environment variable.'
-        );
+    let launchRetries = 0;
+    const maxLaunchRetries = 10;
+    while (launchRetries < maxLaunchRetries) {
+      try {
+        await bot.launch();
+        break;
+      } catch (launchErr) {
+        const msg = launchErr instanceof Error ? launchErr.message : String(launchErr);
+        if (msg.includes('401') || msg.includes('Unauthorized')) {
+          throw new Error(
+            'Telegram refused the bot token (401 Unauthorized). ' +
+            'The token may be invalid, revoked, or expired. ' +
+            'Please regenerate a new token via @BotFather and update the TELEGRAM_BOT_TOKEN environment variable.'
+          );
+        }
+        if (msg.includes('409') || msg.includes('Conflict')) {
+          launchRetries++;
+          if (launchRetries >= maxLaunchRetries) {
+            throw new Error(
+              'Another bot instance is already running with this token (409 Conflict). ' +
+              'If you have the bot deployed on Render or another server, stop the local instance ' +
+              'or use a different TELEGRAM_BOT_TOKEN for development.'
+            );
+          }
+          logger.warn(`Bot launch conflict (409), retrying in 15s... (${launchRetries}/${maxLaunchRetries})`);
+          await new Promise(r => setTimeout(r, 15000));
+          continue;
+        }
+        throw launchErr;
       }
-      throw launchErr;
     }
     logger.info('Step 8: Bot is polling Telegram successfully');
 

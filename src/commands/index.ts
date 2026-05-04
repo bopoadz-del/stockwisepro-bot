@@ -16,6 +16,9 @@ import { adminLearningCommand, adminExportMissedCommand, handleCorrectIntentCall
 import { weightsCommand, weightsSetCommand, handleWeightCallback } from './weights';
 import { simulateCommand } from './simulate';
 import { metricsCommand } from './metrics';
+import { alpacaCommand } from './alpaca';
+import { dcfCommand } from './dcf';
+import { insiderCommand } from './insider';
 
 export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('start', startCommand);
@@ -57,6 +60,9 @@ export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('weights_set', weightsSetCommand);
   bot.command('simulate', simulateCommand);
   bot.command('metrics', metricsCommand);
+  bot.command('alpaca', alpacaCommand);
+  bot.command('dcf', dcfCommand);
+  bot.command('insider', insiderCommand);
 
   // Inline callbacks
   bot.action(/^mimic_select:(.+)$/, handleMimicCallback);

@@ -4,11 +4,41 @@ import { stockwise } from '../api/stockwise';
 import { computeOpenBoxScore } from '../services/openbox/engine';
 import { yahooSearch, getHistoricalPrices } from '../api/yahoo';
 import { databento } from '../api/databento';
+import { alpaca } from '../api/alpaca';
+import { fmp } from '../api/fmp';
 import { userSafeError } from '../utils/logger';
 import { validateTicker } from '../utils/validation';
 import YahooFinance from 'yahoo-finance2';
 
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
+
+// In-memory cache for Yahoo quoteSummary to avoid 429 rate limits
+const quoteSummaryCache = new Map<string, { data: any; expires: number }>();
+const QUOTE_SUMMARY_TTL_MS = 5 * 60 * 1000;
+
+function getCachedQuoteSummary(ticker: string): any | null {
+  const entry = quoteSummaryCache.get(ticker.toUpperCase());
+  if (!entry) return null;
+  if (Date.now() > entry.expires) {
+    quoteSummaryCache.delete(ticker.toUpperCase());
+    return null;
+  }
+  return entry.data;
+}
+
+function setCachedQuoteSummary(ticker: string, data: any): void {
+  quoteSummaryCache.set(ticker.toUpperCase(), { data, expires: Date.now() + QUOTE_SUMMARY_TTL_MS });
+}
+
+async function fetchQuoteSummary(ticker: string, modules: string[]): Promise<any> {
+  const upper = ticker.toUpperCase();
+  const cacheKey = upper + ':' + modules.sort().join(',');
+  const cached = getCachedQuoteSummary(cacheKey);
+  if (cached) return cached;
+  const result = await yf.quoteSummary(upper, { modules: modules as any });
+  setCachedQuoteSummary(cacheKey, result);
+  return result;
+}
 
 async function fetchLivePrice(ticker: string): Promise<number> {
   const upper = ticker.toUpperCase();
@@ -24,7 +54,7 @@ async function fetchLivePrice(ticker: string): Promise<number> {
   } catch { /* ignore */ }
 
   try {
-    const summary = await yf.quoteSummary(upper, { modules: ['price'] });
+    const summary = await fetchQuoteSummary(upper, ['price']);
     const price = (summary as any)?.price?.regularMarketPrice;
     if (price && Number(price) > 0) {
       return Number(price);
@@ -42,9 +72,23 @@ async function fetchLivePrice(ticker: string): Promise<number> {
   } catch { /* ignore */ }
 
   try {
+    const quote = await fmp.getQuote(upper);
+    if (quote && quote.price > 0) {
+      return quote.price;
+    }
+  } catch { /* ignore */ }
+
+  try {
     const trade = await databento.getLatestTrade(upper);
     if (trade && trade.price > 0) {
       return trade.price;
+    }
+  } catch { /* ignore */ }
+
+  try {
+    const price = await alpaca.getLatestTrade(upper);
+    if (price > 0) {
+      return price;
     }
   } catch { /* ignore */ }
 
@@ -85,7 +129,7 @@ export async function scoreCommand(ctx: Context) {
   let openBoxData: OpenBoxResult | null = null;
   let price: number | undefined;
 
-  const localResult = await computeOpenBoxScore(ticker);
+  const localResult = await computeOpenBoxScore(ticker, telegramId);
   if (localResult) {
     openBoxData = localResult;
   }

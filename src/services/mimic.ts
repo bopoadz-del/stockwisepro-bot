@@ -6,6 +6,34 @@ import YahooFinance from 'yahoo-finance2';
 
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
+// In-memory cache for Yahoo quoteSummary to avoid 429 rate limits
+const quoteSummaryCache = new Map<string, { data: any; expires: number }>();
+const QUOTE_SUMMARY_TTL_MS = 5 * 60 * 1000;
+
+function getCachedQuoteSummary(ticker: string): any | null {
+  const entry = quoteSummaryCache.get(ticker.toUpperCase());
+  if (!entry) return null;
+  if (Date.now() > entry.expires) {
+    quoteSummaryCache.delete(ticker.toUpperCase());
+    return null;
+  }
+  return entry.data;
+}
+
+function setCachedQuoteSummary(ticker: string, data: any): void {
+  quoteSummaryCache.set(ticker.toUpperCase(), { data, expires: Date.now() + QUOTE_SUMMARY_TTL_MS });
+}
+
+async function fetchQuoteSummary(ticker: string, modules: string[]): Promise<any> {
+  const upper = ticker.toUpperCase();
+  const cacheKey = upper + ':' + modules.sort().join(',');
+  const cached = getCachedQuoteSummary(cacheKey);
+  if (cached) return cached;
+  const result = await yf.quoteSummary(upper, { modules: modules as any });
+  setCachedQuoteSummary(cacheKey, result);
+  return result;
+}
+
 export interface MimicHolding {
   ticker: string;
   percentage: number;
@@ -264,7 +292,7 @@ const HARDCODED_PRICES: Record<string, number> = {
 
 async function fetchYahooPrice(ticker: string): Promise<number | null> {
   try {
-    const summary = await yf.quoteSummary(ticker.toUpperCase(), { modules: ['price'] });
+    const summary = await fetchQuoteSummary(ticker.toUpperCase(), ['price']);
     const price = (summary as any)?.price?.regularMarketPrice ?? (summary as any)?.price?.previousClose ?? null;
     if (price && Number(price) > 0) return Number(price);
   } catch {
