@@ -203,27 +203,27 @@ async function runScoreTests() {
   const origGet = sw.getStockScore;
 
   await test('OpenBox score format shows pillars and narrative', async () => {
-    sw.getStockScore = async () => ({
-      data: {
-        finalScore: 78,
-        pillars: {
-          fundamentals: 21,
-          marketDynamics: 11,
-          balanceSheet: 10,
-          leadership: 12,
-          innovation: 10,
-          ethics: 10,
-        },
-        riskFlags: [],
-        narrative: 'Strong fundamentals, strong momentum, safe balance sheet — core holding.',
-        ethicsPass: true,
-        adjustments: { peerDelta: 2, dominanceBonus: 3 },
+    const { computeOpenBoxScore } = require('../dist/services/openbox/engine');
+    const origCompute = computeOpenBoxScore;
+    require('../dist/services/openbox/engine').computeOpenBoxScore = async () => ({
+      finalScore: 78,
+      pillars: {
+        fundamentals: 21,
+        marketDynamics: 11,
+        balanceSheet: 10,
+        leadership: 12,
+        innovation: 10,
+        ethics: 10,
       },
-      duration: 200,
-      error: null,
+      riskFlags: [],
+      narrative: 'Strong fundamentals, strong momentum, safe balance sheet — core holding.',
+      ethicsPass: true,
+      adjustments: { peerDelta: 2, dominanceBonus: 3 },
+      isETF: false,
     });
     const ctx = makeCtx('/score AAPL');
     await scoreCommand(ctx);
+    require('../dist/services/openbox/engine').computeOpenBoxScore = origCompute;
     const reply = ctx._allText();
     assert.ok(reply.includes('OPENBOX SCORE'), 'should show OPENBOX header');
     assert.ok(reply.includes('78/100'), 'should show final score');
@@ -479,21 +479,17 @@ async function runNLPTests() {
   sw.getWatchlist = async () => ({ data: [], duration: 100, error: null });
 
   await test('ticker-only message routes to score', async () => {
-    let scored = false;
-    const orig = sw.getStockScore;
-    sw.getStockScore = async () => { scored = true; return { data: { ticker: 'TSLA', price: 250, score: 75, metrics: {} }, duration: 100, error: null }; };
     const ctx = makeCtx('TSLA');
     await handleChatMessage(ctx);
-    assert.ok(scored, 'TSLA alone should trigger score');
-    sw.getStockScore = orig;
+    const reply = ctx._allText();
+    assert.ok(reply.includes('OPENBOX SCORE'), 'TSLA alone should trigger score');
   });
 
   await test('$TICKER syntax routes to score', async () => {
-    let scored = false;
-    sw.getStockScore = async () => { scored = true; return { data: { ticker: 'MSFT', price: 400, score: 88, metrics: {} }, duration: 100, error: null }; };
     const ctx = makeCtx('$MSFT');
     await handleChatMessage(ctx);
-    assert.ok(scored, '$MSFT should trigger score');
+    const reply = ctx._allText();
+    assert.ok(reply.includes('OPENBOX SCORE'), '$MSFT should trigger score');
   });
 
   await test('"portfolio" keyword routes to portfolio', async () => {

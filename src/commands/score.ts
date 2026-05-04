@@ -80,41 +80,14 @@ export async function scoreCommand(ctx: Context) {
 
   const apiStart = Date.now();
 
-  // 1. Try StockWisePro API first
-  const { data, error } = await stockwise.getStockScore(ticker, telegramId);
+  // Always use local OpenBox engine with fresh Yahoo Finance data
+  // (StockWise API scoring endpoint is broken — 404)
   let openBoxData: OpenBoxResult | null = null;
   let price: number | undefined;
 
-  if (!error && data) {
-    const s = data as any;
-    if (s.price && Number(s.price) > 0) {
-      price = Number(s.price);
-    }
-    if (
-      typeof s.finalScore === 'number' &&
-      s.pillars &&
-      typeof s.pillars.fundamentals === 'number' &&
-      Array.isArray(s.riskFlags) &&
-      typeof s.narrative === 'string'
-    ) {
-      openBoxData = {
-        finalScore: s.finalScore,
-        pillars: s.pillars,
-        riskFlags: s.riskFlags,
-        narrative: s.narrative,
-        ethicsPass: s.ethicsPass !== false,
-        adjustments: s.adjustments || { peerDelta: 0, dominanceBonus: 0 },
-        isETF: s.isETF,
-      };
-    }
-  }
-
-  // 2. Fallback to local OpenBox engine
-  if (!openBoxData) {
-    const localResult = await computeOpenBoxScore(ticker);
-    if (localResult) {
-      openBoxData = localResult;
-    }
+  const localResult = await computeOpenBoxScore(ticker);
+  if (localResult) {
+    openBoxData = localResult;
   }
 
   // 3. Ensure we have a price
@@ -127,7 +100,7 @@ export async function scoreCommand(ctx: Context) {
 
   const totalDuration = Date.now() - apiStart;
   Object.assign(ctx.state, { ticker, apiDuration: totalDuration, success: !!openBoxData });
-  if (!openBoxData) (ctx as BotContext).state.errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
+  if (!openBoxData) (ctx as BotContext).state.errorMessage = 'OpenBox engine failed to compute score';
   const eventId = (ctx as BotContext).state.eventId as number;
 
   // 4. Scoring fully failed — still show price
