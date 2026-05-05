@@ -127,6 +127,46 @@ const MIGRATIONS: Array<{ version: number; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_user_portfolios_telegram_id ON user_portfolios(telegram_id);
     `,
   },
+  {
+    version: 4,
+    sql: `
+      CREATE TABLE IF NOT EXISTS web_users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        name TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_web_users_email ON web_users(email);
+
+      CREATE TABLE IF NOT EXISTS web_watchlists (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        web_user_id INTEGER NOT NULL,
+        ticker TEXT NOT NULL,
+        added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(web_user_id, ticker),
+        FOREIGN KEY (web_user_id) REFERENCES web_users(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_web_watchlists_user ON web_watchlists(web_user_id);
+
+      CREATE TABLE IF NOT EXISTS web_alerts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        web_user_id INTEGER NOT NULL,
+        ticker TEXT NOT NULL,
+        target_price REAL NOT NULL,
+        condition TEXT NOT NULL CHECK(condition IN ('above', 'below')),
+        is_active INTEGER NOT NULL DEFAULT 1,
+        triggered_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (web_user_id) REFERENCES web_users(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_web_alerts_user ON web_alerts(web_user_id);
+      CREATE INDEX IF NOT EXISTS idx_web_alerts_active ON web_alerts(is_active);
+    `,
+  },
 ];
 
 export function initDb() {
@@ -525,6 +565,91 @@ export function setLocalPortfolioItem(telegramId: number, ticker: string, shares
 export function removeLocalPortfolioItem(telegramId: number, ticker: string) {
   const conn = ensureDb();
   conn.prepare(`DELETE FROM user_portfolios WHERE telegram_id = ? AND ticker = ?`).run(telegramId, ticker.toUpperCase());
+}
+
+/* ─── Web User Management ─── */
+
+export function createWebUser(email: string, passwordHash: string, name?: string) {
+  const conn = ensureDb();
+  try {
+    const result = conn.prepare(
+      'INSERT INTO web_users (email, password_hash, name) VALUES (?, ?, ?)'
+    ).run(email.toLowerCase(), passwordHash, name || null);
+    return { id: Number(result.lastInsertRowid), email: email.toLowerCase(), name: name || null };
+  } catch (err) {
+    return null; // likely duplicate email
+  }
+}
+
+export function findWebUserByEmail(email: string) {
+  const conn = ensureDb();
+  return conn.prepare('SELECT * FROM web_users WHERE email = ?').get(email.toLowerCase()) as {
+    id: number;
+    email: string;
+    password_hash: string;
+    name: string | null;
+    created_at: string;
+  } | undefined;
+}
+
+export function findWebUserById(id: number) {
+  const conn = ensureDb();
+  return conn.prepare('SELECT * FROM web_users WHERE id = ?').get(id) as {
+    id: number;
+    email: string;
+    password_hash: string;
+    name: string | null;
+    created_at: string;
+  } | undefined;
+}
+
+export function getWebWatchlist(webUserId: number) {
+  const conn = ensureDb();
+  return conn.prepare('SELECT ticker, added_at FROM web_watchlists WHERE web_user_id = ? ORDER BY added_at DESC').all(webUserId) as Array<{
+    ticker: string;
+    added_at: string;
+  }>;
+}
+
+export function addWebWatchlistItem(webUserId: number, ticker: string) {
+  const conn = ensureDb();
+  try {
+    conn.prepare('INSERT INTO web_watchlists (web_user_id, ticker) VALUES (?, ?)').run(webUserId, ticker.toUpperCase());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function removeWebWatchlistItem(webUserId: number, ticker: string) {
+  const conn = ensureDb();
+  conn.prepare('DELETE FROM web_watchlists WHERE web_user_id = ? AND ticker = ?').run(webUserId, ticker.toUpperCase());
+  return true;
+}
+
+export function getWebAlerts(webUserId: number) {
+  const conn = ensureDb();
+  return conn.prepare('SELECT * FROM web_alerts WHERE web_user_id = ? ORDER BY created_at DESC').all(webUserId) as Array<{
+    id: number;
+    ticker: string;
+    target_price: number;
+    condition: string;
+    is_active: number;
+    created_at: string;
+  }>;
+}
+
+export function addWebAlert(webUserId: number, ticker: string, targetPrice: number, condition: 'above' | 'below') {
+  const conn = ensureDb();
+  return conn.prepare('INSERT INTO web_alerts (web_user_id, ticker, target_price, condition) VALUES (?, ?, ?, ?)').run(
+    webUserId, ticker.toUpperCase(), targetPrice, condition
+  );
+}
+
+export function removeWebAlert(webUserId: number, alertId: number) {
+  const conn = ensureDb();
+  conn.prepare('DELETE FROM web_alerts WHERE id = ? AND web_user_id = ?').run(alertId, webUserId);
+  return true;
 }
 
 export { db };

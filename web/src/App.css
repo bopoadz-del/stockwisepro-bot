@@ -1,0 +1,177 @@
+/* App-specific styles */
+
+/* Hide scrollbar for horizontal scroll */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth transitions for all interactive elements */
+button,
+a,
+input,
+select {
+  transition: all 0.2s ease;
+}
+
+/* Focus styles */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(201, 169, 98, 0.3);
+}
+
+/* Custom selection color */
+::selection {
+  background-color: rgba(201, 169, 98, 0.3);
+  color: white;
+}
+
+/* Table row hover effect */
+table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+/* Card hover lift effect */
+.card-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Gradient text animation */
+@keyframes gradient-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animated-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+/* Loading shimmer effect */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Price change flash animations */
+@keyframes flash-green {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: rgba(34, 197, 94, 0.2);
+  }
+}
+
+@keyframes flash-red {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: rgba(239, 68, 68, 0.2);
+  }
+}
+
+.price-up {
+  animation: flash-green 0.5s ease-out;
+}
+
+.price-down {
+  animation: flash-red 0.5s ease-out;
+}
+
+/* Tooltip arrow */
+.tooltip-arrow::before {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid #1f1f1f;
+}
+
+/* Slider track styling */
+[data-slot='slider-track'] {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-slot='slider-range'] {
+  background: #c9a962 !important;
+}
+
+[data-slot='slider-thumb'] {
+  background: #c9a962 !important;
+  border: 2px solid #0a0a0a !important;
+}
+
+/* Switch styling */
+[data-state='checked'] {
+  background-color: #c9a962 !important;
+}
+
+/* Badge styling */
+.badge-gold {
+  background-color: rgba(201, 169, 98, 0.1);
+  color: #c9a962;
+  border: 1px solid rgba(201, 169, 98, 0.3);
+}
+
+/* Input styling */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* Responsive typography */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

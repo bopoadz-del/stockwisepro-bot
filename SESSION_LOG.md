@@ -103,7 +103,8 @@ Major session: fixed compromised bot token, resolved API endpoint bugs, added sc
 | Issue | Status | Notes |
 |---|---|---|
 | **Yahoo Finance 429** | Mitigated | 1.2s delays + caching. Still rate-limited on Render shared IP |
-| **StockWise API 500** | Server-side | Bot skips auth, runs in guest mode |
+| **StockWise API 5
+00** | Server-side | Bot skips auth, runs in guest mode |
 | **Databento 401** | Invalid key | Key present but unauthenticated |
 | **Brave Search 422** | Invalid key | "subscription token is invalid" |
 

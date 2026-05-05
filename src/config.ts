@@ -13,7 +13,7 @@ export const config = {
   alertCheckIntervalMinutes: Math.min(Math.max(parseInt(process.env.ALERT_CHECK_INTERVAL_MINUTES || '5', 10), 1), 60),
   stockwiseBotEmail: process.env.STOCKWISE_BOT_USER_EMAIL || '',
   stockwiseBotPassword: process.env.STOCKWISE_BOT_USER_PASSWORD || '',
-  healthPort: parseInt(process.env.HEALTH_PORT || '3000', 10),
+  port: parseInt(process.env.PORT || process.env.HEALTH_PORT || '3000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   databentoApiKey: process.env.DATABENTO_API_KEY || '',
   redisUrl: process.env.REDIS_URL || '',
@@ -23,6 +23,8 @@ export const config = {
   alpacaSecretKey: process.env.ALPACA_SECRET_KEY || '',
   alpacaPaper: (process.env.ALPACA_PAPER || 'true').toLowerCase() === 'true',
   fmpApiKey: process.env.FMP_API_KEY || '',
+  jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
+  webCorsOrigins: (process.env.WEB_CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean),
 };
 
 if (!config.telegramToken) {
@@ -39,6 +41,6 @@ if (!/^\d+:[A-Za-z0-9_-]+$/.test(config.telegramToken)) {
 
 export const DB_PATH = path.resolve(config.dataDir, 'bot_analytics.db');
 
-if (isNaN(config.healthPort) || config.healthPort < 1 || config.healthPort > 65535) {
-  throw new Error('HEALTH_PORT must be a valid port number (1-65535)');
+if (isNaN(config.port) || config.port < 1 || config.port > 65535) {
+  throw new Error('PORT/HEALTH_PORT must be a valid port number (1-65535)');
 }
