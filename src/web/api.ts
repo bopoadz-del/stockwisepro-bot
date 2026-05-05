@@ -189,6 +189,10 @@ router.get('/stocks/quotes', async (req, res) => {
           avgVolume: quote.avgVolume,
         });
       }
+      // Small delay to avoid rate limits on free tier
+      if (symbols.length > 1) {
+        await new Promise(r => setTimeout(r, 300));
+      }
     }
     res.json(results);
   } catch (err) {

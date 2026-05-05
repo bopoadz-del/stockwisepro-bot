@@ -12,20 +12,24 @@ export interface FMPQuote {
   price: number;
   change: number;
   changesPercentage: number;
+  changePercentage?: number; // stable endpoint uses this
   dayLow: number;
   dayHigh: number;
   yearHigh: number;
   yearLow: number;
   marketCap: number;
-  avgVolume: number;
+  avgVolume?: number;
   volume: number;
-  open: number;
-  previousClose: number;
-  eps: number;
-  pe: number;
-  earningsAnnouncement: string;
-  sharesOutstanding: number;
-  timestamp: number;
+  open?: number;
+  previousClose?: number;
+  eps?: number;
+  pe?: number;
+  earningsAnnouncement?: string;
+  sharesOutstanding?: number;
+  timestamp?: number;
+  exchange?: string;
+  priceAvg50?: number;
+  priceAvg200?: number;
 }
 
 export interface FMPKeyMetrics {
@@ -165,8 +169,19 @@ class FMPClient {
   }
 
   async getQuote(symbol: string): Promise<FMPQuote | null> {
-    const data = await this.getV3<FMPQuote[]>(`/quote/${symbol.toUpperCase()}`);
-    return data?.[0] || null;
+    // Use stable endpoint (legacy v3 is deprecated for new free-tier users)
+    const data = await this.getStable<FMPQuote[]>('/quote', { symbol: symbol.toUpperCase() });
+    if (!data || data.length === 0) {
+      // Fallback to v3 for legacy users
+      const v3data = await this.getV3<FMPQuote[]>(`/quote/${symbol.toUpperCase()}`);
+      return v3data?.[0] || null;
+    }
+    const q = data[0];
+    // Normalize field names between stable and v3
+    if (q.changePercentage !== undefined && q.changesPercentage === undefined) {
+      q.changesPercentage = q.changePercentage;
+    }
+    return q;
   }
 
   async getKeyMetrics(symbol: string): Promise<FMPKeyMetrics | null> {
