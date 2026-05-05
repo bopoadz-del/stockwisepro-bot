@@ -50,7 +50,7 @@ export function createWebServer() {
   app.use(express.static(WEB_DIST));
 
   // SPA fallback: all non-API routes → index.html
-  app.get('*', (_req, res) => {
+  app.use((_req, res) => {
     res.sendFile(path.join(WEB_DIST, 'index.html'));
   });
 
