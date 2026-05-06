@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+import YahooFinance from 'yahoo-finance2';
 import { logger } from '../utils/logger';
 import { Cache } from '../utils/cache';
 
@@ -90,5 +91,59 @@ export async function getHistoricalPrices(ticker: string, range: '1y' | '2y' | '
     const axiosErr = err as AxiosError;
     logger.error('Yahoo historical prices failed', { ticker, message: axiosErr.message, status: axiosErr.response?.status });
     return { data: [], error: axiosErr.message };
+  }
+}
+
+const quoteCache = new Cache<any>(5 * 60 * 1000);
+
+export interface YahooQuoteResult {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changesPercentage: number;
+  marketCap?: number;
+  volume?: number;
+  avgVolume?: number;
+  dayLow?: number;
+  dayHigh?: number;
+  yearLow?: number;
+  yearHigh?: number;
+  eps?: number;
+  pe?: number;
+}
+
+export async function getYahooQuote(ticker: string): Promise<YahooQuoteResult | null> {
+  const upper = ticker.toUpperCase();
+  const cached = quoteCache.get(upper);
+  if (cached) return cached;
+
+  try {
+    const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
+    const quote = await yf.quote(upper);
+    if (!quote) return null;
+
+    const result: YahooQuoteResult = {
+      symbol: quote.symbol || upper,
+      name: (quote as any).shortName || (quote as any).longName || upper,
+      price: (quote as any).regularMarketPrice || 0,
+      change: (quote as any).regularMarketChange || 0,
+      changesPercentage: (quote as any).regularMarketChangePercent || 0,
+      marketCap: (quote as any).marketCap,
+      volume: (quote as any).regularMarketVolume,
+      avgVolume: (quote as any).averageDailyVolume3Month,
+      dayLow: (quote as any).regularMarketDayLow,
+      dayHigh: (quote as any).regularMarketDayHigh,
+      yearLow: (quote as any).fiftyTwoWeekLow,
+      yearHigh: (quote as any).fiftyTwoWeekHigh,
+      eps: (quote as any).epsTrailingTwelveMonths,
+      pe: (quote as any).trailingPE,
+    };
+
+    quoteCache.set(upper, result);
+    return result;
+  } catch (err) {
+    logger.warn('Yahoo quote failed', { ticker: upper, error: String(err) });
+    return null;
   }
 }

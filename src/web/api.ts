@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { fmp } from '../api/fmp';
+import { yahooSearch, getYahooQuote } from '../api/yahoo';
 import { computeOpenBoxScore } from '../services/openbox/engine';
 import { getLocalMimicAllocation, fetchMimicPrices } from '../services/mimic';
 import { logger } from '../utils/logger';
@@ -117,9 +118,14 @@ router.post('/auth/logout', (req: Request, res: Response) => {
   res.json({ message: 'Logged out' });
 });
 
-router.get('/auth/me', authMiddleware, withAuth((req, res) => {
-  res.json({ user: req.webUser });
-}));
+router.get('/auth/me', (req: Request, res: Response) => {
+  const session = (req as any).session;
+  if (session && session.userId && session.webUser) {
+    res.json({ user: session.webUser });
+  } else {
+    res.json({ user: null });
+  }
+});
 
 /* ─── Stocks ─── */
 
@@ -130,12 +136,27 @@ router.get('/stocks/search', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Query required' });
       return;
     }
+    // Try FMP first
     const results = await fmp.searchSymbols(q, 10);
-    res.json(results.map(r => ({
-      symbol: r.symbol,
-      name: r.name,
-      exchange: r.exchangeShortName || r.stockExchange,
-    })));
+    if (results && results.length > 0) {
+      res.json(results.map(r => ({
+        symbol: r.symbol,
+        name: r.name,
+        exchange: r.exchangeShortName || r.stockExchange,
+      })));
+      return;
+    }
+    // Fallback to Yahoo search
+    const yahoo = await yahooSearch(q);
+    if (yahoo.data && yahoo.data.length > 0) {
+      res.json(yahoo.data.map((r: any) => ({
+        symbol: r.symbol,
+        name: r.shortname || r.longname || r.symbol,
+        exchange: r.exchange,
+      })));
+      return;
+    }
+    res.json([]);
   } catch (err) {
     logger.error('Stock search error', { error: String(err) });
     res.status(500).json({ error: 'Search failed' });
@@ -145,8 +166,31 @@ router.get('/stocks/search', async (req: Request, res: Response) => {
 router.get('/stocks/quote/:ticker', async (req: Request, res: Response) => {
   try {
     const ticker = String(req.params.ticker).toUpperCase();
-    const [quote, scoreResult, metrics] = await Promise.all([
-      fmp.getQuote(ticker),
+    let quote = await fmp.getQuote(ticker);
+    // Fallback to Yahoo Finance when FMP fails
+    if (!quote) {
+      const yq = await getYahooQuote(ticker);
+      if (yq) {
+        quote = {
+          symbol: yq.symbol,
+          name: yq.name,
+          price: yq.price,
+          change: yq.change,
+          changesPercentage: yq.changesPercentage,
+          marketCap: yq.marketCap || 0,
+          pe: yq.pe || 0,
+          volume: yq.volume || 0,
+          avgVolume: yq.avgVolume || 0,
+          dayLow: yq.dayLow || 0,
+          dayHigh: yq.dayHigh || 0,
+          yearLow: yq.yearLow || 0,
+          yearHigh: yq.yearHigh || 0,
+          eps: yq.eps || 0,
+        } as any;
+      }
+    }
+
+    const [scoreResult, metrics] = await Promise.all([
       computeOpenBoxScore(ticker).catch(() => null),
       fmp.getKeyMetrics(ticker).catch(() => null),
     ]);
