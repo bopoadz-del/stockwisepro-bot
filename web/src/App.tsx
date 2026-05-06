@@ -14,6 +14,7 @@ import { LiveTicker } from './components/LiveTicker';
 import { StockDetailDrawer } from './components/StockDetailDrawer';
 import { Watchlist } from './components/Watchlist';
 import { StockComparison } from './components/StockComparison';
+import { ScreenshotUploader } from './components/ScreenshotUploader';
 
 import { AuthModal } from './components/AuthModal';
 import { Button } from './components/ui/button';
@@ -140,6 +141,7 @@ function App() {
         onClose={() => setIsAuthOpen(false)}
       />
 
+      <ScreenshotUploader onSelectStock={setSelectedStock} />
 
     </div>
   );

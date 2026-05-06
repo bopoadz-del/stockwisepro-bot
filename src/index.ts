@@ -63,7 +63,7 @@ async function main() {
       const userId = ctx.from?.id;
       logger.error('Bot error', { error: errorMessage, stack, updateType: ctx.updateType, userId });
       // Show stack trace to admin for debugging
-      if (userId === 7761120195) {
+      if (userId && config.adminTelegramIds.includes(String(userId))) {
         const shortStack = stack ? stack.split('\n').slice(0, 4).join('\n') : 'No stack';
         ctx.reply(`❌ Error: ${errorMessage}\n\n\`\`\`${shortStack}\`\`\``).catch(() => { });
       } else {

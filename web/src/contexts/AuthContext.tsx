@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { authApi, type User } from '@/lib/api/auth';
 
 interface AuthContextType {
@@ -16,28 +15,38 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useLocalStorage<string | null>('auth-token', null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check for existing session on mount
+  // Validate existing session on mount
   useEffect(() => {
-    // Token is stored in localStorage via useLocalStorage hook
-    // Future: validate token with backend
-    setIsLoading(false);
-  }, [token]);
+    let cancelled = false;
+    authApi.me()
+      .then((res) => {
+        if (cancelled) return;
+        if (res.data?.user) {
+          setUser(res.data.user);
+        }
+      })
+      .catch(() => {
+        // no session
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
     try {
       const response = await authApi.login({ email, password });
-      
+
       if (response.error) {
         return { success: false, error: response.error };
       }
 
       if (response.data) {
         setUser(response.data.user);
-        setToken(response.data.token);
         return { success: true };
       }
 
@@ -47,20 +56,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [setToken]);
+  }, []);
 
   const register = useCallback(async (email: string, password: string, name?: string) => {
     setIsLoading(true);
     try {
       const response = await authApi.register({ email, password, name });
-      
+
       if (response.error) {
         return { success: false, error: response.error };
       }
 
       if (response.data) {
         setUser(response.data.user);
-        setToken(response.data.token);
         return { success: true };
       }
 
@@ -70,12 +78,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [setToken]);
+  }, []);
 
   const logout = useCallback(() => {
+    authApi.logout().catch(() => {});
     setUser(null);
-    setToken(null);
-  }, [setToken]);
+  }, []);
 
   return (
     <AuthContext.Provider

@@ -80,7 +80,7 @@ Major session: fixed compromised bot token, resolved API endpoint bugs, added sc
 
 ## 6. Missing Env Var Added
 
-- `FMP_API_KEY=W0ZNDulEbCUkYvy20BcDJIjN91dn4lTJ` — added to `.env` and Render
+- `FMP_API_KEY=<redacted>` — added to `.env` and Render
 
 ---
 

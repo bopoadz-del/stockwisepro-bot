@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DollarSign, PieChart, Check, TrendingUp, Users, Target, Shield, Sparkles, Globe, BarChart3, Building2, Landmark, Calculator, Zap, Briefcase } from 'lucide-react';
+import { DollarSign, PieChart, Check, TrendingUp, Users, Target, Shield, Sparkles, Globe, BarChart3, Building2, Landmark, Calculator, Zap, Briefcase, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { investors } from '@/lib/data';
 import { formatCurrency } from '@/lib/utils';
 import { ScrollReveal } from '@/components/ScrollReveal';
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip } from 'recharts';
+import { apiClient } from '@/lib/api/client';
 
 const icons: Record<string, React.ElementType> = {
   buffett: TrendingUp,
@@ -24,26 +24,70 @@ const icons: Record<string, React.ElementType> = {
   icahn: Briefcase,
 };
 
+interface InvestorData {
+  id: string;
+  name: string;
+  style: string;
+  description: string;
+  sectorTargets?: Record<string, number>;
+  criteria?: any;
+  coreHoldings?: Array<{ ticker: string; name: string; allocation?: number }>;
+  color?: string;
+}
+
 interface InvestorPortfoliosProps {
   isAuthenticated?: boolean;
 }
 
 export function InvestorPortfolios({ isAuthenticated: _isAuthenticated }: InvestorPortfoliosProps) {
-  const [selectedInvestor, setSelectedInvestor] = useState(investors[0]);
+  const [investors, setInvestors] = useState<InvestorData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedInvestor, setSelectedInvestor] = useState<InvestorData | null>(null);
   const [budget, setBudget] = useState('10000');
   const [showPortfolio, setShowPortfolio] = useState(false);
 
   const budgetNum = parseFloat(budget) || 0;
 
-  const portfolioData = selectedInvestor.topHoldings.map((holding) => ({
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await apiClient.get<InvestorData[]>('/investors');
+        if (res.data && res.data.length > 0) {
+          setInvestors(res.data);
+          setSelectedInvestor(res.data[0]);
+        }
+      } catch (err) {
+        console.error('Failed to load investors', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const portfolioData = selectedInvestor?.coreHoldings?.map((holding) => ({
     name: holding.ticker,
-    value: holding.allocation,
+    value: holding.allocation || 10,
     fullName: holding.name,
-  }));
+  })) || [];
 
   const generatePortfolio = () => {
     setShowPortfolio(true);
   };
+
+  if (loading) {
+    return (
+      <section id="portfolios" className="py-20 bg-[#0a0a0a]">
+        <div className="max-w-[1400px] mx-auto px-4 text-center">
+          <Loader2 className="animate-spin text-gold mx-auto" size={32} />
+          <p className="text-white/60 mt-4">Loading investor profiles...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (!selectedInvestor) return null;
 
   return (
     <section id="portfolios" className="py-20 bg-[#0a0a0a]">
@@ -65,6 +109,7 @@ export function InvestorPortfolios({ isAuthenticated: _isAuthenticated }: Invest
           <div className="flex gap-4 overflow-x-auto pb-4 mb-8 scrollbar-hide">
             {investors.map((investor) => {
               const Icon = icons[investor.id] || TrendingUp;
+              const color = investor.color || '#8B5CF6';
               return (
                 <motion.button
                   key={investor.id}
@@ -82,18 +127,18 @@ export function InvestorPortfolios({ isAuthenticated: _isAuthenticated }: Invest
                 >
                   <div
                     className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
-                    style={{ backgroundColor: `${investor.color}20` }}
+                    style={{ backgroundColor: `${color}20` }}
                   >
-                    <Icon size={24} style={{ color: investor.color }} />
+                    <Icon size={24} style={{ color }} />
                   </div>
                   <h3 className="text-white font-semibold mb-1">{investor.name}</h3>
-                  <p className="text-white/50 text-sm mb-3">{investor.title}</p>
+                  <p className="text-white/50 text-sm mb-3">{investor.style}</p>
                   <div className="flex items-center gap-2 text-xs">
                     <span
                       className="px-2 py-1 rounded-full"
-                      style={{ backgroundColor: `${investor.color}20`, color: investor.color }}
+                      style={{ backgroundColor: `${color}20`, color }}
                     >
-                      {investor.topHoldings.length} Holdings
+                      {(investor.coreHoldings?.length || 0)} Holdings
                     </span>
                   </div>
                 </motion.button>
@@ -110,34 +155,27 @@ export function InvestorPortfolios({ isAuthenticated: _isAuthenticated }: Invest
                 <div className="flex items-start gap-4 mb-6">
                   <div
                     className="w-16 h-16 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: `${selectedInvestor.color}20` }}
+                    style={{ backgroundColor: `${selectedInvestor.color || '#8B5CF6'}20` }}
                   >
                     {(() => {
                       const Icon = icons[selectedInvestor.id] || TrendingUp;
-                      return <Icon size={32} style={{ color: selectedInvestor.color }} />;
+                      return <Icon size={32} style={{ color: selectedInvestor.color || '#8B5CF6' }} />;
                     })()}
                   </div>
                   <div>
                     <h3 className="text-2xl font-bold text-white">{selectedInvestor.name}</h3>
-                    <p className="text-gold">{selectedInvestor.title}</p>
+                    <p className="text-gold">{selectedInvestor.style}</p>
                   </div>
                 </div>
 
                 <p className="text-white/70 mb-6">{selectedInvestor.description}</p>
-
-                <div className="mb-6">
-                  <h4 className="text-white/50 text-sm uppercase tracking-wider mb-3">
-                    Investment Strategy
-                  </h4>
-                  <p className="text-white/70 text-sm">{selectedInvestor.strategy}</p>
-                </div>
 
                 <div>
                   <h4 className="text-white/50 text-sm uppercase tracking-wider mb-3">
                     Top Holdings
                   </h4>
                   <div className="space-y-2">
-                    {selectedInvestor.topHoldings.slice(0, 5).map((holding, index) => (
+                    {selectedInvestor.coreHoldings?.slice(0, 5).map((holding, index) => (
                       <div
                         key={holding.ticker}
                         className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
@@ -149,7 +187,7 @@ export function InvestorPortfolios({ isAuthenticated: _isAuthenticated }: Invest
                             <span className="text-white/50 text-sm ml-2">{holding.name}</span>
                           </div>
                         </div>
-                        <span className="text-gold font-medium">{holding.allocation}%</span>
+                        <span className="text-gold font-medium">{holding.allocation || 10}%</span>
                       </div>
                     ))}
                   </div>
@@ -164,7 +202,6 @@ export function InvestorPortfolios({ isAuthenticated: _isAuthenticated }: Invest
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold text-white mb-6">Portfolio Builder</h3>
 
-                {/* Budget Input */}
                 <div className="mb-6">
                   <label className="text-white/70 text-sm mb-2 block">Your Investment Budget</label>
                   <div className="relative">
@@ -182,7 +219,6 @@ export function InvestorPortfolios({ isAuthenticated: _isAuthenticated }: Invest
                   </div>
                 </div>
 
-                {/* Generate Button */}
                 <Button
                   onClick={generatePortfolio}
                   disabled={budgetNum < 1000}
@@ -192,7 +228,6 @@ export function InvestorPortfolios({ isAuthenticated: _isAuthenticated }: Invest
                   Generate Portfolio
                 </Button>
 
-                {/* Portfolio Results */}
                 <AnimatePresence>
                   {showPortfolio && budgetNum >= 1000 && (
                     <motion.div
@@ -216,7 +251,6 @@ export function InvestorPortfolios({ isAuthenticated: _isAuthenticated }: Invest
                         </div>
                       </div>
 
-                      {/* Allocation Chart */}
                       <div className="h-48 mb-6">
                         <ResponsiveContainer width="100%" height="100%">
                           <RePieChart>
@@ -234,7 +268,7 @@ export function InvestorPortfolios({ isAuthenticated: _isAuthenticated }: Invest
                                   key={`cell-${index}`}
                                   fill={
                                     [
-                                      selectedInvestor.color,
+                                      selectedInvestor.color || '#8B5CF6',
                                       '#22c55e',
                                       '#3b82f6',
                                       '#f59e0b',
@@ -256,11 +290,11 @@ export function InvestorPortfolios({ isAuthenticated: _isAuthenticated }: Invest
                         </ResponsiveContainer>
                       </div>
 
-                      {/* Holdings List */}
                       <div className="space-y-2">
-                        {selectedInvestor.topHoldings.slice(0, 5).map((holding, index) => {
-                          const allocationValue = (budgetNum * holding.allocation) / 100;
-                          const shares = Math.floor(allocationValue / 150);
+                        {selectedInvestor.coreHoldings?.slice(0, 5).map((holding, index) => {
+                          const allocationValue = holding.allocation || 10;
+                          const allocationAmount = (budgetNum * allocationValue) / 100;
+                          const shares = Math.floor(allocationAmount / 150);
 
                           return (
                             <div
@@ -273,7 +307,7 @@ export function InvestorPortfolios({ isAuthenticated: _isAuthenticated }: Invest
                                   style={{
                                     backgroundColor:
                                       [
-                                        selectedInvestor.color,
+                                        selectedInvestor.color || '#8B5CF6',
                                         '#22c55e',
                                         '#3b82f6',
                                         '#f59e0b',
@@ -286,7 +320,7 @@ export function InvestorPortfolios({ isAuthenticated: _isAuthenticated }: Invest
                               <div className="flex items-center gap-4 text-sm">
                                 <span className="text-white/50">{shares} shares</span>
                                 <span className="text-gold">
-                                  {formatCurrency(allocationValue)}
+                                  {formatCurrency(allocationAmount)}
                                 </span>
                               </div>
                             </div>

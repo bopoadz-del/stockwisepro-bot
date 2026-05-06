@@ -2,8 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
+import session from 'express-session';
+import { RedisStore } from 'connect-redis';
 import { config } from '../config';
 import { logger } from '../utils/logger';
+import { redis } from '../services/cache';
 import apiRouter from './api';
 
 const WEB_DIST = '/app/web-dist';
@@ -24,6 +27,25 @@ export function createWebServer() {
   app.use(cors({
     origin: corsOrigins,
     credentials: true,
+  }));
+
+  // Session store (Redis if available, memory fallback for dev)
+  const sessionStore = redis
+    ? new RedisStore({ client: redis, prefix: 'sess:' })
+    : undefined;
+
+  app.use(session({
+    store: sessionStore,
+    secret: config.sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    name: 'stockwise.sid',
+    cookie: {
+      secure: config.nodeEnv === 'production',
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: config.nodeEnv === 'production' ? 'none' : 'lax',
+    },
   }));
 
   // Body parsing

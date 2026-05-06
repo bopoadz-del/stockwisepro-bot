@@ -3,8 +3,8 @@ import { Redis as UpstashRedis } from '@upstash/redis';
 import { logger } from '../utils/logger';
 import { config } from '../config';
 
-let redis: Redis | null = null;
-let upstash: UpstashRedis | null = null;
+export let redis: Redis | null = null;
+export let upstash: UpstashRedis | null = null;
 
 // ── Upstash REST (preferred for serverless / Render) ───────────────────────
 if (config.upstashRedisRestUrl && config.upstashRedisRestToken) {

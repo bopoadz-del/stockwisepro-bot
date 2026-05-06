@@ -15,6 +15,7 @@ const tmpDbPath = path.join(tmpDir, `test_${Date.now()}.db`);
 // Monkey-patch env before requiring db
 process.env.DATA_DIR = tmpDir;
 process.env.TELEGRAM_BOT_TOKEN = '123456:TESTTESTTESTTESTTESTTESTTESTTESTTEST';
+process.env.SESSION_SECRET = 'test-secret-test-secret-test-secret';
 
 const { initDb, logChatIntent, getLearningStats, getMissedIntents, correctChatIntent, saveChatFeedback, exportMissedIntentsCsv } = require('../dist/db');
 

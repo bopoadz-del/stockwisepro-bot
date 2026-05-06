@@ -1,4 +1,5 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
+import multer from 'multer';
 import { fmp } from '../api/fmp';
 import { computeOpenBoxScore } from '../services/openbox/engine';
 import { getLocalMimicAllocation, fetchMimicPrices } from '../services/mimic';
@@ -13,15 +14,35 @@ import {
   addWebAlert,
   removeWebAlert,
 } from '../db';
-import { hashPassword, comparePassword, generateToken, authMiddleware } from './auth';
+import { runOCR, scoreTickers, makeTmpPath, cleanupFile } from '../services/ocr';
+import { hashPassword, comparePassword, authMiddleware, WebAuthRequest } from './auth';
 import fs from 'fs';
 import path from 'path';
 
 const router = Router();
 
+/* ─── Multer upload config ─── */
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPEG, PNG, and WebP images allowed'));
+    }
+  },
+});
+
+// Helper to type authenticated requests after authMiddleware
+function withAuth(handler: (req: WebAuthRequest, res: Response) => void | Promise<void>) {
+  return (req: Request, res: Response) => handler(req as WebAuthRequest, res);
+}
+
 /* ─── Auth ─── */
 
-router.post('/auth/register', async (req, res) => {
+router.post('/auth/register', async (req: Request, res: Response) => {
   try {
     const { email, password, name } = req.body;
     if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
@@ -39,18 +60,20 @@ router.post('/auth/register', async (req, res) => {
       return;
     }
 
-    const hash = hashPassword(password);
+    const hash = await hashPassword(password);
     const user = createWebUser(email, hash, name);
     if (!user) {
       res.status(500).json({ error: 'Failed to create user' });
       return;
     }
 
-    const token = generateToken(user.id);
+    const session = (req as any).session;
+    session.userId = user.id;
+    session.webUser = { id: user.id, email: user.email, name: user.name };
+
     res.status(201).json({
       message: 'Registered successfully',
       user: { id: user.id, email: user.email, name: user.name },
-      token,
     });
   } catch (err) {
     logger.error('Register error', { error: String(err) });
@@ -58,7 +81,7 @@ router.post('/auth/register', async (req, res) => {
   }
 });
 
-router.post('/auth/login', async (req, res) => {
+router.post('/auth/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -67,16 +90,18 @@ router.post('/auth/login', async (req, res) => {
     }
 
     const user = findWebUserByEmail(email);
-    if (!user || !comparePassword(password, user.password_hash)) {
+    if (!user || !(await comparePassword(password, user.password_hash))) {
       res.status(401).json({ error: 'Invalid email or password' });
       return;
     }
 
-    const token = generateToken(user.id);
+    const session = (req as any).session;
+    session.userId = user.id;
+    session.webUser = { id: user.id, email: user.email, name: user.name };
+
     res.json({
       message: 'Login successful',
       user: { id: user.id, email: user.email, name: user.name },
-      token,
     });
   } catch (err) {
     logger.error('Login error', { error: String(err) });
@@ -84,39 +109,42 @@ router.post('/auth/login', async (req, res) => {
   }
 });
 
-router.get('/auth/me', authMiddleware, (req: any, res) => {
-  res.json({ user: req.webUser });
+router.post('/auth/logout', (req: Request, res: Response) => {
+  const session = (req as any).session;
+  if (session) {
+    session.destroy(() => {});
+  }
+  res.json({ message: 'Logged out' });
 });
+
+router.get('/auth/me', authMiddleware, withAuth((req, res) => {
+  res.json({ user: req.webUser });
+}));
 
 /* ─── Stocks ─── */
 
-router.get('/stocks/search', async (req, res) => {
+router.get('/stocks/search', async (req: Request, res: Response) => {
   try {
     const q = String(req.query.q || '');
     if (!q || q.length < 1) {
       res.status(400).json({ error: 'Query required' });
       return;
     }
-    // Search using FMP quote batch — try common US tickers first
-    const commonTickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'BRK.B', 'JPM', 'V', 'JNJ', 'WMT', 'UNH', 'PG', 'HD', 'MA', 'BAC', 'ABBV', 'PFE', 'KO', 'AVGO', 'PEP', 'LLY', 'COST', 'TMO', 'MRK', 'ABT', 'DIS', 'MCD', 'ACN', 'VZ', 'ADBE', 'CRM', 'WFC', 'NKE', 'TXN', 'BMY', 'PM', 'QCOM', 'RTX'];
-    const matches = commonTickers.filter(t => t.toLowerCase().startsWith(q.toLowerCase()));
-    const results = [];
-    for (const ticker of matches.slice(0, 10)) {
-      const quote = await fmp.getQuote(ticker);
-      if (quote) {
-        results.push({ symbol: quote.symbol, name: quote.name, price: quote.price, change: quote.change, changesPercentage: quote.changesPercentage });
-      }
-    }
-    res.json(results);
+    const results = await fmp.searchSymbols(q, 10);
+    res.json(results.map(r => ({
+      symbol: r.symbol,
+      name: r.name,
+      exchange: r.exchangeShortName || r.stockExchange,
+    })));
   } catch (err) {
     logger.error('Stock search error', { error: String(err) });
     res.status(500).json({ error: 'Search failed' });
   }
 });
 
-router.get('/stocks/quote/:ticker', async (req, res) => {
+router.get('/stocks/quote/:ticker', async (req: Request, res: Response) => {
   try {
-    const ticker = req.params.ticker.toUpperCase();
+    const ticker = String(req.params.ticker).toUpperCase();
     const [quote, scoreResult, metrics] = await Promise.all([
       fmp.getQuote(ticker),
       computeOpenBoxScore(ticker).catch(() => null),
@@ -166,7 +194,7 @@ router.get('/stocks/quote/:ticker', async (req, res) => {
   }
 });
 
-router.get('/stocks/quotes', async (req, res) => {
+router.get('/stocks/quotes', async (req: Request, res: Response) => {
   try {
     const symbols = String(req.query.symbols || '').split(',').filter(Boolean);
     if (symbols.length === 0 || symbols.length > 20) {
@@ -201,9 +229,9 @@ router.get('/stocks/quotes', async (req, res) => {
   }
 });
 
-router.get('/stocks/metrics/:ticker', async (req, res) => {
+router.get('/stocks/metrics/:ticker', async (req: Request, res: Response) => {
   try {
-    const ticker = req.params.ticker.toUpperCase();
+    const ticker = String(req.params.ticker).toUpperCase();
     const metrics = await fmp.getKeyMetrics(ticker);
     if (!metrics) {
       res.status(404).json({ error: 'Metrics not found' });
@@ -226,7 +254,63 @@ router.get('/stocks/metrics/:ticker', async (req, res) => {
   }
 });
 
-router.get('/stocks/indices', async (_req, res) => {
+router.get('/stocks/trending', async (_req: Request, res: Response) => {
+  try {
+    const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'BRK.B', 'JPM', 'V'];
+    const results = [];
+    for (const sym of symbols) {
+      const quote = await fmp.getQuote(sym);
+      if (quote) {
+        results.push({
+          symbol: quote.symbol,
+          name: quote.name,
+          price: quote.price,
+          change: quote.change,
+          changesPercentage: quote.changesPercentage,
+          marketCap: quote.marketCap,
+          pe: quote.pe,
+          volume: quote.volume,
+          avgVolume: quote.avgVolume,
+        });
+      }
+      if (symbols.length > 1) await new Promise(r => setTimeout(r, 300));
+    }
+    res.json(results);
+  } catch (err) {
+    logger.error('Trending error', { error: String(err) });
+    res.status(500).json({ error: 'Failed to fetch trending' });
+  }
+});
+
+router.get('/stocks/screener', async (_req: Request, res: Response) => {
+  try {
+    const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'BRK.B', 'JPM', 'V', 'WMT', 'UNH', 'PG', 'HD', 'MA', 'BAC', 'ABBV', 'PFE', 'KO', 'AVGO'];
+    const results = [];
+    for (const sym of symbols) {
+      const quote = await fmp.getQuote(sym);
+      if (quote) {
+        results.push({
+          symbol: quote.symbol,
+          name: quote.name,
+          price: quote.price,
+          change: quote.change,
+          changesPercentage: quote.changesPercentage,
+          marketCap: quote.marketCap,
+          pe: quote.pe,
+          volume: quote.volume,
+          avgVolume: quote.avgVolume,
+        });
+      }
+      if (symbols.length > 1) await new Promise(r => setTimeout(r, 300));
+    }
+    res.json(results);
+  } catch (err) {
+    logger.error('Screener error', { error: String(err) });
+    res.status(500).json({ error: 'Failed to fetch screener' });
+  }
+});
+
+router.get('/stocks/indices', async (_req: Request, res: Response) => {
   try {
     const indices = ['SPY', 'QQQ', 'DIA', 'IWM'];
     const results = [];
@@ -262,7 +346,7 @@ function loadInvestorProfiles(): any {
   }
 }
 
-router.get('/investors', (_req, res) => {
+router.get('/investors', (_req: Request, res: Response) => {
   try {
     const data = loadInvestorProfiles();
     const profiles = data.profiles || {};
@@ -284,7 +368,7 @@ router.get('/investors', (_req, res) => {
 
 /* ─── Portfolio Mimic ─── */
 
-router.post('/portfolio/mimic', async (req, res) => {
+router.post('/portfolio/mimic', async (req: Request, res: Response) => {
   try {
     const { investorId, budget, ethicsEnabled } = req.body;
     if (!investorId || typeof investorId !== 'string') {
@@ -337,43 +421,43 @@ router.post('/portfolio/mimic', async (req, res) => {
 
 /* ─── Watchlist (auth required) ─── */
 
-router.get('/watchlist', authMiddleware, (req: any, res) => {
+router.get('/watchlist', authMiddleware, withAuth((req, res) => {
   try {
-    const items = getWebWatchlist(req.webUser.id);
+    const items = getWebWatchlist(req.webUser!.id);
     res.json(items.map(i => ({ ticker: i.ticker, addedAt: i.added_at })));
   } catch (err) {
     res.status(500).json({ error: 'Failed to get watchlist' });
   }
-});
+}));
 
-router.post('/watchlist', authMiddleware, (req: any, res) => {
+router.post('/watchlist', authMiddleware, withAuth((req, res) => {
   try {
     const { ticker, name } = req.body;
     if (!ticker || typeof ticker !== 'string') {
       res.status(400).json({ error: 'Ticker required' });
       return;
     }
-    addWebWatchlistItem(req.webUser.id, ticker);
+    addWebWatchlistItem(req.webUser!.id, ticker);
     res.status(201).json({ ticker: ticker.toUpperCase(), name: name || ticker.toUpperCase() });
   } catch (err) {
     res.status(500).json({ error: 'Failed to add watchlist item' });
   }
-});
+}));
 
-router.delete('/watchlist/:ticker', authMiddleware, (req: any, res) => {
+router.delete('/watchlist/:ticker', authMiddleware, withAuth((req, res) => {
   try {
-    removeWebWatchlistItem(req.webUser.id, req.params.ticker);
+    removeWebWatchlistItem(req.webUser!.id, String(req.params.ticker));
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to remove watchlist item' });
   }
-});
+}));
 
 /* ─── Alerts (auth required) ─── */
 
-router.get('/alerts', authMiddleware, (req: any, res) => {
+router.get('/alerts', authMiddleware, withAuth((req, res) => {
   try {
-    const alerts = getWebAlerts(req.webUser.id);
+    const alerts = getWebAlerts(req.webUser!.id);
     res.json(alerts.map(a => ({
       id: a.id,
       ticker: a.ticker,
@@ -385,9 +469,9 @@ router.get('/alerts', authMiddleware, (req: any, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to get alerts' });
   }
-});
+}));
 
-router.post('/alerts', authMiddleware, (req: any, res) => {
+router.post('/alerts', authMiddleware, withAuth((req, res) => {
   try {
     const { ticker, targetPrice, condition } = req.body;
     if (!ticker || typeof targetPrice !== 'number' || !condition) {
@@ -398,24 +482,66 @@ router.post('/alerts', authMiddleware, (req: any, res) => {
       res.status(400).json({ error: 'condition must be above or below' });
       return;
     }
-    const result = addWebAlert(req.webUser.id, ticker, targetPrice, condition);
+    const result = addWebAlert(req.webUser!.id, ticker, targetPrice, condition);
     res.status(201).json({ id: Number(result.lastInsertRowid), ticker, targetPrice, condition });
   } catch (err) {
     res.status(500).json({ error: 'Failed to create alert' });
   }
-});
+}));
 
-router.delete('/alerts/:id', authMiddleware, (req: any, res) => {
+router.delete('/alerts/:id', authMiddleware, withAuth((req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
     if (isNaN(id)) {
       res.status(400).json({ error: 'Invalid alert ID' });
       return;
     }
-    removeWebAlert(req.webUser.id, id);
+    removeWebAlert(req.webUser!.id, id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete alert' });
+  }
+}));
+
+/* ─── Screenshot OCR ─── */
+
+router.post('/screenshots', upload.single('image'), async (req: Request, res: Response) => {
+  let tmpPath = '';
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: 'No image uploaded' });
+      return;
+    }
+
+    // Write buffer to temp file for tesseract
+    tmpPath = makeTmpPath('web_screenshot');
+    fs.writeFileSync(tmpPath, req.file.buffer);
+
+    // Run OCR
+    const { tickers, rawText } = await runOCR(tmpPath);
+
+    if (!rawText || rawText.trim().length === 0) {
+      res.status(422).json({ error: 'Could not read text from image' });
+      return;
+    }
+
+    if (tickers.length === 0) {
+      res.status(422).json({ error: 'No ticker symbols found' });
+      return;
+    }
+
+    // Score tickers (no userId for web anonymous use)
+    const results = await scoreTickers(tickers);
+
+    res.json({
+      tickersFound: tickers.length,
+      tickers: results,
+    });
+  } catch (err) {
+    logger.error('Screenshot OCR failed', { error: String(err) });
+    res.status(500).json({ error: 'OCR processing failed' });
+  } finally {
+    cleanupFile(tmpPath);
   }
 });
 

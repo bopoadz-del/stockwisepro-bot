@@ -213,6 +213,17 @@ class FMPClient {
     });
     return data || [];
   }
+
+  async searchSymbols(query: string, limit = 10): Promise<Array<{ symbol: string; name: string; currency?: string; stockExchange?: string; exchangeShortName?: string }>> {
+    const data = await this.getV3<any[]>('/search', { query, limit });
+    return (data || []).map((item: any) => ({
+      symbol: item.symbol || '',
+      name: item.name || '',
+      currency: item.currency,
+      stockExchange: item.stockExchange,
+      exchangeShortName: item.exchangeShortName,
+    })).filter((item) => item.symbol && item.name);
+  }
 }
 
 export const fmp = new FMPClient();

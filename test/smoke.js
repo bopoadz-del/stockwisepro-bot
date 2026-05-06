@@ -114,8 +114,9 @@ console.log('✅ experiment.ts gated behind exp: prefix');
 
 // --- Verify Dockerfile is multi-stage ---
 const dockerfile = fs.readFileSync('Dockerfile', 'utf8');
-assert.ok(dockerfile.includes('AS builder'), 'Dockerfile should have builder stage');
-assert.ok(dockerfile.includes('COPY --from=builder'), 'Dockerfile should copy from builder');
+assert.ok(dockerfile.includes('AS web-builder'), 'Dockerfile should have web-builder stage');
+assert.ok(dockerfile.includes('AS bot-builder'), 'Dockerfile should have bot-builder stage');
+assert.ok(dockerfile.includes('COPY --from=bot-builder'), 'Dockerfile should copy from bot-builder');
 console.log('✅ Dockerfile multi-stage verified');
 
 // --- Verify safe error helper exists ---

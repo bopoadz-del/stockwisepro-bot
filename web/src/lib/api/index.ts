@@ -1,9 +1,9 @@
 // API Client and Services
-export { apiClient, useApiClient } from './client';
+export { apiClient } from './client';
 
 // Auth API
 export { authApi } from './auth';
-export type { User, LoginResponse, RegisterData, LoginData } from './auth';
+export type { User, AuthResponse, RegisterData, LoginData } from './auth';
 
 // Stocks API
 export { stocksApi } from './stocks';

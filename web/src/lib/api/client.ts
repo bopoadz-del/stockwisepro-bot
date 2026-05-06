@@ -1,5 +1,3 @@
-import { useLocalStorage } from '@/hooks/useLocalStorage';
-
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 interface ApiResponse<T> {
@@ -9,11 +7,9 @@ interface ApiResponse<T> {
 
 class ApiClient {
   private baseUrl: string;
-  private getToken: () => string | null;
 
-  constructor(baseUrl: string, getToken: () => string | null) {
+  constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
-    this.getToken = getToken;
   }
 
   private async request<T>(
@@ -21,21 +17,17 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...((options.headers as Record<string, string>) || {}),
     };
 
-    const token = this.getToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
     try {
       const response = await fetch(url, {
         ...options,
         headers,
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -73,13 +65,4 @@ class ApiClient {
   }
 }
 
-// Hook to use API client with token
-export function useApiClient() {
-  const [token] = useLocalStorage<string | null>('auth-token', null);
-  return new ApiClient(API_BASE_URL, () => token);
-}
-
-// Static API client for non-component usage
-export const apiClient = new ApiClient(API_BASE_URL, () => 
-  localStorage.getItem('auth-token')
-);
+export const apiClient = new ApiClient(API_BASE_URL);

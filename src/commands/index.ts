@@ -81,10 +81,10 @@ export function registerCommands(bot: Telegraf<BotContext>) {
     const eventId = parseInt(match[1], 10);
     const rating = parseInt(match[2], 10);
     const telegramId = ctx.from?.id || 0;
-    const { saveFeedback, db } = await import('../db');
+    const { saveFeedback, getDb } = await import('../db');
 
     // Verify the event belongs to the user submitting feedback
-    const eventRow = db.prepare('SELECT telegram_id FROM analytics_events WHERE id = ?').get(eventId) as { telegram_id: number } | undefined;
+    const eventRow = getDb().prepare('SELECT telegram_id FROM analytics_events WHERE id = ?').get(eventId) as { telegram_id: number } | undefined;
     if (!eventRow || eventRow.telegram_id !== telegramId) {
       await ctx.answerCbQuery('⛔ Unable to submit feedback.');
       return;

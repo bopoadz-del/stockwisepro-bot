@@ -6,10 +6,9 @@ export interface User {
   name: string | null;
 }
 
-export interface LoginResponse {
+export interface AuthResponse {
   message: string;
   user: User;
-  token: string;
 }
 
 export interface RegisterData {
@@ -25,10 +24,16 @@ export interface LoginData {
 
 export const authApi = {
   register: (data: RegisterData) =>
-    apiClient.post<LoginResponse>('/auth/register', data),
+    apiClient.post<AuthResponse>('/auth/register', data),
 
   login: (data: LoginData) =>
-    apiClient.post<LoginResponse>('/auth/login', data),
+    apiClient.post<AuthResponse>('/auth/login', data),
+
+  logout: () =>
+    apiClient.post('/auth/logout', {}),
+
+  me: () =>
+    apiClient.get<{ user: User }>('/auth/me'),
 
   forgotPassword: (email: string) =>
     apiClient.post('/auth/forgot-password', { email }),

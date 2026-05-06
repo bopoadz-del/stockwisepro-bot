@@ -1,5 +1,5 @@
 import { Context } from 'telegraf';
-import { logEvent, ensureUser, db } from '../db';
+import { logEvent, ensureUser, getDb } from '../db';
 import { logger } from '../utils/logger';
 
 export function analyticsMiddleware() {
@@ -27,7 +27,7 @@ export function analyticsMiddleware() {
     try {
       await next();
       const state = ctx.state || {};
-      db.prepare(`
+      getDb().prepare(`
         UPDATE analytics_events
         SET ticker = ?, api_response_time_ms = ?, success = ?, error_message = ?
         WHERE id = ?
@@ -41,7 +41,7 @@ export function analyticsMiddleware() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       logger.error('Command failed', { command, telegramId, error: errorMessage });
-      db.prepare(`UPDATE analytics_events SET success = 0, error_message = ? WHERE id = ?`)
+      getDb().prepare(`UPDATE analytics_events SET success = 0, error_message = ? WHERE id = ?`)
         .run(errorMessage, eventId);
       throw err;
     }

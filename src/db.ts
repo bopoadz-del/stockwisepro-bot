@@ -360,12 +360,20 @@ export function getUserWeights(telegramId: number) {
   };
 }
 
+const VALID_WEIGHT_COLUMNS: Record<string, string> = {
+  valuation: 'valuation',
+  profitability: 'profitability',
+  growth: 'growth',
+  financial_health: 'financial_health',
+  momentum: 'momentum',
+};
+
 export function setUserWeight(telegramId: number, category: string, value: number) {
   const conn = ensureDb();
-  const valid = ['valuation', 'profitability', 'growth', 'financial_health', 'momentum'];
-  if (!valid.includes(category)) return false;
+  const col = VALID_WEIGHT_COLUMNS[category];
+  if (!col) return false;
   const clamped = Math.min(Math.max(Math.round(value), 0), 100);
-  conn.prepare(`UPDATE user_weights SET ${category} = ? WHERE telegram_id = ?`).run(clamped, telegramId);
+  conn.prepare(`UPDATE user_weights SET ${col} = ? WHERE telegram_id = ?`).run(clamped, telegramId);
   return true;
 }
 
@@ -652,9 +660,7 @@ export function removeWebAlert(webUserId: number, alertId: number) {
   return true;
 }
 
-export { db };
-
-// Backward-compatible accessor
+// Backward-compatible accessor — always returns initialized db
 export function getDb(): DatabaseType {
   return ensureDb();
 }

@@ -12,6 +12,8 @@ services:
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379
+      # Add SESSION_SECRET to your .env file for web dashboard auth
+      # Add WEB_CORS_ORIGINS if accessing from a different origin
     depends_on:
       - redis
 
