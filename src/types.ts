@@ -80,4 +80,6 @@ export interface OpenBoxResult {
     dominanceBonus: number;
   };
   isETF?: boolean;
+  sector?: string;
+  industry?: string;
 }

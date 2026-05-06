@@ -23,6 +23,58 @@ import path from 'path';
 
 const router = Router();
 
+/* ─── Screener score cache ──────────────────────────────────────────────── */
+interface ScreenerScoreEntry {
+  score: number;
+  signal: 'buy' | 'hold' | 'sell';
+  sector?: string;
+  industry?: string;
+  timestamp: number;
+}
+const screenerScoreCache = new Map<string, ScreenerScoreEntry>();
+const SCORE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function getScreenerScore(ticker: string): Promise<ScreenerScoreEntry | null> {
+  const cached = screenerScoreCache.get(ticker);
+  if (cached && Date.now() - cached.timestamp < SCORE_CACHE_TTL_MS) {
+    return cached;
+  }
+  try {
+    const result = await computeOpenBoxScore(ticker);
+    if (!result) return null;
+    const signal = result.finalScore >= 70 ? 'buy' : result.finalScore >= 45 ? 'hold' : 'sell';
+    const entry: ScreenerScoreEntry = {
+      score: result.finalScore,
+      signal,
+      sector: result.sector,
+      industry: result.industry,
+      timestamp: Date.now(),
+    };
+    screenerScoreCache.set(ticker, entry);
+    return entry;
+  } catch (err) {
+    logger.warn('Screener score compute failed', { ticker, error: String(err) });
+    return null;
+  }
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchResults = await Promise.all(batch.map(fn));
+    results.push(...batchResults);
+    if (i + concurrency < items.length) {
+      await new Promise((r) => setTimeout(r, 300));
+    }
+  }
+  return results;
+}
+
 /* ─── Multer upload config ─── */
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -318,9 +370,27 @@ router.get('/stocks/trending', async (_req: Request, res: Response) => {
 router.get('/stocks/screener', async (_req: Request, res: Response) => {
   try {
     const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'BRK.B', 'JPM', 'V', 'WMT', 'UNH', 'PG', 'HD', 'MA', 'BAC', 'ABBV', 'PFE', 'KO', 'AVGO'];
-    const results = (await Promise.all(
+    const quotes = (await Promise.all(
       symbols.map(sym => fetchQuoteWithFallback(sym))
     )).filter(Boolean);
+
+    // Compute OpenBox scores with limited concurrency to avoid Yahoo 429s
+    const scoreEntries = await mapWithConcurrency(
+      quotes.map(q => q.symbol as string),
+      4,
+      getScreenerScore
+    );
+
+    const results = quotes.map((quote, i) => {
+      const scoreEntry = scoreEntries[i];
+      return {
+        ...quote,
+        score: scoreEntry?.score ?? null,
+        signal: scoreEntry?.signal ?? 'hold',
+        sector: scoreEntry?.sector ?? null,
+      };
+    });
+
     res.json(results);
   } catch (err) {
     logger.error('Screener error', { error: String(err) });

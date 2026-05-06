@@ -74,6 +74,8 @@ export interface OpenBoxScore {
     dominanceBonus: number;
   };
   isETF?: boolean;
+  sector?: string;
+  industry?: string;
 }
 
 // ── Piotroski F-Score (9-point quality check) ────────────────────────────────
@@ -306,8 +308,10 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
 
     const price = toNum(priceMod?.regularMarketPrice ?? sd?.previousClose);
     const marketCap = toNum(sd?.marketCap ?? price * toNum(dks?.sharesOutstanding));
-    const sector = (profile?.sector || '').toLowerCase();
-    const industry = (profile?.industry || '').toLowerCase();
+    const sectorRaw = profile?.sector || '';
+    const industryRaw = profile?.industry || '';
+    const sector = sectorRaw.toLowerCase();
+    const industry = industryRaw.toLowerCase();
     const name = (profile?.longBusinessSummary || profile?.name || upper).slice(0, 100);
 
     const isETF =
@@ -664,6 +668,8 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
         peerDelta: peer.peerDelta,
         dominanceBonus: dom.dominanceBonus,
       },
+      sector: sectorRaw || undefined,
+      industry: industryRaw || undefined,
     };
 
   } catch (err) {

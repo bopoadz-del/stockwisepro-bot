@@ -48,41 +48,8 @@ interface StockScreenerProps {
   isAuthenticated?: boolean;
 }
 
-// Calculate score based on available metrics
-function calculateScore(stock: StockQuote | null | undefined): number {
-  if (!stock || typeof stock !== 'object') {
-    return 50;
-  }
+// Determine signal from a numeric score
 
-  let score = 50;
-
-  if (typeof stock.pe === 'number' && stock.pe > 0) {
-    if (stock.pe < 15) score += 15;
-    else if (stock.pe < 25) score += 10;
-    else if (stock.pe < 40) score += 5;
-    else score -= 5;
-  }
-
-  if (typeof stock.marketCap === 'number' && stock.marketCap > 0) {
-    if (stock.marketCap > 500000000000) score += 10;
-    else if (stock.marketCap > 100000000000) score += 5;
-  }
-
-  if (typeof stock.changesPercentage === 'number') {
-    if (stock.changesPercentage > 5) score += 10;
-    else if (stock.changesPercentage > 0) score += 5;
-    else if (stock.changesPercentage < -5) score -= 10;
-    else if (stock.changesPercentage < 0) score -= 5;
-  }
-
-  if (typeof stock.volume === 'number' && typeof stock.avgVolume === 'number' && stock.avgVolume > 0) {
-    const volumeRatio = stock.volume / stock.avgVolume;
-    if (volumeRatio > 1.5) score += 10;
-    else if (volumeRatio > 1) score += 5;
-  }
-
-  return Math.max(0, Math.min(100, score));
-}
 
 function getSignalFromScore(score: number): 'buy' | 'hold' | 'sell' {
   if (score >= 70) return 'buy';
@@ -106,7 +73,7 @@ function generateSparklineData(price: number, changePercent: number): number[] {
   return data;
 }
 
-function formatQuoteToResult(quote: any): StockResult | null {
+function formatQuoteToResult(quote: StockQuote | null | undefined): StockResult | null {
   if (!quote || typeof quote !== 'object') return null;
   const safe = {
     symbol: quote.symbol || 'UNKNOWN',
@@ -119,8 +86,8 @@ function formatQuoteToResult(quote: any): StockResult | null {
     volume: typeof quote.volume === 'number' ? quote.volume : 0,
     avgVolume: typeof quote.avgVolume === 'number' ? quote.avgVolume : (typeof quote.volume === 'number' ? quote.volume : 0),
   };
-  const fallbackScore = calculateScore(safe as StockQuote);
-  const score = typeof quote.score === 'number' ? quote.score : fallbackScore;
+  // Use backend OpenBox score when available; otherwise neutral 50
+  const score = typeof quote.score === 'number' ? quote.score : 50;
   const signal = quote.signal || getSignalFromScore(score);
   return {
     ticker: formatTickerForDisplay(safe.symbol),
@@ -131,6 +98,7 @@ function formatQuoteToResult(quote: any): StockResult | null {
     marketCap: safe.marketCap,
     score,
     signal,
+    sector: quote.sector || undefined,
     volume: safe.volume,
     pe: safe.pe,
     sparklineData: generateSparklineData(safe.price, safe.changesPercentage),

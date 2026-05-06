@@ -15,8 +15,9 @@ export interface StockQuote {
   yearLow: number;
   yearHigh: number;
   eps: number;
-  score?: number;
+  score?: number | null;
   signal?: 'buy' | 'hold' | 'sell';
+  sector?: string | null;
 }
 
 export interface KeyMetrics {
