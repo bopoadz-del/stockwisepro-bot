@@ -15,6 +15,8 @@ export interface StockQuote {
   yearLow: number;
   yearHigh: number;
   eps: number;
+  score?: number;
+  signal?: 'buy' | 'hold' | 'sell';
 }
 
 export interface KeyMetrics {
@@ -62,4 +64,23 @@ export const stocksApi = {
 
   getScreener: () =>
     apiClient.get<any[]>('/stocks/screener'),
+
+  portfolioMimic: (investorId: string, budget: number, ethicsEnabled?: boolean) =>
+    apiClient.post<{
+      investor: string;
+      investorName: string;
+      budget: number;
+      holdings: Array<{
+        ticker: string;
+        name: string;
+        allocation: number;
+        price: number;
+        shares: number;
+        value: number;
+      }>;
+      totalValue: number;
+      cashRemaining: number;
+      ethicsApplied: boolean;
+      replacedTickers: Array<{ old: string; new: string; reason: string }>;
+    }>('/portfolio/mimic', { investorId, budget, ethicsEnabled }),
 };

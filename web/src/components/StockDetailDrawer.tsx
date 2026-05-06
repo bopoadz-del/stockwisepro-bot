@@ -40,8 +40,8 @@ interface AlertPrice {
   condition: 'above' | 'below';
 }
 
-// Calculate score from quote and metrics
-function calculateScore(quote: StockQuote | null, metrics: KeyMetrics | null): { score: number; breakdown: Record<string, number> } {
+// Calculate fallback score from quote and metrics when backend score is unavailable
+function calculateFallbackScore(quote: StockQuote | null, metrics: KeyMetrics | null): { score: number; breakdown: Record<string, number> } {
   if (!quote) {
     return { score: 50, breakdown: { valuation: 50, profitability: 50, financialHealth: 50, momentum: 50 } };
   }
@@ -243,8 +243,13 @@ export function StockDetailDrawer({ ticker, isOpen, onClose }: StockDetailDrawer
     URL.revokeObjectURL(url);
   };
 
-  const scoreData = calculateScore(quote, metrics);
-  const signal = scoreData.score >= 70 ? 'buy' : scoreData.score >= 40 ? 'hold' : 'sell';
+  const backendScore = quote?.score;
+  const backendSignal = quote?.signal;
+  const fallbackScoreData = calculateFallbackScore(quote, metrics);
+  const scoreData = backendScore != null 
+    ? { score: backendScore, breakdown: fallbackScoreData.breakdown }
+    : fallbackScoreData;
+  const signal = backendSignal || (scoreData.score >= 70 ? 'buy' : scoreData.score >= 40 ? 'hold' : 'sell');
 
   return (
     <AnimatePresence>

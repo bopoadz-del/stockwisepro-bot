@@ -4,6 +4,7 @@ import { fmp } from '../api/fmp';
 import { yahooSearch, getYahooQuote } from '../api/yahoo';
 import { computeOpenBoxScore } from '../services/openbox/engine';
 import { getLocalMimicAllocation, fetchMimicPrices } from '../services/mimic';
+import { getStockByTicker } from '../services/universe';
 import { logger } from '../utils/logger';
 import {
   createWebUser,
@@ -394,15 +395,21 @@ router.get('/investors', (_req: Request, res: Response) => {
   try {
     const data = loadInvestorProfiles();
     const profiles = data.profiles || {};
-    const investors = Object.entries(profiles).map(([id, p]: [string, any]) => ({
-      id,
-      name: p.name,
-      style: p.style,
-      description: p.description,
-      sectorTargets: p.sectorTargets,
-      criteria: p.criteria,
-      coreHoldings: p.coreHoldings || [],
-    }));
+    const investors = Object.entries(profiles).map(([id, p]: [string, any]) => {
+      const coreHoldings = (p.coreHoldings || []).map((ticker: string) => {
+        const stock = getStockByTicker(ticker);
+        return { ticker, name: stock?.name || ticker, allocation: stock ? undefined : undefined };
+      });
+      return {
+        id,
+        name: p.name,
+        style: p.style,
+        description: p.description,
+        sectorTargets: p.sectorTargets,
+        criteria: p.criteria,
+        coreHoldings,
+      };
+    });
     res.json(investors);
   } catch (err) {
     logger.error('Investors error', { error: String(err) });
@@ -434,9 +441,10 @@ router.post('/portfolio/mimic', async (req: Request, res: Response) => {
       const price = prices.get(h.ticker) || 100;
       const budgetAllocation = bgt * (h.percentage / 100);
       const shares = Math.floor(budgetAllocation / price);
+      const stock = getStockByTicker(h.ticker);
       return {
         ticker: h.ticker,
-        name: h.ticker,
+        name: stock?.name || h.ticker,
         allocation: h.percentage,
         price,
         shares,
