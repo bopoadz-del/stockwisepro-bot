@@ -356,7 +356,7 @@ router.get('/stocks/metrics/:ticker', async (req: Request, res: Response) => {
 
 router.get('/stocks/trending', async (_req: Request, res: Response) => {
   try {
-    const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'BRK.B', 'JPM', 'V'];
+    const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'BRK-B', 'JPM', 'V'];
     const results = (await Promise.all(
       symbols.map(sym => fetchQuoteWithFallback(sym))
     )).filter(Boolean);
@@ -369,7 +369,7 @@ router.get('/stocks/trending', async (_req: Request, res: Response) => {
 
 router.get('/stocks/screener', async (_req: Request, res: Response) => {
   try {
-    const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'BRK.B', 'JPM', 'V', 'WMT', 'UNH', 'PG', 'HD', 'MA', 'BAC', 'ABBV', 'PFE', 'KO', 'AVGO'];
+    const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'BRK-B', 'JPM', 'V', 'WMT', 'UNH', 'PG', 'HD', 'MA', 'BAC', 'ABBV', 'PFE', 'KO', 'AVGO'];
     const quotes = (await Promise.all(
       symbols.map(sym => fetchQuoteWithFallback(sym))
     )).filter(Boolean);
