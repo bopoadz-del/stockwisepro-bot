@@ -119,7 +119,9 @@ function formatQuoteToResult(quote: any): StockResult | null {
     volume: typeof quote.volume === 'number' ? quote.volume : 0,
     avgVolume: typeof quote.avgVolume === 'number' ? quote.avgVolume : (typeof quote.volume === 'number' ? quote.volume : 0),
   };
-  const score = calculateScore(safe as StockQuote);
+  const fallbackScore = calculateScore(safe as StockQuote);
+  const score = typeof quote.score === 'number' ? quote.score : fallbackScore;
+  const signal = quote.signal || getSignalFromScore(score);
   return {
     ticker: formatTickerForDisplay(safe.symbol),
     name: safe.name,
@@ -128,7 +130,7 @@ function formatQuoteToResult(quote: any): StockResult | null {
     changePercent: safe.changesPercentage,
     marketCap: safe.marketCap,
     score,
-    signal: getSignalFromScore(score),
+    signal,
     volume: safe.volume,
     pe: safe.pe,
     sparklineData: generateSparklineData(safe.price, safe.changesPercentage),

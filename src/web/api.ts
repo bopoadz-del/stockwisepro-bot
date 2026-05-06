@@ -239,6 +239,27 @@ router.get('/stocks/quote/:ticker', async (req: Request, res: Response) => {
   }
 });
 
+// Helper: fetch quote with FMP -> Yahoo fallback
+async function fetchQuoteWithFallback(sym: string): Promise<any | null> {
+  const quote = await fmp.getQuote(sym);
+  if (quote) return quote;
+  const yq = await getYahooQuote(sym);
+  if (yq) {
+    return {
+      symbol: yq.symbol,
+      name: yq.name,
+      price: yq.price,
+      change: yq.change,
+      changesPercentage: yq.changesPercentage,
+      marketCap: yq.marketCap || 0,
+      pe: yq.pe || 0,
+      volume: yq.volume || 0,
+      avgVolume: yq.avgVolume || 0,
+    };
+  }
+  return null;
+}
+
 router.get('/stocks/quotes', async (req: Request, res: Response) => {
   try {
     const symbols = String(req.query.symbols || '').split(',').filter(Boolean);
@@ -246,27 +267,9 @@ router.get('/stocks/quotes', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Provide 1–20 symbols' });
       return;
     }
-    const results = [];
-    for (const sym of symbols) {
-      const quote = await fmp.getQuote(sym);
-      if (quote) {
-        results.push({
-          symbol: quote.symbol,
-          name: quote.name,
-          price: quote.price,
-          change: quote.change,
-          changesPercentage: quote.changesPercentage,
-          marketCap: quote.marketCap,
-          pe: quote.pe,
-          volume: quote.volume,
-          avgVolume: quote.avgVolume,
-        });
-      }
-      // Small delay to avoid rate limits on free tier
-      if (symbols.length > 1) {
-        await new Promise(r => setTimeout(r, 300));
-      }
-    }
+    const results = (await Promise.all(
+      symbols.map(sym => fetchQuoteWithFallback(sym))
+    )).filter(Boolean);
     res.json(results);
   } catch (err) {
     logger.error('Batch quotes error', { error: String(err) });
@@ -302,24 +305,9 @@ router.get('/stocks/metrics/:ticker', async (req: Request, res: Response) => {
 router.get('/stocks/trending', async (_req: Request, res: Response) => {
   try {
     const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'BRK.B', 'JPM', 'V'];
-    const results = [];
-    for (const sym of symbols) {
-      const quote = await fmp.getQuote(sym);
-      if (quote) {
-        results.push({
-          symbol: quote.symbol,
-          name: quote.name,
-          price: quote.price,
-          change: quote.change,
-          changesPercentage: quote.changesPercentage,
-          marketCap: quote.marketCap,
-          pe: quote.pe,
-          volume: quote.volume,
-          avgVolume: quote.avgVolume,
-        });
-      }
-      if (symbols.length > 1) await new Promise(r => setTimeout(r, 300));
-    }
+    const results = (await Promise.all(
+      symbols.map(sym => fetchQuoteWithFallback(sym))
+    )).filter(Boolean);
     res.json(results);
   } catch (err) {
     logger.error('Trending error', { error: String(err) });
@@ -330,24 +318,9 @@ router.get('/stocks/trending', async (_req: Request, res: Response) => {
 router.get('/stocks/screener', async (_req: Request, res: Response) => {
   try {
     const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'BRK.B', 'JPM', 'V', 'WMT', 'UNH', 'PG', 'HD', 'MA', 'BAC', 'ABBV', 'PFE', 'KO', 'AVGO'];
-    const results = [];
-    for (const sym of symbols) {
-      const quote = await fmp.getQuote(sym);
-      if (quote) {
-        results.push({
-          symbol: quote.symbol,
-          name: quote.name,
-          price: quote.price,
-          change: quote.change,
-          changesPercentage: quote.changesPercentage,
-          marketCap: quote.marketCap,
-          pe: quote.pe,
-          volume: quote.volume,
-          avgVolume: quote.avgVolume,
-        });
-      }
-      if (symbols.length > 1) await new Promise(r => setTimeout(r, 300));
-    }
+    const results = (await Promise.all(
+      symbols.map(sym => fetchQuoteWithFallback(sym))
+    )).filter(Boolean);
     res.json(results);
   } catch (err) {
     logger.error('Screener error', { error: String(err) });
@@ -358,20 +331,16 @@ router.get('/stocks/screener', async (_req: Request, res: Response) => {
 router.get('/stocks/indices', async (_req: Request, res: Response) => {
   try {
     const indices = ['SPY', 'QQQ', 'DIA', 'IWM'];
-    const results = [];
-    for (const sym of indices) {
-      const quote = await fmp.getQuote(sym);
-      if (quote) {
-        results.push({
-          symbol: quote.symbol,
-          name: quote.name,
-          price: quote.price,
-          change: quote.change,
-          changesPercentage: quote.changesPercentage,
-        });
-      }
-    }
-    res.json(results);
+    const results = (await Promise.all(
+      indices.map(sym => fetchQuoteWithFallback(sym))
+    )).filter(Boolean);
+    res.json(results.map((q: any) => ({
+      symbol: q.symbol,
+      name: q.name,
+      price: q.price,
+      change: q.change,
+      changesPercentage: q.changesPercentage,
+    })));
   } catch (err) {
     logger.error('Indices error', { error: String(err) });
     res.status(500).json({ error: 'Failed to fetch indices' });
