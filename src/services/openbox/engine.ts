@@ -1,6 +1,6 @@
 import YahooFinance from 'yahoo-finance2';
 import { getHistoricalPrices } from '../../api/yahoo';
-import { fmp, FMPKeyMetrics } from '../../api/fmp';
+import { fmp, FMPKeyMetrics, FMPRating, FMPIncomeStatement, FMPBalanceSheet } from '../../api/fmp';
 import { logger } from '../../utils/logger';
 import { checkEthics } from './ethics';
 import { computePeerDelta } from './peers';
@@ -11,6 +11,27 @@ const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
 function clamp(num: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, num));
+}
+
+function calculateRSI(prices: number[]): number | undefined {
+  if (prices.length < 15) return undefined;
+  const closes = prices.slice(-15);
+  let gains = 0;
+  let losses = 0;
+  for (let i = 1; i < 15; i++) {
+    const change = closes[i] - closes[i - 1];
+    if (change > 0) gains += change;
+    else losses -= change;
+  }
+  if (losses === 0) return 100;
+  const rs = gains / losses;
+  return 100 - (100 / (1 + rs));
+}
+
+function computeSMA(prices: number[], period: number): number | undefined {
+  if (prices.length < period) return undefined;
+  const slice = prices.slice(-period);
+  return slice.reduce((a, b) => a + b, 0) / period;
 }
 
 // In-memory cache for Yahoo quoteSummary to avoid 429 rate limits
@@ -54,6 +75,15 @@ function toNumOpt(v: unknown): number | undefined {
 
 function safeDivide(a: number, b: number): number {
   return b !== 0 ? a / b : 0;
+}
+
+function mapConsensusRating(rating?: FMPRating | null): 'buy' | 'hold' | 'sell' | undefined {
+  if (!rating) return undefined;
+  const rec = (rating.ratingRecommendation || rating.rating || '').toLowerCase();
+  if (rec.includes('buy')) return 'buy';
+  if (rec.includes('sell')) return 'sell';
+  if (rec.includes('hold') || rec.includes('neutral')) return 'hold';
+  return undefined;
 }
 
 export interface OpenBoxScore {
@@ -268,7 +298,7 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
   const upper = ticker.toUpperCase();
 
   try {
-    const [fullSummary, hist, spyHist, fmpMetrics] = await Promise.all([
+    const [fullSummary, hist, spyHist, fmpMetrics, fmpRatings, fmpIncome, fmpBalance] = await Promise.all([
       fetchQuoteSummary(upper, [
         'financialData',
         'defaultKeyStatistics',
@@ -282,6 +312,9 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
       getHistoricalPrices(upper, '1y'),
       getHistoricalPrices('SPY', '1y').catch(() => ({ data: [], error: 'SPY fetch failed' })),
       fmp.getKeyMetrics(upper).catch(() => null),
+      fmp.getRatings(upper).catch(() => null),
+      fmp.getIncomeStatements(upper, 3).catch(() => []),
+      fmp.getBalanceSheets(upper, 3).catch(() => []),
     ]);
 
     if (!fullSummary) {
@@ -295,6 +328,31 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
     const profile = fullSummary.summaryProfile;
     const inc = fullSummary.incomeStatementHistory?.incomeStatementHistory as any[] | undefined;
     const bs = fullSummary.balanceSheetHistory?.balanceSheetHistory as any[] | undefined;
+
+    // FMP fallback for multi-year statements needed by Piotroski F-Score
+    const fmpInc = (fmpIncome?.length || 0) >= 2
+      ? fmpIncome!.map((s) => ({
+          endDate: { fmt: s.date },
+          totalRevenue: s.revenue,
+          operatingIncome: s.operatingIncome,
+          netIncome: s.netIncome,
+          researchDevelopment: s.researchAndDevelopmentExpenses,
+        }))
+      : undefined;
+    const fmpBs = (fmpBalance?.length || 0) >= 2
+      ? fmpBalance!.map((s) => ({
+          endDate: { fmt: s.date },
+          totalAssets: s.totalAssets,
+          totalLiab: s.totalLiabilities,
+          totalCurrentAssets: s.totalCurrentAssets,
+          totalCurrentLiabilities: s.totalCurrentLiabilities,
+          retainedEarnings: s.retainedEarnings,
+          commonStockSharesOutstanding: s.commonStock,
+        }))
+      : undefined;
+
+    const effectiveInc = inc?.length && inc.length >= 2 ? inc : fmpInc;
+    const effectiveBs = bs?.length && bs.length >= 2 ? bs : fmpBs;
     const priceMod = fullSummary.price;
     const fundProf = fullSummary.fundProfile;
     const fundPerf = fullSummary.fundPerformance;
@@ -396,8 +454,8 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
 
     // Compute fundamentals quality scores
     const piotroskiRaw = computePiotroski(
-      inc?.[0], inc?.[1],
-      bs?.[0], bs?.[1],
+      effectiveInc?.[0], effectiveInc?.[1],
+      effectiveBs?.[0], effectiveBs?.[1],
       fd, price, m.sharesOutstanding ?? 0
     );
     const altmanZRaw = computeAltmanZ(m);
@@ -436,9 +494,19 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
       const momScore = clamp(blendedReturn / 0.40 * 38, 0, 38);
       const volScore = clamp(100 - ((m.fundStdDev ?? 20) - 10) / 20 * 100, 0, 100) * 0.27;
       const liqScore = clamp((m.avgVolume ?? 0) / 9_000_000 * 19, 0, 19);
-      const rsiScore = 5;
 
-      marketRaw = clamp(momScore + volScore + liqScore + rsiScore, 0, 100);
+      const rsi = prices.length >= 15 ? calculateRSI(prices) : undefined;
+      const rsiScore = rsi !== undefined
+        ? clamp((rsi - 30) / 40 * 100, 0, 100) * 0.15
+        : 5;
+
+      const sma50 = computeSMA(prices, 50);
+      const sma200 = computeSMA(prices, 200);
+      const latestPrice = prices[prices.length - 1];
+      const trendScore = (latestPrice > (sma50 ?? Infinity) ? 10 : 0)
+                       + (latestPrice > (sma200 ?? Infinity) ? 10 : 0);
+
+      marketRaw = clamp(momScore + volScore + liqScore + rsiScore + trendScore, 0, 100);
 
       // ── ETF Balance ──
       const nameLower = name.toLowerCase();
@@ -492,9 +560,19 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
       const momScore = clamp((mom6m + 0.4) / 0.8 * 40, 0, 40);
       const volScore = clamp(100 - (m.beta ?? 1) / 3 * 100, 0, 100) * 0.30;
       const volLiqScore = clamp((m.avgVolume ?? 0) / 10_000_000 * 20, 0, 20);
-      const rsiScore = 5;
 
-      marketRaw = clamp(momScore + volScore + volLiqScore + rsiScore, 0, 100);
+      const rsi = prices.length >= 15 ? calculateRSI(prices) : undefined;
+      const rsiScore = rsi !== undefined
+        ? clamp((rsi - 30) / 40 * 100, 0, 100) * 0.15
+        : 5;
+
+      const sma50 = computeSMA(prices, 50);
+      const sma200 = computeSMA(prices, 200);
+      const latestPrice = prices[prices.length - 1];
+      const trendScore = (latestPrice > (sma50 ?? Infinity) ? 10 : 0)
+                       + (latestPrice > (sma200 ?? Infinity) ? 10 : 0);
+
+      marketRaw = clamp(momScore + volScore + volLiqScore + rsiScore + trendScore, 0, 100);
 
       // ── Stock Balance ──
       const cr = m.currentRatio ?? 0;
@@ -527,19 +605,27 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
       const analystScore = target > 0 && price > 0 ?
         clamp(100 - Math.abs(target - price) / price * 100, 0, 100) * 0.25 : 12.5;
 
+      const consensusRating = mapConsensusRating(fmpRatings);
+      const consensusScore = consensusRating === 'buy' ? 20 : consensusRating === 'hold' ? 10 : 0;
+
       const isTechStock = [
         'technology', 'software', 'semiconductors', 'biotechnology',
         'healthcare technology', 'internet content', 'computer software',
-        'application software', 'advertising', 'media', 'communication',
+        'application software', 'advertising', 'media',
       ].some(s => sector.includes(s) || industry.includes(s));
+
+      // Telecom/communication stocks are NOT tech-innovation stocks
+      const isCommStock = ['communication', 'telecom', 'wireless', 'telecommunications']
+        .some(s => sector.includes(s) || industry.includes(s));
+
       const strategyScore = isTechStock && margin > 0.20 ? 18 : 10;
       const governanceScore = 12;
 
-      leadershipRaw = clamp(marginExec + capitalReturn + analystScore + strategyScore + governanceScore, 0, 100);
+      leadershipRaw = clamp(marginExec + capitalReturn + analystScore + strategyScore + governanceScore + consensusScore, 0, 100);
 
       // ── Stock Innovation ──
 
-      if (isTechStock) {
+      if (isTechStock && !isCommStock) {
         const rd = m.rdExpense ?? 0;
         const rdRatio = rev > 0 ? rd / rev : 0;
         const rdScore = rdRatio > 0 ? clamp(rdRatio / 0.15 * 50, 0, 50) :

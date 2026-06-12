@@ -75,50 +75,6 @@ export function getScoreGradient(score: number): string {
   return 'from-red-500 to-orange-500';
 }
 
-export function calculateScore(
-  peRatio: number,
-  pbRatio: number,
-  debtEquity: number,
-  roe: number,
-  revenueGrowth: number,
-  weights: {
-    valuation: number;
-    profitability: number;
-    growth: number;
-    financialHealth: number;
-    momentum: number;
-  }
-): number {
-  // Valuation score (lower is better for P/E and P/B)
-  const peScore = Math.max(0, Math.min(100, (30 - peRatio) * 3.33));
-  const pbScore = Math.max(0, Math.min(100, (5 - pbRatio) * 20));
-  const valuationScore = (peScore + pbScore) / 2;
-
-  // Profitability score (higher ROE is better)
-  const profitabilityScore = Math.min(100, roe * 5);
-
-  // Growth score
-  const growthScore = Math.min(100, revenueGrowth * 4);
-
-  // Financial health score (lower debt/equity is better)
-  const financialHealthScore = Math.max(0, Math.min(100, (1 - debtEquity) * 100));
-
-  // Momentum score (placeholder, would use actual price data)
-  const momentumScore = 50;
-
-  // Weighted average
-  const totalWeight = weights.valuation + weights.profitability + weights.growth + weights.financialHealth + weights.momentum;
-  const weightedScore =
-    (valuationScore * weights.valuation +
-      profitabilityScore * weights.profitability +
-      growthScore * weights.growth +
-      financialHealthScore * weights.financialHealth +
-      momentumScore * weights.momentum) /
-    totalWeight;
-
-  return Math.round(weightedScore);
-}
-
 export function generatePortfolio(
   budget: number,
   holdings: { ticker: string; name: string; allocation: number }[]

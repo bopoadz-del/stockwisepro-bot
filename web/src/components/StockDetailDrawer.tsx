@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { stocksApi, type StockQuote, type KeyMetrics, type HistoricalPrice } from '@/lib/api/stocks';
 import { formatCurrency, formatPercentage, formatVolume, getScoreColor } from '@/lib/utils';
+import { calculateMomentumScore } from '@/lib/scoring';
 import { mockStocks } from '@/lib/data';
 import { SignalBadge } from './SignalBadge';
 import { ScoreVisualizer } from './ScoreVisualizer';
@@ -41,38 +42,42 @@ interface AlertPrice {
 }
 
 // Calculate fallback score from quote and metrics when backend score is unavailable
-function calculateFallbackScore(quote: StockQuote | null, metrics: KeyMetrics | null): { score: number; breakdown: Record<string, number> } {
+function calculateFallbackScore(
+  quote: StockQuote | null,
+  metrics: KeyMetrics | null,
+  historicalPrices?: number[]
+): { score: number; breakdown: Record<string, number> } {
   if (!quote) {
     return { score: 50, breakdown: { valuation: 50, profitability: 50, financialHealth: 50, momentum: 50 } };
   }
-  
-  let score = 50; // Base score
-  
-  // Factor in P/E ratio
-  if (metrics?.peRatio && metrics.peRatio > 0) {
-    if (metrics.peRatio < 15) score += 15;
-    else if (metrics.peRatio < 25) score += 10;
-    else if (metrics.peRatio < 40) score += 5;
-    else score -= 5;
-  }
-  
-  // Factor in price momentum
-  if (quote.changesPercentage > 5) score += 10;
-  else if (quote.changesPercentage > 0) score += 5;
-  else if (quote.changesPercentage < -5) score -= 10;
-  else if (quote.changesPercentage < 0) score -= 5;
-  
-  score = Math.max(0, Math.min(100, score));
-  
-  // Create breakdown
-  const breakdown = {
-    valuation: metrics?.peRatio ? Math.max(0, Math.min(100, (30 - metrics.peRatio) * 3.33)) : 50,
-    profitability: metrics?.roe ? Math.min(100, metrics.roe * 100 * 2) : 50,
-    financialHealth: metrics?.debtToEquity ? Math.max(0, (1 - metrics.debtToEquity) * 100) : 50,
-    momentum: Math.min(100, Math.max(0, 50 + quote.changesPercentage * 2)),
+
+  // Valuation sub-score
+  const valuation = metrics?.peRatio
+    ? Math.max(0, Math.min(100, (30 - metrics.peRatio) * 3.33))
+    : 50;
+
+  // Profitability sub-score
+  const profitability = metrics?.roe
+    ? Math.min(100, metrics.roe * 100 * 2)
+    : 50;
+
+  // Financial health sub-score
+  const financialHealth = metrics?.debtToEquity
+    ? Math.max(0, (1 - metrics.debtToEquity) * 100)
+    : 50;
+
+  // Momentum sub-score: uses RSI + SMA trends when historical prices are available
+  const momentum = calculateMomentumScore(quote.changesPercentage, historicalPrices);
+
+  // Combine into a single fallback score (equal weights for simplicity)
+  const score = Math.round(
+    (valuation + profitability + financialHealth + momentum) / 4
+  );
+
+  return {
+    score: Math.max(0, Math.min(100, score)),
+    breakdown: { valuation, profitability, financialHealth, momentum },
   };
-  
-  return { score, breakdown };
 }
 
 export function StockDetailDrawer({ ticker, isOpen, onClose }: StockDetailDrawerProps) {
@@ -245,8 +250,9 @@ export function StockDetailDrawer({ ticker, isOpen, onClose }: StockDetailDrawer
 
   const backendScore = quote?.score;
   const backendSignal = quote?.signal;
-  const fallbackScoreData = calculateFallbackScore(quote, metrics);
-  const scoreData = backendScore != null 
+  const historicalPrices = historicalData.map((d) => d.price);
+  const fallbackScoreData = calculateFallbackScore(quote, metrics, historicalPrices);
+  const scoreData = backendScore != null
     ? { score: backendScore, breakdown: fallbackScoreData.breakdown }
     : fallbackScoreData;
   const signal = backendSignal || (scoreData.score >= 70 ? 'buy' : scoreData.score >= 40 ? 'hold' : 'sell');

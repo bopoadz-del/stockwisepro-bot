@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { stocksApi } from '@/lib/api/stocks';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { calculateMomentumScore } from '@/lib/scoring';
 import { LineChart as ReLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface Experiment {
@@ -66,16 +67,21 @@ export function ExperimentWorkspace() {
 
       for (const ticker of sampleTickers) {
         try {
-          const [quoteResponse, metricsResponse] = await Promise.all([
+          const to = new Date().toISOString().split('T')[0];
+          const from = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+          const [quoteResponse, metricsResponse, historicalResponse] = await Promise.all([
             stocksApi.getQuote(ticker),
             stocksApi.getKeyMetrics(ticker),
+            stocksApi.getHistorical(ticker, from, to),
           ]);
 
           const quote = quoteResponse.data;
           const metrics = metricsResponse.data;
+          const historicalPrices = (historicalResponse.data || []).map((h) => h.close);
 
           if (metrics) {
-            // Calculate simple old score
+            // Calculate simple old score (now with RSI + SMA momentum)
             let oldScore = 50;
             if (metrics.peRatio && metrics.peRatio > 0) {
               if (metrics.peRatio < 15) oldScore += 15;
@@ -83,12 +89,8 @@ export function ExperimentWorkspace() {
               else if (metrics.peRatio < 40) oldScore += 5;
               else oldScore -= 5;
             }
-            if (quote?.changesPercentage) {
-              if (quote.changesPercentage > 5) oldScore += 10;
-              else if (quote.changesPercentage > 0) oldScore += 5;
-              else if (quote.changesPercentage < -5) oldScore -= 10;
-              else if (quote.changesPercentage < 0) oldScore -= 5;
-            }
+            const momentum = calculateMomentumScore(quote?.changesPercentage ?? 0, historicalPrices);
+            oldScore += (momentum - 50) * 0.4;
             oldScore = Math.max(0, Math.min(100, oldScore));
             
             const metricsInput = {

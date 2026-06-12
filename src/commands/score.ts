@@ -6,7 +6,7 @@ import { yahooSearch, getHistoricalPrices } from '../api/yahoo';
 import { databento } from '../api/databento';
 import { alpaca } from '../api/alpaca';
 import { fmp } from '../api/fmp';
-import { userSafeError } from '../utils/logger';
+import { userSafeError, logger } from '../utils/logger';
 import { validateTicker } from '../utils/validation';
 import YahooFinance from 'yahoo-finance2';
 
@@ -40,58 +40,79 @@ async function fetchQuoteSummary(ticker: string, modules: string[]): Promise<any
   return result;
 }
 
+const PRICE_FETCH_TIMEOUT_MS = 3000;
+
+type PriceSource =
+  | { name: 'yahoo_search'; price: number }
+  | { name: 'yahoo_quote'; price: number }
+  | { name: 'yahoo_history'; price: number }
+  | { name: 'fmp'; price: number }
+  | { name: 'databento'; price: number }
+  | { name: 'alpaca'; price: number };
+
 async function fetchLivePrice(ticker: string): Promise<number> {
   const upper = ticker.toUpperCase();
 
-  try {
-    const search = await yahooSearch(upper);
-    if (search.data && search.data.length > 0) {
-      const first = search.data[0] as any;
-      if (first.price && Number(first.price) > 0) {
-        return Number(first.price);
-      }
-    }
-  } catch { /* ignore */ }
+  const withTimeout = <T>(name: string, promise: Promise<T | null | undefined>): Promise<T | null> =>
+    Promise.race([
+      promise.then((v) => v ?? null).catch((err) => {
+        logger.warn(`Price fetch ${name} failed`, { ticker: upper, error: String(err) });
+        return null;
+      }),
+      new Promise<null>((resolve) =>
+        setTimeout(() => {
+          logger.warn(`Price fetch ${name} timed out`, { ticker: upper });
+          resolve(null);
+        }, PRICE_FETCH_TIMEOUT_MS)
+      ),
+    ]);
 
-  try {
-    const summary = await fetchQuoteSummary(upper, ['price']);
-    const price = (summary as any)?.price?.regularMarketPrice;
-    if (price && Number(price) > 0) {
-      return Number(price);
-    }
-  } catch { /* ignore */ }
+  const candidates: Array<() => Promise<PriceSource | null>> = [
+    async () => {
+      const search = await withTimeout('yahoo_search', yahooSearch(upper));
+      const first = search?.data?.[0] as any;
+      const price = first?.price ? Number(first.price) : 0;
+      return price > 0 ? { name: 'yahoo_search', price } : null;
+    },
+    async () => {
+      const summary = await withTimeout('yahoo_quote', fetchQuoteSummary(upper, ['price']));
+      const price = Number((summary as any)?.price?.regularMarketPrice) || 0;
+      return price > 0 ? { name: 'yahoo_quote', price } : null;
+    },
+    async () => {
+      const hist = await withTimeout('yahoo_history', getHistoricalPrices(upper, '1y'));
+      const last = hist?.data?.[hist.data.length - 1];
+      const price = last?.close ?? 0;
+      return price > 0 ? { name: 'yahoo_history', price } : null;
+    },
+    async () => {
+      const quote = await withTimeout('fmp', fmp.getQuote(upper));
+      const price = quote?.price ?? 0;
+      return price > 0 ? { name: 'fmp', price } : null;
+    },
+    async () => {
+      const trade = await withTimeout('databento', databento.getLatestTrade(upper));
+      const price = trade?.price ?? 0;
+      return price > 0 ? { name: 'databento', price } : null;
+    },
+    async () => {
+      const price = await withTimeout('alpaca', alpaca.getLatestTrade(upper));
+      const safePrice = price ?? 0;
+      return safePrice > 0 ? { name: 'alpaca', price: safePrice } : null;
+    },
+  ];
 
-  try {
-    const hist = await getHistoricalPrices(upper, '1y');
-    if (hist.data && hist.data.length > 0) {
-      const last = hist.data[hist.data.length - 1];
-      if (last.close && last.close > 0) {
-        return last.close;
-      }
-    }
-  } catch { /* ignore */ }
+  // Run all price sources concurrently; the first successful one wins
+  const promises = candidates.map((fn) => fn());
+  const results = await Promise.all(promises);
+  const winner = results.find((r): r is PriceSource => r !== null);
 
-  try {
-    const quote = await fmp.getQuote(upper);
-    if (quote && quote.price > 0) {
-      return quote.price;
-    }
-  } catch { /* ignore */ }
+  if (winner) {
+    logger.info(`Price fetched for ${upper}`, { source: winner.name, price: winner.price });
+    return winner.price;
+  }
 
-  try {
-    const trade = await databento.getLatestTrade(upper);
-    if (trade && trade.price > 0) {
-      return trade.price;
-    }
-  } catch { /* ignore */ }
-
-  try {
-    const price = await alpaca.getLatestTrade(upper);
-    if (price > 0) {
-      return price;
-    }
-  } catch { /* ignore */ }
-
+  logger.warn(`All price sources failed for ${upper}`);
   return 0;
 }
 

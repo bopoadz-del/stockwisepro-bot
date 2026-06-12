@@ -1,6 +1,7 @@
 import { Context } from 'telegraf';
 import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
+import { runBacktest } from '../services/backtest';
 import { userSafeError } from '../utils/logger';
 
 // Tracks users currently awaiting experiment formula input (telegramId → true)
@@ -43,6 +44,9 @@ export async function runExperimentFromText(ctx: Context, text: string) {
     return;
   }
 
+  // Local 6M forward-return backtest
+  const backtest = await runBacktest(text);
+
   let resultText: string;
   if (typeof data?.result === 'string') {
     resultText = data.result;
@@ -63,5 +67,20 @@ export async function runExperimentFromText(ctx: Context, text: string) {
   } else {
     resultText = String(data ?? 'No result returned.');
   }
-  await ctx.reply(`🧪 *Experiment Result:*\n\n\`\`\`\n${resultText}\n\`\`\``, { parse_mode: 'Markdown' });
+  const backtestLines = [
+    `📊 *6M Forward Return Backtest*`,
+    `Tested: ${backtest.totalTested} stocks | Selected: ${backtest.selectedCount}`,
+    backtest.selectedReturn !== null
+      ? `Selected avg return: ${(backtest.selectedReturn * 100).toFixed(2)}%`
+      : 'Selected avg return: n/a',
+    backtest.marketReturn !== null
+      ? `SPY (6M) return: ${(backtest.marketReturn * 100).toFixed(2)}%`
+      : 'SPY return: n/a',
+    `Winners: ${backtest.winners} | Losers: ${backtest.losers}`,
+  ];
+
+  await ctx.reply(
+    `🧪 *Experiment Result:*\n\n\`\`\`\n${resultText}\n\`\`\`\n\n${backtestLines.join('\n')}`,
+    { parse_mode: 'Markdown' }
+  );
 }

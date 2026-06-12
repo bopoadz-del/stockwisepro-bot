@@ -1,9 +1,10 @@
-import { createWorker } from 'tesseract.js';
+import { createWorker, PSM } from 'tesseract.js';
 import fs from 'fs';
 import path from 'path';
 import { computeOpenBoxScore } from './openbox/engine';
 import { fmp } from '../api/fmp';
 import { logger } from '../utils/logger';
+import { loadStockUniverse } from './universe';
 
 const TMP_DIR = process.env.DATA_DIR ? path.join(process.env.DATA_DIR, 'tmp') : '/tmp';
 
@@ -38,53 +39,121 @@ const FALSE_POSITIVES = new Set([
   'LLC', 'INC', 'CORP', 'LTD', 'PLC', 'AG', 'SA', 'SE', 'BV', 'NV', 'GMBH', 'PTY', 'SDN',
   'SEC', 'FDA', 'IRS', 'EPA', 'FBI', 'CIA', 'NASA', 'NATO', 'UN', 'EU', 'UK', 'USA', 'US',
   'GDP', 'CPI', 'PPI', 'PCE', 'PMI', 'ISM', 'NFP', 'ADP', 'EIA', 'API', 'OPEC', 'FOMC',
+  // Months / dates / times
+  'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+  'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN',
+  'AM', 'PM', 'ET', 'EST', 'EDT', 'PT', 'PST', 'PDT', 'CT', 'CST', 'CDT',
+  // UI / app chrome
+  'APP', 'IOS', 'ANDROID', 'WIFI', 'LTE', 'GPS', 'SMS', 'PIN', 'BIO', 'FACE', 'TOUCH', 'ID',
+  'OK', 'DONE', 'EDIT', 'SAVE', 'ADD', 'NEW', 'ALL', 'TOP', 'HOT', 'POPULAR', 'TRENDING',
 ]);
+
+const UNIVERSE = loadStockUniverse();
+const VALID_TICKERS = new Set(UNIVERSE.map((s) => s.ticker.toUpperCase()));
+
+function normalizeTickerCandidate(raw: string): string {
+  // OCR often misreads characters. Try to clean the candidate.
+  return raw
+    .toUpperCase()
+    .replace(/[^A-Z0-9.]/g, '')
+    .replace(/^[0-9]+/, '') // leading digits are almost never part of a US ticker
+    .replace(/\.+$/, '')
+    .slice(0, 6);
+}
+
+function levenshtein(a: string, b: string): number {
+  const matrix: number[][] = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      matrix[i][j] =
+        b[i - 1] === a[j - 1]
+          ? matrix[i - 1][j - 1]
+          : Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
+function fuzzyMatchTicker(candidate: string): string | undefined {
+  if (VALID_TICKERS.has(candidate)) return candidate;
+  if (candidate.length < 2 || candidate.length > 5) return undefined;
+
+  // Allow one-character OCR error if it maps to a valid ticker
+  let best: string | undefined;
+  let bestDist = Infinity;
+  for (const ticker of VALID_TICKERS) {
+    if (Math.abs(ticker.length - candidate.length) > 1) continue;
+    const dist = levenshtein(candidate, ticker);
+    if (dist < bestDist && dist <= 1) {
+      bestDist = dist;
+      best = ticker;
+    }
+  }
+  return best;
+}
+
+function looksLikeTickerContext(line: string, ticker: string): boolean {
+  // A ticker is more likely if a nearby token looks like a price or percent
+  const idx = line.toUpperCase().indexOf(ticker);
+  if (idx === -1) return false;
+  const snippet = line.slice(Math.max(0, idx - 20), idx + ticker.length + 20);
+  return /[\$\%\d]/.test(snippet);
+}
 
 export function extractTickers(text: string): string[] {
   const tickers: string[] = [];
   const seen = new Set<string>();
 
-  // Pattern 1: $TICKER
-  const dollarMatches = text.match(/\$([A-Z]{1,5})\b/g);
+  const addTicker = (raw: string, source: string) => {
+    const candidate = normalizeTickerCandidate(raw);
+    if (!candidate || candidate.length < 1 || candidate.length > 6) return;
+    if (COMMON_WORDS.has(candidate) || FALSE_POSITIVES.has(candidate)) return;
+
+    const matched = fuzzyMatchTicker(candidate);
+    if (matched && !seen.has(matched)) {
+      seen.add(matched);
+      tickers.push(matched);
+      // logger.debug is unavailable; keep silent in hot path
+    }
+  };
+
+  // Pattern 1: $TICKER (high confidence)
+  const dollarMatches = text.match(/\$[A-Z0-9.]{1,6}\b/gi);
   if (dollarMatches) {
     for (const m of dollarMatches) {
-      const ticker = m.replace('$', '').toUpperCase();
-      if (!seen.has(ticker) && ticker.length >= 1 && ticker.length <= 5 && !FALSE_POSITIVES.has(ticker)) {
-        seen.add(ticker);
-        tickers.push(ticker);
-      }
+      addTicker(m.replace('$', ''), '$prefix');
     }
   }
 
-  // Pattern 2: Standalone uppercase 1-5 letter words
-  const wordMatches = text.match(/\b[A-Z]{1,5}\b/g);
+  // Pattern 2: Lines that start with TICKER followed by price/percent
+  const lines = text.split(/[\n\r]+/);
+  for (const line of lines) {
+    const startMatch = line.match(/^(\b[A-Z0-9.]{1,6}\b)\s*[\$\|\-\—]/i);
+    if (startMatch) {
+      addTicker(startMatch[1], 'line-start');
+    }
+  }
+
+  // Pattern 3: Standalone uppercase/alphanumeric 1-6 char tokens
+  // Require at least one letter and context (price/percent nearby) to reduce false positives
+  const wordMatches = text.match(/\b[A-Z]{1,6}\b/g);
   if (wordMatches) {
     for (const m of wordMatches) {
-      const ticker = m.toUpperCase();
-      if (
-        ticker.length >= 1 &&
-        ticker.length <= 5 &&
-        !COMMON_WORDS.has(ticker) &&
-        !FALSE_POSITIVES.has(ticker) &&
-        !seen.has(ticker) &&
-        /^[A-Z]+$/.test(ticker)
-      ) {
-        seen.add(ticker);
-        tickers.push(ticker);
-      }
-    }
-  }
-
-  // Pattern 3: Known brokerage format "TICKER - Company Name" or "TICKER | Price"
-  const lineMatches = text.split(/[\n\r]+/);
-  for (const line of lineMatches) {
-    // Match patterns like "AAPL  $195.89" or "AAPL | 1.27%" at start of line
-    const startMatch = line.match(/^(\b[A-Z]{1,5}\b)\s*[\$\|\-\—]/);
-    if (startMatch) {
-      const ticker = startMatch[1].toUpperCase();
-      if (!seen.has(ticker) && !COMMON_WORDS.has(ticker) && !FALSE_POSITIVES.has(ticker)) {
-        seen.add(ticker);
-        tickers.push(ticker);
+      const candidate = m.toUpperCase();
+      if (candidate.length < 1 || COMMON_WORDS.has(candidate) || FALSE_POSITIVES.has(candidate)) continue;
+      if (!/^[A-Z]+$/.test(candidate)) continue;
+      if (VALID_TICKERS.has(candidate)) {
+        addTicker(candidate, 'standalone-valid');
+      } else if (candidate.length >= 2 && candidate.length <= 5) {
+        // Only consider fuzzy matches if the word is in a financial context
+        const hasContext = lines.some((line) =>
+          line.toUpperCase().includes(candidate) && looksLikeTickerContext(line, candidate)
+        );
+        if (hasContext) {
+          addTicker(candidate, 'standalone-fuzzy');
+        }
       }
     }
   }
@@ -100,6 +169,12 @@ export interface OCRResult {
 export async function runOCR(imagePath: string): Promise<OCRResult> {
   const worker = await createWorker('eng');
   try {
+    // Optimize for ticker recognition: uppercase letters, $, digits, and punctuation
+    await worker.setParameters({
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ$0123456789.,%-/ ',
+      tessedit_pageseg_mode: PSM.SPARSE_TEXT,
+      preserve_interword_spaces: '1',
+    });
     const { data: { text } } = await worker.recognize(imagePath);
     const tickers = extractTickers(text);
     return { tickers, rawText: text };

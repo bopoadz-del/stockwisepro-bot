@@ -122,22 +122,28 @@ export function calculateSharpeRatio(returns: number[], riskFreeRateAnnual = 0.0
 }
 
 export function calculateMaxDrawdown(prices: number[]): { maxDrawdown: number; peak: number; trough: number } {
-  let peak = prices[0];
-  let trough = prices[0];
+  let runningPeak = prices[0];
+  let runningTrough = prices[0];
   let maxDD = 0;
+  let maxPeak = prices[0];
+  let maxTrough = prices[0];
 
   for (const price of prices) {
-    if (price > peak) {
-      peak = price;
-      trough = price;
-    } else if (price < trough) {
-      trough = price;
-      const dd = (peak - trough) / peak;
-      if (dd > maxDD) maxDD = dd;
+    if (price > runningPeak) {
+      runningPeak = price;
+      runningTrough = price;
+    } else if (price < runningTrough) {
+      runningTrough = price;
+      const dd = (runningPeak - runningTrough) / runningPeak;
+      if (dd > maxDD) {
+        maxDD = dd;
+        maxPeak = runningPeak;
+        maxTrough = runningTrough;
+      }
     }
   }
 
-  return { maxDrawdown: maxDD, peak, trough };
+  return { maxDrawdown: maxDD, peak: maxPeak, trough: maxTrough };
 }
 
 export function calculateVaR(returns: number[], confidence = 0.05): number {

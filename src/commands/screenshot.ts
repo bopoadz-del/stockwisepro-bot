@@ -51,9 +51,11 @@ export async function handleScreenshot(ctx: Context) {
     }
 
     if (tickers.length === 0) {
+      const rawPreview = rawText.length > 300 ? rawText.slice(0, 300) + '…' : rawText;
       await ctx.reply(
         '🤖 No ticker symbols found in the image.\n\n' +
-        'I look for text like *AAPL*, *$TSLA*, etc. Try a clearer screenshot of your portfolio.'
+        'I look for text like *AAPL*, *$TSLA*, etc. Try a clearer screenshot of your portfolio.\n\n' +
+        `_Raw text I read:_\n\`\`\`\n${rawPreview}\n\`\`\``
       );
       return;
     }

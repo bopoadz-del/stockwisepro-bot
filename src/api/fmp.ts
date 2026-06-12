@@ -114,6 +114,27 @@ export interface FMPInsiderTrade {
   url: string;
 }
 
+export interface FMPIncomeStatement {
+  date: string;
+  symbol: string;
+  revenue: number;
+  netIncome: number;
+  operatingIncome: number;
+  grossProfit: number;
+  researchAndDevelopmentExpenses?: number;
+}
+
+export interface FMPBalanceSheet {
+  date: string;
+  symbol: string;
+  totalAssets: number;
+  totalLiabilities: number;
+  totalCurrentAssets: number;
+  totalCurrentLiabilities: number;
+  retainedEarnings: number;
+  commonStock?: number;
+}
+
 class FMPClient {
   public readonly enabled: boolean;
 
@@ -211,6 +232,16 @@ class FMPClient {
       page: 0,
       limit,
     });
+    return data || [];
+  }
+
+  async getIncomeStatements(symbol: string, limit = 5): Promise<FMPIncomeStatement[]> {
+    const data = await this.getV3<FMPIncomeStatement[]>(`/income-statement/${symbol.toUpperCase()}`, { limit });
+    return data || [];
+  }
+
+  async getBalanceSheets(symbol: string, limit = 5): Promise<FMPBalanceSheet[]> {
+    const data = await this.getV3<FMPBalanceSheet[]>(`/balance-sheet-statement/${symbol.toUpperCase()}`, { limit });
     return data || [];
   }
 

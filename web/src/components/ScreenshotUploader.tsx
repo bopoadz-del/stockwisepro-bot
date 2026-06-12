@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, X, Loader2, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,16 @@ export function ScreenshotUploader({ onSelectStock }: ScreenshotUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState<ScoredTicker[]>([]);
   const [tickersFound, setTickersFound] = useState(0);
+  const [rawText, setRawText] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [showRawText, setShowRawText] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -63,6 +72,8 @@ export function ScreenshotUploader({ onSelectStock }: ScreenshotUploaderProps) {
 
     setUploading(true);
     setResults([]);
+    setRawText('');
+    setPreviewUrl(URL.createObjectURL(file));
     try {
       const formData = new FormData();
       formData.append('image', file);
@@ -82,6 +93,7 @@ export function ScreenshotUploader({ onSelectStock }: ScreenshotUploaderProps) {
 
       setTickersFound(data.tickersFound || 0);
       setResults(data.tickers || []);
+      setRawText(data.rawText || '');
       toast.success(`Found ${data.tickersFound} ticker(s)`);
     } catch (err) {
       toast.error('Upload failed. Please try again.');
@@ -191,8 +203,18 @@ export function ScreenshotUploader({ onSelectStock }: ScreenshotUploaderProps) {
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
-                      className="space-y-3"
+                      className="space-y-4"
                     >
+                      {previewUrl && (
+                        <div className="rounded-lg overflow-hidden border border-white/10">
+                          <img
+                            src={previewUrl}
+                            alt="Uploaded screenshot"
+                            className="w-full max-h-48 object-contain bg-black"
+                          />
+                        </div>
+                      )}
+
                       <div className="flex items-center justify-between">
                         <p className="text-white/70 text-sm">
                           Found <span className="text-gold font-semibold">{tickersFound}</span> ticker(s)
@@ -201,6 +223,11 @@ export function ScreenshotUploader({ onSelectStock }: ScreenshotUploaderProps) {
                           onClick={() => {
                             setResults([]);
                             setTickersFound(0);
+                            setRawText('');
+                            if (previewUrl) {
+                              URL.revokeObjectURL(previewUrl);
+                              setPreviewUrl(null);
+                            }
                           }}
                           className="text-sm text-white/40 hover:text-white transition-colors"
                         >
@@ -229,7 +256,7 @@ export function ScreenshotUploader({ onSelectStock }: ScreenshotUploaderProps) {
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
                             {r.score !== null ? (
                               <span className={`font-bold ${getScoreColor(r.score)}`}>
                                 {r.score}/100
@@ -247,9 +274,33 @@ export function ScreenshotUploader({ onSelectStock }: ScreenshotUploaderProps) {
                                 View
                               </Button>
                             )}
+                            <button
+                              onClick={() => setResults((prev) => prev.filter((item) => item.ticker !== r.ticker))}
+                              className="p-1.5 rounded-md text-white/40 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                              title="Remove ticker"
+                            >
+                              <X size={14} />
+                            </button>
                           </div>
                         </div>
                       ))}
+
+                      {rawText && (
+                        <div className="border border-white/10 rounded-lg overflow-hidden">
+                          <button
+                            onClick={() => setShowRawText((v) => !v)}
+                            className="w-full flex items-center justify-between p-3 bg-[#141414] text-white/70 text-sm hover:text-white transition-colors"
+                          >
+                            <span>Raw OCR text</span>
+                            <span className="text-white/40">{showRawText ? 'Hide' : 'Show'}</span>
+                          </button>
+                          {showRawText && (
+                            <div className="p-3 bg-[#0f0f0f] text-white/50 text-xs font-mono whitespace-pre-wrap max-h-40 overflow-y-auto">
+                              {rawText}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>

@@ -627,6 +627,7 @@ router.post('/screenshots', upload.single('image'), async (req: Request, res: Re
     res.json({
       tickersFound: tickers.length,
       tickers: results,
+      rawText: rawText.slice(0, 2000), // avoid huge payloads
     });
   } catch (err) {
     logger.error('Screenshot OCR failed', { error: String(err) });

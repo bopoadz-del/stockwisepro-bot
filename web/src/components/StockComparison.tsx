@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { stocksApi, type StockQuote, type KeyMetrics } from '@/lib/api/stocks';
 import { formatCurrency, formatPercentage, getScoreColor } from '@/lib/utils';
+import { calculateMomentumScore } from '@/lib/scoring';
 import { ScoreVisualizer } from './ScoreVisualizer';
 import { SignalBadge } from './SignalBadge';
 import {
@@ -21,6 +22,7 @@ interface ComparisonStock {
   ticker: string;
   quote: StockQuote | null;
   metrics: KeyMetrics | null;
+  historicalPrices: number[];
   score: number;
   loading: boolean;
 }
@@ -30,12 +32,16 @@ interface StockComparisonProps {
   onClose: () => void;
 }
 
-// Calculate score from quote and metrics
-function calculateScore(quote: StockQuote | null, metrics: KeyMetrics | null): number {
+// Calculate score from quote, metrics, and optional historical prices
+function calculateScore(
+  quote: StockQuote | null,
+  metrics: KeyMetrics | null,
+  historicalPrices?: number[]
+): number {
   if (!quote) return 50;
-  
+
   let score = 50; // Base score
-  
+
   // Factor in P/E ratio
   if (metrics?.peRatio && metrics.peRatio > 0) {
     if (metrics.peRatio < 15) score += 15;
@@ -43,13 +49,11 @@ function calculateScore(quote: StockQuote | null, metrics: KeyMetrics | null): n
     else if (metrics.peRatio < 40) score += 5;
     else score -= 5;
   }
-  
-  // Factor in price momentum
-  if (quote.changesPercentage > 5) score += 10;
-  else if (quote.changesPercentage > 0) score += 5;
-  else if (quote.changesPercentage < -5) score -= 10;
-  else if (quote.changesPercentage < 0) score -= 5;
-  
+
+  // Factor in price momentum (RSI + SMA trends when historical prices are available)
+  const momentum = calculateMomentumScore(quote.changesPercentage, historicalPrices);
+  score += (momentum - 50) * 0.4;
+
   return Math.max(0, Math.min(100, score));
 }
 
@@ -66,6 +70,7 @@ export function StockComparison({ isOpen, onClose }: StockComparisonProps) {
       ticker: ticker.toUpperCase(),
       quote: null,
       metrics: null,
+      historicalPrices: [],
       score: 0,
       loading: true,
     };
@@ -75,14 +80,19 @@ export function StockComparison({ isOpen, onClose }: StockComparisonProps) {
     setIsAdding(false);
 
     try {
-      const [quoteResponse, metricsResponse] = await Promise.all([
+      const to = new Date().toISOString().split('T')[0];
+      const from = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      const [quoteResponse, metricsResponse, historicalResponse] = await Promise.all([
         stocksApi.getQuote(ticker),
         stocksApi.getKeyMetrics(ticker),
+        stocksApi.getHistorical(ticker, from, to),
       ]);
 
       const quote = quoteResponse.data || null;
       const metrics = metricsResponse.data || null;
-      const score = calculateScore(quote, metrics);
+      const historicalPrices = (historicalResponse.data || []).map((h) => h.close);
+      const score = calculateScore(quote, metrics, historicalPrices);
 
       setStocks((prev) =>
         prev.map((s) =>
@@ -91,6 +101,7 @@ export function StockComparison({ isOpen, onClose }: StockComparisonProps) {
                 ...s,
                 quote,
                 metrics,
+                historicalPrices,
                 score,
                 loading: false,
               }
@@ -121,7 +132,9 @@ export function StockComparison({ isOpen, onClose }: StockComparisonProps) {
           'Valuation': stock.metrics?.peRatio ? Math.min(100, (30 - stock.metrics.peRatio) * 3.33) : 50,
           'Profitability': stock.metrics?.roe ? Math.min(100, stock.metrics.roe * 100 * 2) : 50,
           'Financial Health': stock.metrics?.debtToEquity ? Math.max(0, (1 - stock.metrics.debtToEquity) * 100) : 50,
-          'Momentum': stock.quote?.changesPercentage ? Math.min(100, 50 + stock.quote.changesPercentage * 2) : 50,
+          'Momentum': stock.quote
+            ? calculateMomentumScore(stock.quote.changesPercentage, stock.historicalPrices)
+            : 50,
         };
         dataPoint[stock.ticker] = Math.max(0, Math.min(100, breakdown[cat] || 50));
       }
