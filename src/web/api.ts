@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { fmp } from '../api/fmp';
-import { yahooSearch, getYahooQuote } from '../api/yahoo';
+import { yahooSearch, getYahooQuote, getHistoricalPrices } from '../api/yahoo';
 import { computeOpenBoxScore } from '../services/openbox/engine';
 import { getLocalMimicAllocation, fetchMimicPrices } from '../services/mimic';
 import { getStockByTicker } from '../services/universe';
@@ -17,6 +17,7 @@ import {
   removeWebAlert,
 } from '../db';
 import { runOCR, scoreTickers, makeTmpPath, cleanupFile } from '../services/ocr';
+import { runBacktest } from '../services/backtest';
 import { hashPassword, comparePassword, authMiddleware, WebAuthRequest } from './auth';
 import fs from 'fs';
 import path from 'path';
@@ -414,6 +415,134 @@ router.get('/stocks/indices', async (_req: Request, res: Response) => {
   } catch (err) {
     logger.error('Indices error', { error: String(err) });
     res.status(500).json({ error: 'Failed to fetch indices' });
+  }
+});
+
+router.get('/stocks/historical/:ticker', async (req: Request, res: Response) => {
+  try {
+    const ticker = String(req.params.ticker).toUpperCase();
+    const range = String(req.query.range || '1y') as '1y' | '2y' | '5y';
+    const result = await getHistoricalPrices(ticker, range);
+    if (result.error) {
+      res.status(502).json({ error: result.error });
+      return;
+    }
+    res.json(result.data);
+  } catch (err) {
+    logger.error('Historical prices error', { error: String(err) });
+    res.status(500).json({ error: 'Failed to fetch historical prices' });
+  }
+});
+
+router.get('/stocks/:ticker', async (req: Request, res: Response) => {
+  try {
+    const ticker = String(req.params.ticker).toUpperCase();
+    let quote = await fmp.getQuote(ticker);
+    if (!quote) {
+      const yq = await getYahooQuote(ticker);
+      if (yq) {
+        quote = {
+          symbol: yq.symbol,
+          name: yq.name,
+          price: yq.price,
+          change: yq.change,
+          changesPercentage: yq.changesPercentage,
+          marketCap: yq.marketCap || 0,
+          pe: yq.pe || 0,
+          volume: yq.volume || 0,
+          avgVolume: yq.avgVolume || 0,
+          dayLow: yq.dayLow || 0,
+          dayHigh: yq.dayHigh || 0,
+          yearLow: yq.yearLow || 0,
+          yearHigh: yq.yearHigh || 0,
+          eps: yq.eps || 0,
+        } as any;
+      }
+    }
+
+    const [scoreResult, metrics] = await Promise.all([
+      computeOpenBoxScore(ticker).catch(() => null),
+      fmp.getKeyMetrics(ticker).catch(() => null),
+    ]);
+
+    if (!quote) {
+      res.status(404).json({ error: 'Stock not found' });
+      return;
+    }
+
+    const signal = scoreResult
+      ? scoreResult.finalScore >= 70 ? 'buy' : scoreResult.finalScore >= 45 ? 'hold' : 'sell'
+      : 'hold';
+
+    res.json({
+      symbol: quote.symbol,
+      name: quote.name,
+      price: quote.price,
+      change: quote.change,
+      changesPercentage: quote.changesPercentage,
+      marketCap: quote.marketCap,
+      pe: quote.pe,
+      volume: quote.volume,
+      avgVolume: quote.avgVolume,
+      dayLow: quote.dayLow,
+      dayHigh: quote.dayHigh,
+      yearLow: quote.yearLow,
+      yearHigh: quote.yearHigh,
+      eps: quote.eps,
+      score: scoreResult?.finalScore ?? null,
+      signal,
+      metrics: metrics ? {
+        peRatio: metrics.peRatio,
+        priceToBookRatio: metrics.priceToBookRatio,
+        priceToSalesRatio: metrics.priceToSalesRatio,
+        roe: metrics.roe,
+        roa: metrics.returnOnAssets,
+        debtToEquity: metrics.debtToEquity,
+        currentRatio: metrics.currentRatio,
+        dividendYield: metrics.dividendYield,
+      } : null,
+    });
+  } catch (err) {
+    logger.error('Stock detail error', { error: String(err) });
+    res.status(500).json({ error: 'Failed to fetch stock detail' });
+  }
+});
+
+router.get('/scores/:ticker', async (req: Request, res: Response) => {
+  try {
+    const ticker = String(req.params.ticker).toUpperCase();
+    const result = await computeOpenBoxScore(ticker);
+    if (!result) {
+      res.status(404).json({ error: 'Unable to compute score' });
+      return;
+    }
+    const signal = result.finalScore >= 70 ? 'buy' : result.finalScore >= 45 ? 'hold' : 'sell';
+    res.json({
+      symbol: ticker,
+      score: result.finalScore,
+      signal,
+      sector: result.sector,
+      industry: result.industry,
+      pillars: result.pillars,
+    });
+  } catch (err) {
+    logger.error('Score error', { error: String(err) });
+    res.status(500).json({ error: 'Failed to compute score' });
+  }
+});
+
+router.post('/experiments', async (req: Request, res: Response) => {
+  try {
+    const { formula, ticker } = req.body;
+    if (!formula || typeof formula !== 'string') {
+      res.status(400).json({ error: 'formula required' });
+      return;
+    }
+    const result = await runBacktest(formula, ticker ? [ticker] : undefined);
+    res.json(result);
+  } catch (err) {
+    logger.error('Experiment error', { error: String(err) });
+    res.status(500).json({ error: 'Failed to run experiment' });
   }
 });
 
