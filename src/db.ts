@@ -209,6 +209,12 @@ const MIGRATIONS: Array<{ version: number; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_market_alerts_created_at ON market_alerts(created_at);
     `,
   },
+  {
+    version: 7,
+    sql: `
+      ALTER TABLE users ADD COLUMN market_alerts_optin INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ];
 
 export function initDb() {
@@ -268,6 +274,33 @@ export function setUserLanguage(telegramId: number, language: 'en' | 'ar') {
   // Ensure a row exists, then set the language.
   conn.prepare('INSERT OR IGNORE INTO users (telegram_id) VALUES (?)').run(telegramId);
   conn.prepare('UPDATE users SET language = ? WHERE telegram_id = ?').run(lang, telegramId);
+}
+
+export function getMarketAlertOptIn(telegramId: number): boolean {
+  try {
+    const conn = ensureDb();
+    const row = conn.prepare('SELECT market_alerts_optin FROM users WHERE telegram_id = ?').get(telegramId) as { market_alerts_optin?: number } | undefined;
+    return !!row && row.market_alerts_optin === 1;
+  } catch {
+    return false;
+  }
+}
+
+export function setMarketAlertOptIn(telegramId: number, optIn: boolean) {
+  const conn = ensureDb();
+  conn.prepare('INSERT OR IGNORE INTO users (telegram_id) VALUES (?)').run(telegramId);
+  conn.prepare('UPDATE users SET market_alerts_optin = ? WHERE telegram_id = ?').run(optIn ? 1 : 0, telegramId);
+}
+
+export function getMarketAlertSubscribers(): Array<{ telegram_id: number; language: string }> {
+  try {
+    const conn = ensureDb();
+    return conn.prepare(
+      "SELECT telegram_id, COALESCE(language, 'en') AS language FROM users WHERE market_alerts_optin = 1"
+    ).all() as Array<{ telegram_id: number; language: string }>;
+  } catch {
+    return [];
+  }
 }
 
 export function logEvent(event: {

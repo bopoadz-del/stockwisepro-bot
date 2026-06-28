@@ -11,7 +11,8 @@ import { mimicCommand, handleMimicCallback, handleMimicEthicsCallback, handleRep
 import { experimentCommand, pendingExperiment } from './experiment';
 import { handleChatMessage } from './chat';
 import { alertCommand } from './alert';
-import { adminCommand, adminExportCommand, adminExportWeightsCommand } from './admin';
+import { adminCommand, adminExportCommand, adminExportWeightsCommand, adminExportScoresCommand } from './admin';
+import { marketAlertsCommand } from './marketalerts';
 import { adminLearningCommand, adminExportMissedCommand, handleCorrectIntentCallback } from './learning';
 import { weightsCommand, weightsSetCommand, handleWeightCallback } from './weights';
 import { simulateCommand } from './simulate';
@@ -57,9 +58,11 @@ export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('lang', languageCommand); // alias
   bot.command('alert', alertCommand);
   bot.command('alerts', alertCommand); // alias
+  bot.command('marketalerts', marketAlertsCommand);
   bot.command('admin', adminCommand);
   bot.command('admin_export', adminExportCommand);
   bot.command('admin_export_weights', adminExportWeightsCommand);
+  bot.command('admin_export_scores', adminExportScoresCommand);
   bot.command('admin_learning', adminLearningCommand);
   bot.command('admin_export_misses', adminExportMissedCommand);
   bot.command('weights', weightsCommand);
