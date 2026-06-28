@@ -18,22 +18,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Validate existing session on mount
+  // On mount: if arriving from a Telegram link (?tg=token), redeem it to sign
+  // into the same profile; otherwise validate any existing session.
   useEffect(() => {
     let cancelled = false;
-    authApi.me()
-      .then((res) => {
-        if (cancelled) return;
-        if (res.data?.user) {
-          setUser(res.data.user);
+
+    const stripTgParam = () => {
+      try {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('tg')) {
+          url.searchParams.delete('tg');
+          window.history.replaceState({}, '', url.pathname + url.search + url.hash);
         }
-      })
-      .catch(() => {
+      } catch {
+        // ignore URL parsing issues
+      }
+    };
+
+    const init = async () => {
+      const tgToken = new URLSearchParams(window.location.search).get('tg');
+      if (tgToken) {
+        try {
+          const res = await authApi.telegramSignIn(tgToken);
+          if (!cancelled && res.data?.user) {
+            setUser(res.data.user);
+            stripTgParam();
+            return;
+          }
+        } catch {
+          // fall through to session check
+        }
+        stripTgParam();
+      }
+
+      try {
+        const res = await authApi.me();
+        if (!cancelled && res.data?.user) setUser(res.data.user);
+      } catch {
         // no session
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
+      }
+    };
+
+    init().finally(() => {
+      if (!cancelled) setIsLoading(false);
+    });
+
     return () => { cancelled = true; };
   }, []);
 

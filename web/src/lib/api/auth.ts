@@ -26,6 +26,9 @@ export const authApi = {
   emailSignIn: (data: { email: string; name?: string }) =>
     apiClient.post<AuthResponse>('/auth/email', data),
 
+  telegramSignIn: (token: string) =>
+    apiClient.post<AuthResponse>('/auth/telegram', { token }),
+
   register: (data: RegisterData) =>
     apiClient.post<AuthResponse>('/auth/register', data),
 

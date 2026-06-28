@@ -21,7 +21,8 @@ import { runOCR, scoreTickers, makeTmpPath, cleanupFile } from '../services/ocr'
 import { runBacktest } from '../services/backtest';
 import { getLatestSnapshot, getLiveAlerts } from '../services/livefeed';
 import { getRecentScoreHistory } from '../db';
-import { hashPassword, comparePassword, authMiddleware, WebAuthRequest } from './auth';
+import { hashPassword, comparePassword, authMiddleware, WebAuthRequest, verifyTelegramLinkToken } from './auth';
+import { upsertWebUserByTelegram } from '../db';
 import fs from 'fs';
 import path from 'path';
 
@@ -193,6 +194,41 @@ router.post('/auth/email', (req: Request, res: Response) => {
     });
   } catch (err) {
     logger.error('Email sign-in error', { error: String(err) });
+    res.status(500).json({ error: 'Sign-in failed' });
+  }
+});
+
+// Auto-login from Telegram: redeem the signed link token into a web session
+// for the SAME profile the user has on the bot.
+router.post('/auth/telegram', (req: Request, res: Response) => {
+  try {
+    const { token } = req.body;
+    if (!token || typeof token !== 'string') {
+      res.status(400).json({ error: 'Token required' });
+      return;
+    }
+    const payload = verifyTelegramLinkToken(token);
+    if (!payload) {
+      res.status(401).json({ error: 'Invalid or expired link' });
+      return;
+    }
+
+    const user = upsertWebUserByTelegram(payload.tid, payload.email, payload.name);
+    if (!user) {
+      res.status(500).json({ error: 'Failed to load profile' });
+      return;
+    }
+
+    const session = (req as any).session;
+    session.userId = user.id;
+    session.webUser = { id: user.id, email: user.email, name: user.name };
+
+    res.json({
+      message: 'Signed in',
+      user: { id: user.id, email: user.email, name: user.name },
+    });
+  } catch (err) {
+    logger.error('Telegram sign-in error', { error: String(err) });
     res.status(500).json({ error: 'Sign-in failed' });
   }
 });

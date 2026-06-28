@@ -221,6 +221,13 @@ const MIGRATIONS: Array<{ version: number; sql: string }> = [
       ALTER TABLE users ADD COLUMN email TEXT;
     `,
   },
+  {
+    version: 9,
+    sql: `
+      ALTER TABLE web_users ADD COLUMN telegram_id INTEGER;
+      CREATE INDEX IF NOT EXISTS idx_web_users_telegram ON web_users(telegram_id);
+    `,
+  },
 ];
 
 export function initDb() {
@@ -736,6 +743,56 @@ export function findWebUserByEmail(email: string) {
     name: string | null;
     created_at: string;
   } | undefined;
+}
+
+export function findWebUserByTelegramId(telegramId: number) {
+  const conn = ensureDb();
+  return conn.prepare('SELECT * FROM web_users WHERE telegram_id = ?').get(telegramId) as {
+    id: number;
+    email: string;
+    password_hash: string;
+    name: string | null;
+    telegram_id: number | null;
+    created_at: string;
+  } | undefined;
+}
+
+export function setWebUserTelegramId(webUserId: number, telegramId: number) {
+  const conn = ensureDb();
+  conn.prepare('UPDATE web_users SET telegram_id = ? WHERE id = ?').run(telegramId, webUserId);
+}
+
+/**
+ * Link (or create) a web profile for a Telegram user. Lets a user who started
+ * on Telegram arrive on the website already signed into the same profile.
+ */
+export function upsertWebUserByTelegram(telegramId: number, email?: string | null, name?: string | null) {
+  const existing = findWebUserByTelegramId(telegramId);
+  if (existing) {
+    if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && existing.email !== email.toLowerCase()) {
+      try {
+        getDb().prepare('UPDATE web_users SET email = ? WHERE id = ?').run(email.toLowerCase(), existing.id);
+        return { id: existing.id, email: email.toLowerCase(), name: existing.name };
+      } catch {
+        // email may collide with another account — keep the existing one
+      }
+    }
+    return { id: existing.id, email: existing.email, name: existing.name };
+  }
+
+  const finalEmail = email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ? email.toLowerCase()
+    : `tg_${telegramId}@telegram.local`;
+
+  const byEmail = findWebUserByEmail(finalEmail);
+  if (byEmail) {
+    setWebUserTelegramId(byEmail.id, telegramId);
+    return { id: byEmail.id, email: byEmail.email, name: byEmail.name };
+  }
+
+  const created = createWebUser(finalEmail, '', name || undefined);
+  if (created) setWebUserTelegramId(created.id, telegramId);
+  return created;
 }
 
 export function findWebUserById(id: number) {
