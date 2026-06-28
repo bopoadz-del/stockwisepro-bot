@@ -43,4 +43,8 @@ export interface MarketInsights {
 export const liveApi = {
   getFeed: () => apiClient.get<LiveFeed>('/live/feed'),
   getInsights: () => apiClient.get<MarketInsights>('/live/insights'),
+  explain: (ticker: string, lang: string) =>
+    apiClient.get<{ ticker: string; summary: string }>(
+      `/live/insights/explain?ticker=${encodeURIComponent(ticker)}&lang=${lang}`
+    ),
 };

@@ -231,6 +231,14 @@ const en: Dict = {
   'insights.mostAlerted': 'Most alerted',
   'insights.empty': 'Collecting data… the live feed records one ticker per minute. Insights appear as data accumulates.',
   'insights.none': '—',
+  'insights.ai.title': 'Explain with AI',
+  'insights.ai.placeholder': 'Ticker (e.g. AAPL)',
+  'insights.ai.button': 'Explain',
+  'insights.ai.loading': 'Analyzing…',
+  'insights.ai.disabled': 'AI explanations are not enabled.',
+  'insights.ai.error': 'Couldn\'t generate an explanation.',
+  'insights.ai.noData': 'No data recorded for that ticker yet.',
+  'insights.ai.disclaimer': 'Experimental, not financial advice.',
 };
 
 const ar: Dict = {
@@ -454,6 +462,14 @@ const ar: Dict = {
   'insights.mostAlerted': 'الأكثر تنبيهًا',
   'insights.empty': 'يجري جمع البيانات… تسجّل التغذية المباشرة رمزًا واحدًا كل دقيقة. تظهر الرؤى مع تراكم البيانات.',
   'insights.none': '—',
+  'insights.ai.title': 'اشرح بالذكاء الاصطناعي',
+  'insights.ai.placeholder': 'الرمز (مثل AAPL)',
+  'insights.ai.button': 'اشرح',
+  'insights.ai.loading': 'جارٍ التحليل…',
+  'insights.ai.disabled': 'تفسيرات الذكاء الاصطناعي غير مفعّلة.',
+  'insights.ai.error': 'تعذّر إنشاء تفسير.',
+  'insights.ai.noData': 'لا توجد بيانات مسجّلة لهذا الرمز بعد.',
+  'insights.ai.disclaimer': 'تجريبي، وليس نصيحة مالية.',
 };
 
 export const TRANSLATIONS: Record<Lang, Dict> = { en, ar };

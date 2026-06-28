@@ -21,7 +21,8 @@ import { runOCR, scoreTickers, makeTmpPath, cleanupFile } from '../services/ocr'
 import { runBacktest } from '../services/backtest';
 import { getLatestSnapshot, getLiveAlerts } from '../services/livefeed';
 import { getRecentScoreHistory } from '../db';
-import { computeMarketInsights, computeTickerInsight } from '../services/insights';
+import { computeMarketInsights, computeTickerInsight, buildTickerContextText } from '../services/insights';
+import { isLlmEnabled, llmGenerate } from '../services/llm';
 import { hashPassword, comparePassword, authMiddleware, WebAuthRequest, verifyTelegramLinkToken } from './auth';
 import { upsertWebUserByTelegram } from '../db';
 import fs from 'fs';
@@ -521,6 +522,42 @@ router.get('/live/insights', (req: Request, res: Response) => {
   } catch (err) {
     logger.error('Insights error', { error: String(err) });
     res.status(500).json({ error: 'Failed to compute insights' });
+  }
+});
+
+// One-shot AI explanation for a ticker (Ollama). Not a chat — single summary.
+router.get('/live/insights/explain', async (req: Request, res: Response) => {
+  try {
+    if (!isLlmEnabled()) {
+      res.status(503).json({ error: 'AI explanations not configured' });
+      return;
+    }
+    const ticker = typeof req.query.ticker === 'string' ? req.query.ticker.trim().toUpperCase() : '';
+    if (!ticker) {
+      res.status(400).json({ error: 'ticker required' });
+      return;
+    }
+    const insight = computeTickerInsight(ticker);
+    if (!insight) {
+      res.status(404).json({ error: 'No data recorded for that ticker yet' });
+      return;
+    }
+    const ar = req.query.lang === 'ar';
+    const system = ar
+      ? 'أنت مساعد أبحاث أسهم موجز. اشرح في 3-4 جُمل ما تشير إليه بيانات التقييم المسجّلة. كن واقعيًا ولا تختلق أرقامًا خارج السياق. هذا تجريبي وليس نصيحة مالية. أجب بالعربية.'
+      : 'You are a concise equity research assistant. Explain in 3-4 sentences what the recorded scoring data suggests. Be factual, do not invent numbers beyond the context. This is experimental and not financial advice.';
+    const summary = await llmGenerate(
+      `Here is the recorded data for ${ticker}:\n\n${buildTickerContextText(insight)}\n\nExplain what this suggests.`,
+      system
+    );
+    if (!summary) {
+      res.status(502).json({ error: 'Could not generate an explanation' });
+      return;
+    }
+    res.json({ ticker, summary });
+  } catch (err) {
+    logger.error('Insights explain error', { error: String(err) });
+    res.status(500).json({ error: 'Failed to explain' });
   }
 });
 
