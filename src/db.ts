@@ -167,6 +167,12 @@ const MIGRATIONS: Array<{ version: number; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_web_alerts_active ON web_alerts(is_active);
     `,
   },
+  {
+    version: 5,
+    sql: `
+      ALTER TABLE users ADD COLUMN language TEXT NOT NULL DEFAULT 'en';
+    `,
+  },
 ];
 
 export function initDb() {
@@ -208,6 +214,24 @@ export function ensureUser(telegramId: number, username?: string, firstName?: st
       last_name = excluded.last_name
   `);
   stmt.run(telegramId, username || null, firstName || null, lastName || null);
+}
+
+export function getUserLanguage(telegramId: number): 'en' | 'ar' {
+  try {
+    const conn = ensureDb();
+    const row = conn.prepare('SELECT language FROM users WHERE telegram_id = ?').get(telegramId) as { language?: string } | undefined;
+    return row?.language === 'ar' ? 'ar' : 'en';
+  } catch {
+    return 'en';
+  }
+}
+
+export function setUserLanguage(telegramId: number, language: 'en' | 'ar') {
+  const conn = ensureDb();
+  const lang = language === 'ar' ? 'ar' : 'en';
+  // Ensure a row exists, then set the language.
+  conn.prepare('INSERT OR IGNORE INTO users (telegram_id) VALUES (?)').run(telegramId);
+  conn.prepare('UPDATE users SET language = ? WHERE telegram_id = ?').run(lang, telegramId);
 }
 
 export function logEvent(event: {

@@ -9,6 +9,7 @@ import { useScoring } from '@/hooks/useScoring';
 import { ScrollReveal } from '@/components/ScrollReveal';
 import { ScoreVisualizer } from '@/components/ScoreVisualizer';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 const presets = [
   { id: 'balanced', name: 'Balanced', description: 'Equal focus on all criteria' },
@@ -18,6 +19,7 @@ const presets = [
 ];
 
 export function ScoringSystem() {
+  const { t } = useTranslation();
   const { weights, updateWeight, resetWeights, totalWeight, isValid, applyPreset } = useScoring();
   const [expandedCriteria, setExpandedCriteria] = useState<string | null>(null);
   const [showSaveToast, setShowSaveToast] = useState(false);
@@ -35,11 +37,10 @@ export function ScoringSystem() {
         <ScrollReveal>
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Transparent <span className="text-gradient-gold">Scoring System</span>
+              {t('scoring.title')} <span className="text-gradient-gold">{t('scoring.titleHighlight')}</span>
             </h2>
             <p className="text-white/60 max-w-2xl mx-auto">
-              See exactly how we calculate scores. Customize weights to match your investment
-              strategy and risk tolerance.
+              {t('scoring.subtitle')}
             </p>
           </div>
         </ScrollReveal>
@@ -49,7 +50,7 @@ export function ScoringSystem() {
           <ScrollReveal delay={0.1} className="lg:col-span-2">
             <div className="bg-[#1f1f1f] rounded-xl border border-white/10 p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-white">Scoring Criteria</h3>
+                <h3 className="text-xl font-semibold text-white">{t('scoring.criteria')}</h3>
                 <div className="flex items-center gap-2">
                   <span
                     className={cn(
@@ -57,21 +58,21 @@ export function ScoringSystem() {
                       isValid ? 'text-green-500' : 'text-amber-500'
                     )}
                   >
-                    Total: {totalWeight}%
+                    {t('scoring.total', { value: totalWeight })}
                   </span>
                 </div>
               </div>
 
               {/* Presets */}
               <div className="flex flex-wrap gap-2 mb-6">
-                <span className="text-white/50 text-sm py-2">Presets:</span>
+                <span className="text-white/50 text-sm py-2">{t('scoring.presets')}</span>
                 {presets.map((preset) => (
                   <button
                     key={preset.id}
                     onClick={() => applyPreset(preset.id as 'balanced' | 'value' | 'growth' | 'quality')}
                     className="px-3 py-1.5 rounded-full text-sm bg-white/5 text-white/70 hover:bg-gold/20 hover:text-gold transition-colors"
                   >
-                    {preset.name}
+                    {t('scoring.preset.' + preset.id)}
                   </button>
                 ))}
               </div>
@@ -92,14 +93,14 @@ export function ScoringSystem() {
                       className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-white font-medium">{criterion.name}</span>
+                        <span className="text-white font-medium">{t('criteria.' + criterion.id + '.name')}</span>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Info size={16} className="text-white/40 hover:text-white/60" />
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p className="max-w-xs">{criterion.description}</p>
+                              <p className="max-w-xs">{t('criteria.' + criterion.id + '.description')}</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -123,12 +124,12 @@ export function ScoringSystem() {
                           className="overflow-hidden"
                         >
                           <div className="px-4 pb-4 pt-2 border-t border-white/10">
-                            <p className="text-white/60 text-sm mb-4">{criterion.description}</p>
+                            <p className="text-white/60 text-sm mb-4">{t('criteria.' + criterion.id + '.description')}</p>
 
                             {/* Weight Slider */}
                             <div className="space-y-3">
                               <div className="flex justify-between text-sm">
-                                <span className="text-white/50">Weight</span>
+                                <span className="text-white/50">{t('scoring.weight')}</span>
                                 <span className="text-gold font-medium">
                                   {weights[criterion.id as keyof typeof weights]}%
                                 </span>
@@ -147,7 +148,7 @@ export function ScoringSystem() {
 
                             {/* Metrics */}
                             <div className="mt-4 space-y-2">
-                              <span className="text-white/50 text-sm">Metrics included:</span>
+                              <span className="text-white/50 text-sm">{t('scoring.metricsIncluded')}</span>
                               <div className="flex flex-wrap gap-2">
                                 {criterion.metrics.map((metric) => (
                                   <span
@@ -175,7 +176,7 @@ export function ScoringSystem() {
                   className="flex-1 border-white/20 text-white/70 hover:bg-white/10"
                 >
                   <RotateCcw size={16} className="mr-2" />
-                  Reset
+                  {t('scoring.reset')}
                 </Button>
                 <Button
                   onClick={handleSave}
@@ -183,7 +184,7 @@ export function ScoringSystem() {
                   className="flex-1 bg-gold hover:bg-gold-light text-[#0a0a0a] font-semibold disabled:opacity-50"
                 >
                   <Save size={16} className="mr-2" />
-                  Save Weights
+                  {t('scoring.saveWeights')}
                 </Button>
               </div>
 
@@ -197,7 +198,7 @@ export function ScoringSystem() {
                     className="mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg flex items-center gap-2"
                   >
                     <Check size={16} className="text-green-500" />
-                    <span className="text-green-500 text-sm">Weights saved successfully!</span>
+                    <span className="text-green-500 text-sm">{t('scoring.savedSuccess')}</span>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -207,7 +208,7 @@ export function ScoringSystem() {
           {/* Score Preview */}
           <ScrollReveal delay={0.2}>
             <div className="bg-[#1f1f1f] rounded-xl border border-white/10 p-6 sticky top-24">
-              <h3 className="text-xl font-semibold text-white mb-6">Score Preview</h3>
+              <h3 className="text-xl font-semibold text-white mb-6">{t('scoring.scorePreview')}</h3>
 
               <div className="flex flex-col items-center mb-8">
                 <ScoreVisualizer score={sampleScore} size="xl" />
@@ -220,7 +221,7 @@ export function ScoringSystem() {
               {/* Breakdown */}
               <div className="space-y-4">
                 <h4 className="text-white/70 text-sm font-medium uppercase tracking-wider">
-                  Breakdown
+                  {t('scoring.breakdown')}
                 </h4>
                 {defaultScoringCriteria.map((criterion) => {
                   const weight = weights[criterion.id as keyof typeof weights];
@@ -229,7 +230,7 @@ export function ScoringSystem() {
                   return (
                     <div key={criterion.id} className="space-y-1">
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/70">{criterion.name}</span>
+                        <span className="text-white/70">{t('criteria.' + criterion.id + '.name')}</span>
                         <span className="text-white/50">
                           {metricScore.toFixed(0)} × {weight}%
                         </span>
@@ -250,13 +251,13 @@ export function ScoringSystem() {
               {/* Final Score */}
               <div className="mt-6 pt-6 border-t border-white/10">
                 <div className="flex items-center justify-between">
-                  <span className="text-white font-medium">Final Score</span>
+                  <span className="text-white font-medium">{t('scoring.finalScore')}</span>
                   <span className="text-2xl font-bold text-gold">{sampleScore}</span>
                 </div>
                 <div className="mt-3 flex items-center justify-between">
-                  <span className="text-white/50 text-sm">Signal</span>
+                  <span className="text-white/50 text-sm">{t('scoring.signal')}</span>
                   <span className="px-3 py-1 rounded-full bg-green-500/10 border border-green-500/30 text-green-500 font-semibold text-sm">
-                    BUY
+                    {t('signal.buy')}
                   </span>
                 </div>
               </div>

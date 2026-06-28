@@ -8,6 +8,9 @@ import { isCacheAvailable } from './services/cache';
 import { logger } from './utils/logger';
 import { rateLimitMiddleware } from './middleware/rateLimit';
 import { analyticsMiddleware } from './middleware/analytics';
+import { i18nMiddleware } from './middleware/i18n';
+import { t } from './i18n';
+import { getUserLanguage } from './db';
 import { registerCommands } from './commands';
 import { registerScenes } from './scenes';
 import { startAlertService } from './services/alerts';
@@ -48,6 +51,7 @@ async function main() {
 
     logger.info('Step 4: Attaching middleware...');
     bot.use(rateLimitMiddleware);
+    bot.use(i18nMiddleware());
     bot.use(analyticsMiddleware());
     logger.info('Step 4: Middleware attached');
 
@@ -67,13 +71,14 @@ async function main() {
         const shortStack = stack ? stack.split('\n').slice(0, 4).join('\n') : 'No stack';
         ctx.reply(`❌ Error: ${errorMessage}\n\n\`\`\`${shortStack}\`\`\``).catch(() => { });
       } else {
-        ctx.reply('❌ Something went wrong. Please try again later.').catch(() => { });
+        const lang = userId ? getUserLanguage(userId) : 'en';
+        ctx.reply(t(lang, 'common.error')).catch(() => { });
       }
     });
 
     // Health-check command
     bot.command('ping', async (ctx) => {
-      await ctx.reply('🏓 Pong! Bot is alive.');
+      await ctx.reply(t(getUserLanguage(ctx.from?.id ?? 0), 'common.ping'));
     });
 
     logger.info('Step 6: Starting alert service...');
@@ -163,6 +168,7 @@ async function main() {
         { command: 'alpaca', description: 'Alpaca trading info' },
         { command: 'dcf', description: 'DCF valuation' },
         { command: 'insider', description: 'Insider trading' },
+        { command: 'language', description: 'Change language / تغيير اللغة' },
         { command: 'cancel', description: 'Cancel pending action' },
       ]),
       new Promise((_, reject) => setTimeout(() => reject(new Error('setMyCommands timeout')), 5000)),

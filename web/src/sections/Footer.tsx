@@ -1,4 +1,5 @@
 import { TrendingUp, Twitter, Linkedin, Youtube, MessageCircle } from 'lucide-react';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 const footerLinks = {
   Product: ['Features', 'Stock Screener', 'Portfolios', 'Pricing', 'API'],
@@ -15,6 +16,7 @@ const socialLinks = [
 ];
 
 export function Footer() {
+  const { t } = useTranslation();
   return (
     <footer className="bg-[#0a0a0a] border-t border-white/10">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -30,8 +32,7 @@ export function Footer() {
               </span>
             </a>
             <p className="text-white/50 text-sm mb-6 max-w-xs">
-              Professional-grade stock analysis for everyone. Make smarter investment decisions
-              with AI-powered insights.
+              {t('footer.tagline')}
             </p>
             <div className="flex gap-3">
               {socialLinks.map((social) => (
@@ -50,7 +51,7 @@ export function Footer() {
           {/* Links */}
           {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
-              <h4 className="text-white font-semibold mb-4">{category}</h4>
+              <h4 className="text-white font-semibold mb-4">{t('footer.cat.' + category)}</h4>
               <ul className="space-y-3">
                 {links.map((link) => (
                   <li key={link}>
@@ -58,7 +59,7 @@ export function Footer() {
                       href="#"
                       className="text-white/50 text-sm hover:text-gold transition-colors"
                     >
-                      {link}
+                      {t('footer.link.' + link)}
                     </a>
                   </li>
                 ))}
@@ -70,17 +71,17 @@ export function Footer() {
         {/* Bottom */}
         <div className="mt-16 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-white/40 text-sm">
-            © 2026 StockWise Pro. All rights reserved.
+            {t('footer.copyright')}
           </p>
           <div className="flex items-center gap-6">
             <a href="#" className="text-white/40 text-sm hover:text-gold transition-colors">
-              Terms
+              {t('footer.terms')}
             </a>
             <a href="#" className="text-white/40 text-sm hover:text-gold transition-colors">
-              Privacy
+              {t('footer.privacy')}
             </a>
             <a href="#" className="text-white/40 text-sm hover:text-gold transition-colors">
-              Cookies
+              {t('footer.cookies')}
             </a>
           </div>
         </div>

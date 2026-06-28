@@ -19,6 +19,7 @@ import { SignalBadge } from '@/components/SignalBadge';
 import { ScoreVisualizer } from '@/components/ScoreVisualizer';
 import { SparklineChart } from '@/components/SparklineChart';
 import { stocksApi, type StockQuote } from '@/lib/api/stocks';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 // Format ticker for display (BRK-B -> BRK.B)
 function formatTickerForDisplay(ticker: string): string {
@@ -106,6 +107,7 @@ function formatQuoteToResult(quote: StockQuote | null | undefined): StockResult 
 }
 
 export function StockScreener({ onSelectStock, isAuthenticated: _isAuthenticated }: StockScreenerProps) {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSector, setSelectedSector] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('score');
@@ -136,7 +138,7 @@ export function StockScreener({ onSelectStock, isAuthenticated: _isAuthenticated
           setStocks([]);
         }
       } catch (err) {
-        setError('Failed to load screener data');
+        setError(t('screener.errorLoad'));
         setStocks([]);
       } finally {
         if (mounted) setInitialLoading(false);
@@ -193,7 +195,7 @@ export function StockScreener({ onSelectStock, isAuthenticated: _isAuthenticated
       }
       setStocks([]);
     } catch (err) {
-      setError('Search failed');
+      setError(t('screener.searchFailed'));
       setStocks([]);
     } finally {
       setIsSearching(false);
@@ -259,10 +261,10 @@ export function StockScreener({ onSelectStock, isAuthenticated: _isAuthenticated
         <ScrollReveal>
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Stock <span className="text-gradient-gold">Screener</span>
+              {t('screener.title')} <span className="text-gradient-gold">{t('screener.titleHighlight')}</span>
             </h2>
             <p className="text-white/60 max-w-2xl mx-auto">
-              Search stocks in real-time. Filter by sector, valuation, and our proprietary AI score.
+              {t('screener.subtitle')}
             </p>
           </div>
         </ScrollReveal>
@@ -273,7 +275,7 @@ export function StockScreener({ onSelectStock, isAuthenticated: _isAuthenticated
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={20} />
               <Input
-                placeholder="Search any stock (e.g., AAPL, Tesla)..."
+                placeholder={t('screener.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-12 pr-10 h-12 bg-[#141414] border-white/10 text-white placeholder:text-white/40 focus:border-gold focus:ring-gold/20"
@@ -300,7 +302,7 @@ export function StockScreener({ onSelectStock, isAuthenticated: _isAuthenticated
               }`}
             >
               <Filter size={18} className="mr-2" />
-              Filters
+              {t('screener.filters')}
               {(selectedSector) && (
                 <Badge variant="secondary" className="ml-2 bg-gold text-[#0a0a0a]">
                   {[selectedSector].filter(Boolean).length}
@@ -326,7 +328,7 @@ export function StockScreener({ onSelectStock, isAuthenticated: _isAuthenticated
             className="mb-6 p-4 bg-[#141414] rounded-xl border border-white/10"
           >
             <div className="flex flex-wrap gap-2">
-              <span className="text-white/60 text-sm py-2">Sector:</span>
+              <span className="text-white/60 text-sm py-2">{t('screener.sector')}</span>
               <button
                 onClick={() => setSelectedSector(null)}
                 className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
@@ -335,7 +337,7 @@ export function StockScreener({ onSelectStock, isAuthenticated: _isAuthenticated
                     : 'bg-white/5 text-white/70 hover:bg-white/10'
                 }`}
               >
-                All
+                {t('screener.all')}
               </button>
               {sectors.map((sector) => (
                 <button
@@ -366,7 +368,7 @@ export function StockScreener({ onSelectStock, isAuthenticated: _isAuthenticated
                         onClick={() => handleSort('ticker')}
                         className="flex items-center gap-2 hover:text-white transition-colors"
                       >
-                        Stock
+                        {t('screener.col.stock')}
                         <SortIcon field="ticker" />
                       </button>
                     </TableHead>
@@ -375,7 +377,7 @@ export function StockScreener({ onSelectStock, isAuthenticated: _isAuthenticated
                         onClick={() => handleSort('price')}
                         className="flex items-center justify-end gap-2 hover:text-white transition-colors w-full"
                       >
-                        Price
+                        {t('screener.col.price')}
                         <SortIcon field="price" />
                       </button>
                     </TableHead>
@@ -384,21 +386,21 @@ export function StockScreener({ onSelectStock, isAuthenticated: _isAuthenticated
                         onClick={() => handleSort('change')}
                         className="flex items-center justify-end gap-2 hover:text-white transition-colors w-full"
                       >
-                        Change
+                        {t('screener.col.change')}
                         <SortIcon field="change" />
                       </button>
                     </TableHead>
-                    <TableHead className="text-white/60 hidden md:table-cell">Chart</TableHead>
+                    <TableHead className="text-white/60 hidden md:table-cell">{t('screener.col.chart')}</TableHead>
                     <TableHead className="text-white/60 text-right">
                       <button
                         onClick={() => handleSort('score')}
                         className="flex items-center justify-end gap-2 hover:text-white transition-colors w-full"
                       >
-                        Score
+                        {t('screener.col.score')}
                         <SortIcon field="score" />
                       </button>
                     </TableHead>
-                    <TableHead className="text-white/60 text-center">Signal</TableHead>
+                    <TableHead className="text-white/60 text-center">{t('screener.col.signal')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -498,15 +500,15 @@ export function StockScreener({ onSelectStock, isAuthenticated: _isAuthenticated
               <div className="py-12 text-center">
                 <p className="text-white/50">
                   {searchQuery
-                    ? `No stocks found matching "${searchQuery}"`
-                    : error || 'No stocks available'}
+                    ? t('screener.noResultsFor', { query: searchQuery })
+                    : error || t('screener.noStocks')}
                 </p>
                 <Button
                   variant="ghost"
                   onClick={handleClearSearch}
                   className="mt-4 text-gold hover:text-gold-light"
                 >
-                  Clear Search
+                  {t('screener.clearSearch')}
                 </Button>
               </div>
             )}
@@ -515,7 +517,7 @@ export function StockScreener({ onSelectStock, isAuthenticated: _isAuthenticated
 
         <div className="mt-4 text-center">
           <p className="text-white/30 text-xs">
-            Real-time data provided by Financial Modeling Prep API
+            {t('screener.dataProvider')}
           </p>
         </div>
       </div>

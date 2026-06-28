@@ -7,6 +7,7 @@ export interface BotContext extends Context {
     apiDuration?: number;
     success?: boolean;
     errorMessage?: string;
+    lang?: 'en' | 'ar';
   };
 }
 

@@ -6,6 +6,7 @@ import { ScrollReveal } from '@/components/ScrollReveal';
 import { MarketStatus } from '@/components/MarketStatus';
 import { SparklineChart } from '@/components/SparklineChart';
 import { stocksApi } from '@/lib/api/stocks';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface IndexData {
   symbol: string;
@@ -16,6 +17,7 @@ interface IndexData {
 }
 
 export function LiveMarketData() {
+  const { t } = useTranslation();
   const [indices, setIndices] = useState<IndexData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,8 +51,8 @@ export function LiveMarketData() {
         <ScrollReveal>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Market Overview</h2>
-              <p className="text-white/60">Real-time market indices and trending stocks</p>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">{t('market.title')}</h2>
+              <p className="text-white/60">{t('market.subtitle')}</p>
             </div>
             <div className="flex items-center gap-4">
               <MarketStatus />
@@ -126,7 +128,7 @@ export function LiveMarketData() {
           <div className="bg-gradient-to-r from-gold/10 via-gold/5 to-transparent rounded-xl border border-gold/20 p-4">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-2 h-2 rounded-full bg-gold animate-pulse" />
-              <span className="text-gold font-medium text-sm">Trending Now</span>
+              <span className="text-gold font-medium text-sm">{t('market.trendingNow')}</span>
             </div>
             <div className="flex flex-wrap gap-3">
               {['NVDA +1.79%', 'META +1.58%', 'AMZN +1.78%', 'TSLA -3.40%', 'MSFT +1.28%'].map(

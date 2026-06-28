@@ -20,6 +20,7 @@ import { AuthModal } from './components/AuthModal';
 import { Button } from './components/ui/button';
 import { Eye, ArrowRightLeft, User, LogOut } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
+import { useTranslation } from './contexts/LanguageContext';
 import { analytics } from './lib/analytics';
 import { toast } from 'sonner';
 import './App.css';
@@ -30,6 +31,7 @@ function App() {
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
+  const { t } = useTranslation();
 
   // Track page views
   useEffect(() => {
@@ -45,7 +47,7 @@ function App() {
 
   const handleLogout = () => {
     logout();
-    toast.success('Logged out successfully');
+    toast.success(t('app.loggedOut'));
   };
 
   return (
@@ -66,7 +68,7 @@ function App() {
               className="bg-gold hover:bg-gold-light text-[#0a0a0a] shadow-lg"
             >
               <Eye size={18} className="mr-2" />
-              Watchlist
+              {t('app.watchlist')}
             </Button>
             <Button
               onClick={() => setIsComparisonOpen(true)}
@@ -74,7 +76,7 @@ function App() {
               className="bg-[#1f1f1f] border-white/20 text-white hover:bg-white/10"
             >
               <ArrowRightLeft size={18} className="mr-2" />
-              Compare
+              {t('app.compare')}
             </Button>
           </>
         )}
@@ -87,7 +89,7 @@ function App() {
             className="bg-[#1f1f1f] border-white/20 text-white hover:bg-white/10"
           >
             <User size={18} className="mr-2" />
-            Sign In
+            {t('app.signIn')}
           </Button>
         ) : (
           <Button
@@ -96,7 +98,7 @@ function App() {
             className="bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30"
           >
             <LogOut size={18} className="mr-2" />
-            Logout
+            {t('app.logout')}
           </Button>
         )}
       </div>

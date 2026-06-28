@@ -10,6 +10,7 @@ import { ScrollReveal } from '@/components/ScrollReveal';
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip } from 'recharts';
 import { apiClient } from '@/lib/api/client';
 import { stocksApi } from '@/lib/api/stocks';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 const icons: Record<string, React.ElementType> = {
   buffett: TrendingUp,
@@ -62,6 +63,7 @@ interface InvestorPortfoliosProps {
 }
 
 export function InvestorPortfolios({ isAuthenticated }: InvestorPortfoliosProps) {
+  const { t } = useTranslation();
   const [investors, setInvestors] = useState<InvestorData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedInvestor, setSelectedInvestor] = useState<InvestorData | null>(null);
@@ -137,7 +139,7 @@ export function InvestorPortfolios({ isAuthenticated }: InvestorPortfoliosProps)
       <section id="portfolios" className="py-20 bg-[#0a0a0a]">
         <div className="max-w-[1400px] mx-auto px-4 text-center">
           <Loader2 className="animate-spin text-gold mx-auto" size={32} />
-          <p className="text-white/60 mt-4">Loading investor profiles...</p>
+          <p className="text-white/60 mt-4">{t('investors.loadingProfiles')}</p>
         </div>
       </section>
     );
@@ -151,11 +153,10 @@ export function InvestorPortfolios({ isAuthenticated }: InvestorPortfoliosProps)
         <ScrollReveal>
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Invest Like the <span className="text-gradient-gold">Legends</span>
+              {t('investors.title')} <span className="text-gradient-gold">{t('investors.titleHighlight')}</span>
             </h2>
             <p className="text-white/60 max-w-2xl mx-auto">
-              Mimic the strategies of history's greatest investors within your budget. Our AI
-              creates a personalized portfolio based on their proven approaches.
+              {t('investors.subtitle')}
             </p>
           </div>
         </ScrollReveal>
@@ -195,7 +196,7 @@ export function InvestorPortfolios({ isAuthenticated }: InvestorPortfoliosProps)
                       className="px-2 py-1 rounded-full"
                       style={{ backgroundColor: `${color}20`, color }}
                     >
-                      {(investor.coreHoldings?.length || 0)} Holdings
+                      {(investor.coreHoldings?.length || 0)} {t('investors.holdings')}
                     </span>
                   </div>
                 </motion.button>
@@ -229,7 +230,7 @@ export function InvestorPortfolios({ isAuthenticated }: InvestorPortfoliosProps)
 
                 <div>
                   <h4 className="text-white/50 text-sm uppercase tracking-wider mb-3">
-                    Top Holdings
+                    {t('investors.topHoldings')}
                   </h4>
                   <div className="space-y-2">
                     {selectedInvestor.coreHoldings?.slice(0, 5).map((holding, index) => (
@@ -257,10 +258,10 @@ export function InvestorPortfolios({ isAuthenticated }: InvestorPortfoliosProps)
           <ScrollReveal delay={0.3}>
             <Card className="bg-[#1f1f1f] border-white/10">
               <CardContent className="p-6">
-                <h3 className="text-xl font-semibold text-white mb-6">Portfolio Builder</h3>
+                <h3 className="text-xl font-semibold text-white mb-6">{t('investors.portfolioBuilder')}</h3>
 
                 <div className="mb-6">
-                  <label className="text-white/70 text-sm mb-2 block">Your Investment Budget</label>
+                  <label className="text-white/70 text-sm mb-2 block">{t('investors.investmentBudget')}</label>
                   <div className="relative">
                     <DollarSign
                       size={20}
@@ -280,8 +281,8 @@ export function InvestorPortfolios({ isAuthenticated }: InvestorPortfoliosProps)
                   <div className="flex items-center gap-3">
                     <Leaf size={18} className="text-green-400" />
                     <div>
-                      <p className="text-white text-sm font-medium">Ethical Investing</p>
-                      <p className="text-white/50 text-xs">Exclude harmful industries</p>
+                      <p className="text-white text-sm font-medium">{t('investors.ethicalInvesting')}</p>
+                      <p className="text-white/50 text-xs">{t('investors.excludeHarmful')}</p>
                     </div>
                   </div>
                   <Switch
@@ -300,7 +301,7 @@ export function InvestorPortfolios({ isAuthenticated }: InvestorPortfoliosProps)
                   ) : (
                     <PieChart size={20} className="mr-2" />
                   )}
-                  {generating ? 'Building Portfolio...' : 'Generate Portfolio'}
+                  {generating ? t('investors.buildingPortfolio') : t('investors.generatePortfolio')}
                 </Button>
 
                 <AnimatePresence>
@@ -313,13 +314,13 @@ export function InvestorPortfolios({ isAuthenticated }: InvestorPortfoliosProps)
                     >
                       <div className="grid grid-cols-2 gap-4 mb-6">
                         <div className="bg-[#141414] rounded-lg p-4">
-                          <span className="text-white/50 text-sm">Portfolio Value</span>
+                          <span className="text-white/50 text-sm">{t('investors.portfolioValue')}</span>
                           <div className="text-2xl font-bold text-white">
                             {formatCurrency(portfolioResult.totalValue)}
                           </div>
                         </div>
                         <div className="bg-[#141414] rounded-lg p-4">
-                          <span className="text-white/50 text-sm">Cash Remaining</span>
+                          <span className="text-white/50 text-sm">{t('investors.cashRemaining')}</span>
                           <div className="text-2xl font-bold text-gold">
                             {formatCurrency(portfolioResult.cashRemaining)}
                           </div>
@@ -331,12 +332,12 @@ export function InvestorPortfolios({ isAuthenticated }: InvestorPortfoliosProps)
                           <div className="flex items-center gap-2">
                             <Leaf size={16} className="text-green-400" />
                             <span className="text-green-400 text-sm font-medium">
-                              Ethical filters applied
+                              {t('investors.ethicalApplied')}
                             </span>
                           </div>
                           {portfolioResult.replacedTickers.length > 0 && (
                             <p className="text-white/50 text-xs mt-1">
-                              {portfolioResult.replacedTickers.length} ticker(s) replaced with ethical alternatives
+                              {t('investors.tickersReplaced', { count: portfolioResult.replacedTickers.length })}
                             </p>
                           )}
                         </div>
@@ -407,7 +408,7 @@ export function InvestorPortfolios({ isAuthenticated }: InvestorPortfoliosProps)
                               </div>
                             </div>
                             <div className="flex items-center gap-4 text-sm">
-                              <span className="text-white/50">{holding.shares} shares @ {formatCurrency(holding.price)}</span>
+                              <span className="text-white/50">{t('investors.sharesAt', { shares: holding.shares, price: formatCurrency(holding.price) })}</span>
                               <span className="text-gold">
                                 {formatCurrency(holding.value)}
                               </span>
@@ -430,7 +431,7 @@ export function InvestorPortfolios({ isAuthenticated }: InvestorPortfoliosProps)
                           ) : (
                             <Check size={18} className="mr-2" />
                           )}
-                          Save All to Watchlist
+                          {t('investors.saveAllWatchlist')}
                         </Button>
                       )}
                     </motion.div>
@@ -439,7 +440,7 @@ export function InvestorPortfolios({ isAuthenticated }: InvestorPortfoliosProps)
 
                 {budgetNum < 1000 && budgetNum > 0 && (
                   <p className="text-amber-500 text-sm text-center">
-                    Minimum budget is $1,000
+                    {t('investors.minBudget')}
                   </p>
                 )}
               </CardContent>
