@@ -56,6 +56,7 @@ const en: Dict = {
   'help.tools.alerts': '/alerts — View your alerts',
   'help.tools.marketalerts': '/marketalerts — Toggle big market-move alerts',
   'help.tools.insights': '/insights — Market insights & signal accuracy',
+  'help.tools.explain': '/explain <ticker> — AI explanation (when configured)',
   'help.section.admin': '*Admin*',
   'help.admin.admin': '/admin — Usage stats',
   'help.admin.export': '/admin_export — Download CSV analytics',
@@ -110,6 +111,15 @@ const en: Dict = {
   'insights.noTicker': '📭 No data recorded for {ticker} yet.',
   'insights.usage': '_Usage: /insights — or /insights AAPL for one ticker_',
 
+  // explain (AI narrative via Ollama)
+  'explain.usage': '_Usage: /explain AAPL_',
+  'explain.disabled': '🤖 AI explanations aren\'t configured yet (set OLLAMA_URL). Try /insights for the data.',
+  'explain.noData': '📭 No data recorded for {ticker} yet.',
+  'explain.thinking': '🤖 Analyzing {ticker}…',
+  'explain.failed': '🤖 Couldn\'t generate an explanation right now. Try /insights {ticker}.',
+  'explain.title': '🤖 *{ticker} — AI take*',
+  'explain.disclaimer': '_Experimental, not financial advice._',
+
   // common
   'common.error': '❌ Something went wrong. Please try again later.',
   'common.cancelled': 'Cancelled.',
@@ -158,6 +168,7 @@ const ar: Dict = {
   'help.tools.alerts': '/alerts — عرض تنبيهاتك',
   'help.tools.marketalerts': '/marketalerts — تفعيل/إيقاف تنبيهات تحركات السوق الكبيرة',
   'help.tools.insights': '/insights — رؤى السوق ودقة الإشارة',
+  'help.tools.explain': '/explain <الرمز> — تفسير بالذكاء الاصطناعي (عند الإعداد)',
   'help.section.admin': '*الإدارة*',
   'help.admin.admin': '/admin — إحصاءات الاستخدام',
   'help.admin.export': '/admin_export — تنزيل تحليلات CSV',
@@ -211,6 +222,15 @@ const ar: Dict = {
   'insights.recentAlerts': '🚨 تنبيهات حديثة:',
   'insights.noTicker': '📭 لا توجد بيانات مسجّلة لـ {ticker} بعد.',
   'insights.usage': '_الاستخدام: /insights — أو /insights AAPL لرمز واحد_',
+
+  // explain (AI narrative via Ollama)
+  'explain.usage': '_الاستخدام: /explain AAPL_',
+  'explain.disabled': '🤖 لم تُضبط تفسيرات الذكاء الاصطناعي بعد (عيّن OLLAMA_URL). جرّب /insights للبيانات.',
+  'explain.noData': '📭 لا توجد بيانات مسجّلة لـ {ticker} بعد.',
+  'explain.thinking': '🤖 يجري تحليل {ticker}…',
+  'explain.failed': '🤖 تعذّر إنشاء تفسير الآن. جرّب /insights {ticker}.',
+  'explain.title': '🤖 *{ticker} — رأي الذكاء الاصطناعي*',
+  'explain.disclaimer': '_تجريبي، وليس نصيحة مالية._',
 
   // common
   'common.error': '❌ حدث خطأ ما. يرجى المحاولة لاحقًا.',
@@ -272,6 +292,7 @@ function buildHelp(lang: Lang): string {
     k('help.tools.alerts'),
     k('help.tools.marketalerts'),
     k('help.tools.insights'),
+    k('help.tools.explain'),
     '',
     k('help.section.admin'),
     k('help.admin.admin'),

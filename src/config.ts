@@ -30,6 +30,8 @@ export const config = {
   sessionSecret: process.env.SESSION_SECRET || process.env.JWT_SECRET || '',
   webCorsOrigins: (process.env.WEB_CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean),
   websiteUrl: process.env.WEBSITE_URL || 'https://stockwisepro-bot-pzi2.onrender.com',
+  ollamaUrl: (process.env.OLLAMA_URL || '').replace(/\/$/, ''),
+  ollamaModel: process.env.OLLAMA_MODEL || 'llama3.1',
 };
 
 if (!config.telegramToken) {

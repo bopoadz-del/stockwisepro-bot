@@ -28,6 +28,10 @@ services:
         sync: false
       - key: WEBSITE_URL
         value: https://stockwisepro-bot-pzi2.onrender.com
+      - key: OLLAMA_URL
+        sync: false
+      - key: OLLAMA_MODEL
+        value: llama3.1
       - key: PORT
         value: 3000
       - key: NODE_ENV

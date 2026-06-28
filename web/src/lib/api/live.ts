@@ -32,6 +32,15 @@ export interface LiveFeed {
   alerts: LiveAlert[];
 }
 
+export interface MarketInsights {
+  dataset: { snapshots: number; tickers: number; since: string | null };
+  accuracy: { evaluated: number; hits: number; hitRate: number | null };
+  topGainers: Array<{ ticker: string; trend: number }>;
+  topLosers: Array<{ ticker: string; trend: number }>;
+  mostAlerted: Array<{ ticker: string; count: number }>;
+}
+
 export const liveApi = {
   getFeed: () => apiClient.get<LiveFeed>('/live/feed'),
+  getInsights: () => apiClient.get<MarketInsights>('/live/insights'),
 };
