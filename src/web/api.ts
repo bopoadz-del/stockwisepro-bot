@@ -21,6 +21,7 @@ import { runOCR, scoreTickers, makeTmpPath, cleanupFile } from '../services/ocr'
 import { runBacktest } from '../services/backtest';
 import { getLatestSnapshot, getLiveAlerts } from '../services/livefeed';
 import { getRecentScoreHistory } from '../db';
+import { computeMarketInsights, computeTickerInsight } from '../services/insights';
 import { hashPassword, comparePassword, authMiddleware, WebAuthRequest, verifyTelegramLinkToken } from './auth';
 import { upsertWebUserByTelegram } from '../db';
 import fs from 'fs';
@@ -501,6 +502,26 @@ router.get('/live/feed', (_req: Request, res: Response) => {
 router.get('/live/history', (req: Request, res: Response) => {
   const limit = parseInt(String(req.query.limit || '200'), 10) || 200;
   res.json(getRecentScoreHistory(limit));
+});
+
+// Phase 4: insights over the recorded dataset. ?ticker=AAPL for one name.
+router.get('/live/insights', (req: Request, res: Response) => {
+  try {
+    const ticker = typeof req.query.ticker === 'string' ? req.query.ticker.trim().toUpperCase() : '';
+    if (ticker) {
+      const insight = computeTickerInsight(ticker);
+      if (!insight) {
+        res.status(404).json({ error: 'No data recorded for that ticker yet' });
+        return;
+      }
+      res.json(insight);
+      return;
+    }
+    res.json(computeMarketInsights());
+  } catch (err) {
+    logger.error('Insights error', { error: String(err) });
+    res.status(500).json({ error: 'Failed to compute insights' });
+  }
 });
 
 router.get('/stocks/historical/:ticker', async (req: Request, res: Response) => {

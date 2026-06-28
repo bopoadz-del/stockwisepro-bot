@@ -14,6 +14,7 @@ import { alertCommand } from './alert';
 import { adminCommand, adminExportCommand, adminExportWeightsCommand, adminExportScoresCommand } from './admin';
 import { marketAlertsCommand } from './marketalerts';
 import { profileCommand } from './profile';
+import { insightsCommand } from './insights';
 import { adminLearningCommand, adminExportMissedCommand, handleCorrectIntentCallback } from './learning';
 import { weightsCommand, weightsSetCommand, handleWeightCallback } from './weights';
 import { simulateCommand } from './simulate';
@@ -61,6 +62,7 @@ export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('alert', alertCommand);
   bot.command('alerts', alertCommand); // alias
   bot.command('marketalerts', marketAlertsCommand);
+  bot.command('insights', insightsCommand);
   bot.command('admin', adminCommand);
   bot.command('admin_export', adminExportCommand);
   bot.command('admin_export_weights', adminExportWeightsCommand);

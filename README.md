@@ -123,6 +123,7 @@ docker-compose up --build -d
 | `/alert <ticker> <above\|below> <price>` | Set price alert |
 | `/alerts` | View your alerts |
 | `/marketalerts` | Toggle big market-move push alerts |
+| `/insights [ticker]` | Market insights & score signal-accuracy |
 | `/admin` | Usage stats (admin only) |
 | `/admin_export` | Download CSV analytics (admin only) |
 | `/admin_export_scores` | Download live score-history dataset CSV (admin only) |
@@ -184,6 +185,21 @@ pillar bars) and a **floating alert bubble** (gold/green/red by severity) — bo
 `GET /api/live/feed`.
 
 Live data needs `FMP_API_KEY` (Yahoo is the fallback) and `BRAVE_API_KEY` for headlines.
+
+### Insights (Phase 4 — RAG/ML foundation)
+
+`src/services/insights.ts` turns the accumulating dataset into answers, with no
+external model required:
+
+- **Signal accuracy** — for each ticker's time-ordered snapshots, it checks whether
+  a `buy` score (≥70) preceded a price rise and a `sell` score (<45) preceded a drop,
+  reporting an overall hit-rate. This directly measures *does the score predict moves?*
+- **Movers** — top score gainers/drops and the most-alerted tickers.
+- **Per-ticker context pack** — samples, score range/avg/trend, latest reading, and
+  recent alerts — the exact substrate a future LLM (RAG) generation step would consume.
+
+Exposed via `/insights [ticker]` on the bot and `GET /api/live/insights[?ticker=AAPL]`.
+The engine degrades gracefully while data is thin and sharpens as `score_history` grows.
 
 ---
 

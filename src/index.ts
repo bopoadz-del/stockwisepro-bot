@@ -169,6 +169,7 @@ async function main() {
         { command: 'alert', description: 'Set price alerts' },
         { command: 'alerts', description: 'View your alerts' },
         { command: 'marketalerts', description: 'Toggle big market-move alerts' },
+        { command: 'insights', description: 'Market insights & signal accuracy' },
         { command: 'weights', description: 'Set scoring weights' },
         { command: 'weights_set', description: 'Configure scoring weights' },
         { command: 'alpaca', description: 'Alpaca trading info' },

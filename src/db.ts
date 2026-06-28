@@ -953,6 +953,69 @@ export function getRecentMarketAlerts(limit = 10) {
   }>;
 }
 
+export interface ScoreSeriesRow {
+  ticker: string;
+  name: string | null;
+  sector: string | null;
+  score: number | null;
+  signal: string | null;
+  price: number | null;
+  change_pct: number | null;
+  created_at: string;
+}
+
+/** Most recent `limit` snapshots, returned oldest→newest for series analysis. */
+export function getScoreHistorySeries(limit = 5000): ScoreSeriesRow[] {
+  const conn = ensureDb();
+  const safe = Math.min(Math.max(Math.floor(limit), 1), 20000);
+  return conn.prepare(
+    `SELECT ticker, name, sector, score, signal, price, change_pct, created_at
+     FROM (SELECT * FROM score_history ORDER BY created_at DESC LIMIT ?)
+     ORDER BY created_at ASC`
+  ).all(safe) as ScoreSeriesRow[];
+}
+
+export function getScoreHistoryForTicker(ticker: string, limit = 500): ScoreSeriesRow[] {
+  const conn = ensureDb();
+  const safe = Math.min(Math.max(Math.floor(limit), 1), 5000);
+  return conn.prepare(
+    `SELECT ticker, name, sector, score, signal, price, change_pct, created_at
+     FROM (SELECT * FROM score_history WHERE ticker = ? ORDER BY created_at DESC LIMIT ?)
+     ORDER BY created_at ASC`
+  ).all(ticker.toUpperCase(), safe) as ScoreSeriesRow[];
+}
+
+export function getScoreHistoryOverview(): { total: number; tickers: number; since: string | null } {
+  const conn = ensureDb();
+  const row = conn.prepare(
+    `SELECT COUNT(*) AS total, COUNT(DISTINCT ticker) AS tickers, MIN(created_at) AS since FROM score_history`
+  ).get() as { total: number; tickers: number; since: string | null };
+  return { total: row.total || 0, tickers: row.tickers || 0, since: row.since ?? null };
+}
+
+export function getAlertCountsByTicker(limit = 5): Array<{ ticker: string; count: number }> {
+  const conn = ensureDb();
+  const safe = Math.min(Math.max(Math.floor(limit), 1), 50);
+  return conn.prepare(
+    `SELECT ticker, COUNT(*) AS count FROM market_alerts GROUP BY ticker ORDER BY count DESC LIMIT ?`
+  ).all(safe) as Array<{ ticker: string; count: number }>;
+}
+
+export function getRecentMarketAlertsForTicker(ticker: string, limit = 3) {
+  const conn = ensureDb();
+  const safe = Math.min(Math.max(Math.floor(limit), 1), 20);
+  return conn.prepare(
+    `SELECT * FROM market_alerts WHERE ticker = ? ORDER BY created_at DESC LIMIT ?`
+  ).all(ticker.toUpperCase(), safe) as Array<{
+    ticker: string;
+    severity: string;
+    direction: string;
+    change_pct: number;
+    headline: string | null;
+    created_at: string;
+  }>;
+}
+
 export function exportScoreHistoryCsv(days = 7): string {
   const conn = ensureDb();
   const safeDays = clampDays(days);
