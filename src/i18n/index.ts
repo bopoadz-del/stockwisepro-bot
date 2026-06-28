@@ -67,6 +67,9 @@ const en: Dict = {
   'language.changed': '✅ Language set to *English*.',
   'language.current': 'Current language: *English*',
 
+  // website
+  'start.website': '🌐 Visit Website',
+
   // common
   'common.error': '❌ Something went wrong. Please try again later.',
   'common.cancelled': 'Cancelled.',
@@ -125,6 +128,9 @@ const ar: Dict = {
   'language.prompt': '🌐 *اختر لغتك*\n\nاختر لغة من الأسفل.',
   'language.changed': '✅ تم ضبط اللغة على *العربية*.',
   'language.current': 'اللغة الحالية: *العربية*',
+
+  // website
+  'start.website': '🌐 زيارة الموقع',
 
   // common
   'common.error': '❌ حدث خطأ ما. يرجى المحاولة لاحقًا.',

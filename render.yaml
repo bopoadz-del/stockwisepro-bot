@@ -26,6 +26,8 @@ services:
         sync: false
       - key: WEB_CORS_ORIGINS
         sync: false
+      - key: WEBSITE_URL
+        value: https://stockwisepro-bot-pzi2.onrender.com
       - key: PORT
         value: 3000
       - key: NODE_ENV
