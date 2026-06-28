@@ -170,23 +170,6 @@ export function Hero({ onCtaClick }: HeroProps) {
 
               {/* Floating Cards */}
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.8 }}
-                className="absolute -left-8 top-1/4 bg-[#1f1f1f] rounded-xl border border-white/10 p-4 shadow-card"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
-                    <span className="text-purple-400 font-bold">B</span>
-                  </div>
-                  <div>
-                    <p className="text-white font-medium text-sm">{t('hero.card.buffett')}</p>
-                    <p className="text-green-500 text-xs">{t('hero.card.ytd')}</p>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 1 }}
