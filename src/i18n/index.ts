@@ -60,6 +60,7 @@ const en: Dict = {
   'help.admin.export': '/admin_export — Download CSV analytics',
   'help.section.general': '*General*',
   'help.general.start': '/start — Welcome message',
+  'help.general.profile': '/profile — View or set your profile (email)',
   'help.general.language': '/language — Change language',
   'help.general.help': '/help — This menu',
 
@@ -77,6 +78,18 @@ const en: Dict = {
   'marketalert.big': '📊 *Big Market Move*',
   'marketalert.extreme': '🚨 *Extreme Market Move*',
   'marketalert.score': 'Score',
+
+  // profile
+  'profile.title': '👤 *Your Profile*',
+  'profile.email': '📧 Email: {email}',
+  'profile.emailNone': '📧 Email: _not set_',
+  'profile.language': '🌐 Language: {language}',
+  'profile.alerts': '🔔 Market alerts: {status}',
+  'profile.alertsOn': 'on',
+  'profile.alertsOff': 'off',
+  'profile.hint': '_To set your email: /profile your@email.com_',
+  'profile.saved': '✅ Email saved: {email}',
+  'profile.invalidEmail': '⚠️ That doesn\'t look like a valid email. Try: /profile your@email.com',
 
   // common
   'common.error': '❌ Something went wrong. Please try again later.',
@@ -130,6 +143,7 @@ const ar: Dict = {
   'help.admin.export': '/admin_export — تنزيل تحليلات CSV',
   'help.section.general': '*عام*',
   'help.general.start': '/start — رسالة الترحيب',
+  'help.general.profile': '/profile — عرض أو تعيين ملفك الشخصي (البريد الإلكتروني)',
   'help.general.language': '/language — تغيير اللغة',
   'help.general.help': '/help — هذه القائمة',
 
@@ -147,6 +161,18 @@ const ar: Dict = {
   'marketalert.big': '📊 *تحرك كبير في السوق*',
   'marketalert.extreme': '🚨 *تحرك حاد في السوق*',
   'marketalert.score': 'الدرجة',
+
+  // profile
+  'profile.title': '👤 *ملفك الشخصي*',
+  'profile.email': '📧 البريد الإلكتروني: {email}',
+  'profile.emailNone': '📧 البريد الإلكتروني: _غير محدد_',
+  'profile.language': '🌐 اللغة: {language}',
+  'profile.alerts': '🔔 تنبيهات السوق: {status}',
+  'profile.alertsOn': 'مفعّلة',
+  'profile.alertsOff': 'متوقفة',
+  'profile.hint': '_لتعيين بريدك الإلكتروني: /profile your@email.com_',
+  'profile.saved': '✅ تم حفظ البريد الإلكتروني: {email}',
+  'profile.invalidEmail': '⚠️ لا يبدو هذا بريدًا إلكترونيًا صالحًا. جرّب: /profile your@email.com',
 
   // common
   'common.error': '❌ حدث خطأ ما. يرجى المحاولة لاحقًا.',
@@ -214,6 +240,7 @@ function buildHelp(lang: Lang): string {
     '',
     k('help.section.general'),
     k('help.general.start'),
+    k('help.general.profile'),
     k('help.general.language'),
     k('help.general.help'),
   ].join('\n');

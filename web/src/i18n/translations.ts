@@ -164,6 +164,16 @@ const en: Dict = {
   'signal.hold': 'HOLD',
   'signal.sell': 'SELL',
 
+  // Auth / profile
+  'auth.title': 'Create your profile',
+  'auth.subtitle': 'Just your email — no password, no confirmation.',
+  'auth.emailLabel': 'Email',
+  'auth.namePlaceholder': 'Name (optional)',
+  'auth.continue': 'Continue',
+  'auth.welcome': 'Welcome!',
+  'auth.invalidEmail': 'Please enter a valid email',
+  'auth.note': 'We use your email only to save your watchlist and alerts.',
+
   // Live score feed
   'live.badge': 'LIVE',
   'live.loading': 'Loading live score…',
@@ -362,6 +372,16 @@ const ar: Dict = {
   'signal.buy': 'شراء',
   'signal.hold': 'احتفاظ',
   'signal.sell': 'بيع',
+
+  // Auth / profile
+  'auth.title': 'أنشئ ملفك الشخصي',
+  'auth.subtitle': 'بريدك الإلكتروني فقط — بدون كلمة مرور، بدون تأكيد.',
+  'auth.emailLabel': 'البريد الإلكتروني',
+  'auth.namePlaceholder': 'الاسم (اختياري)',
+  'auth.continue': 'متابعة',
+  'auth.welcome': 'مرحبًا!',
+  'auth.invalidEmail': 'يرجى إدخال بريد إلكتروني صالح',
+  'auth.note': 'نستخدم بريدك الإلكتروني فقط لحفظ قائمة متابعتك وتنبيهاتك.',
 
   // Live score feed
   'live.badge': 'مباشر',

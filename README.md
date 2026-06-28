@@ -113,6 +113,7 @@ docker-compose up --build -d
 | `/admin` | Usage stats (admin only) |
 | `/admin_export` | Download CSV analytics (admin only) |
 | `/admin_export_scores` | Download live score-history dataset CSV (admin only) |
+| `/profile` | View or set your profile (email — no password) |
 | `/language` | Switch language (English / العربية) |
 | `/help` | Show help |
 

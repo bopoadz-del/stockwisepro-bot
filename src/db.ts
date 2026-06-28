@@ -215,6 +215,12 @@ const MIGRATIONS: Array<{ version: number; sql: string }> = [
       ALTER TABLE users ADD COLUMN market_alerts_optin INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    version: 8,
+    sql: `
+      ALTER TABLE users ADD COLUMN email TEXT;
+    `,
+  },
 ];
 
 export function initDb() {
@@ -290,6 +296,33 @@ export function setMarketAlertOptIn(telegramId: number, optIn: boolean) {
   const conn = ensureDb();
   conn.prepare('INSERT OR IGNORE INTO users (telegram_id) VALUES (?)').run(telegramId);
   conn.prepare('UPDATE users SET market_alerts_optin = ? WHERE telegram_id = ?').run(optIn ? 1 : 0, telegramId);
+}
+
+export function setUserEmail(telegramId: number, email: string | null) {
+  const conn = ensureDb();
+  conn.prepare('INSERT OR IGNORE INTO users (telegram_id) VALUES (?)').run(telegramId);
+  conn.prepare('UPDATE users SET email = ? WHERE telegram_id = ?').run(email ? email.toLowerCase() : null, telegramId);
+}
+
+export function getUserProfile(telegramId: number): {
+  telegram_id: number;
+  email: string | null;
+  language: string;
+  market_alerts_optin: number;
+} | undefined {
+  try {
+    const conn = ensureDb();
+    return conn.prepare(
+      "SELECT telegram_id, email, COALESCE(language, 'en') AS language, market_alerts_optin FROM users WHERE telegram_id = ?"
+    ).get(telegramId) as {
+      telegram_id: number;
+      email: string | null;
+      language: string;
+      market_alerts_optin: number;
+    } | undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function getMarketAlertSubscribers(): Array<{ telegram_id: number; language: string }> {
@@ -680,6 +713,18 @@ export function createWebUser(email: string, passwordHash: string, name?: string
   } catch (err) {
     return null; // likely duplicate email
   }
+}
+
+/**
+ * Email-only profile: find an existing web user by email or create one with no
+ * usable password (frictionless sign-in — no password, no confirmation).
+ */
+export function upsertWebUserByEmail(email: string, name?: string) {
+  const existing = findWebUserByEmail(email);
+  if (existing) {
+    return { id: existing.id, email: existing.email, name: existing.name };
+  }
+  return createWebUser(email, '', name); // empty hash => password login disabled
 }
 
 export function findWebUserByEmail(email: string) {
