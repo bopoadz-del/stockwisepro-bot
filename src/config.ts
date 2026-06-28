@@ -29,6 +29,7 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || '',
   sessionSecret: process.env.SESSION_SECRET || process.env.JWT_SECRET || '',
   webCorsOrigins: (process.env.WEB_CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean),
+  websiteUrl: process.env.WEBSITE_URL || 'https://stockwisepro-bot-pzi2.onrender.com',
 };
 
 if (!config.telegramToken) {

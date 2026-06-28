@@ -3,6 +3,7 @@ import { BotContext } from '../types';
 import { ensureUser } from '../db';
 import { t, LANG_NAMES } from '../i18n';
 import { langOf } from '../middleware/i18n';
+import { config } from '../config';
 
 export async function startCommand(ctx: BotContext) {
   const from = ctx.from;
@@ -13,13 +14,15 @@ export async function startCommand(ctx: BotContext) {
   const lang = langOf(ctx);
   const welcome = t(lang, 'start.welcome');
 
-  // Offer a language choice bubble inline with the welcome message.
-  const keyboard = Markup.inlineKeyboard([
-    [
-      Markup.button.callback(`🇬🇧 ${LANG_NAMES.en}`, 'setlang:en'),
-      Markup.button.callback(`🇸🇦 ${LANG_NAMES.ar}`, 'setlang:ar'),
-    ],
+  // Welcome bubbles: a website link (when configured) plus a language choice.
+  const rows = [];
+  if (config.websiteUrl) {
+    rows.push([Markup.button.url(t(lang, 'start.website'), config.websiteUrl)]);
+  }
+  rows.push([
+    Markup.button.callback(`🇬🇧 ${LANG_NAMES.en}`, 'setlang:en'),
+    Markup.button.callback(`🇸🇦 ${LANG_NAMES.ar}`, 'setlang:ar'),
   ]);
 
-  await ctx.replyWithMarkdown(welcome, keyboard);
+  await ctx.replyWithMarkdown(welcome, Markup.inlineKeyboard(rows));
 }
