@@ -31,7 +31,9 @@ services:
       - key: OLLAMA_URL
         sync: false
       - key: OLLAMA_MODEL
-        value: llama3.1
+        sync: false
+      - key: OLLAMA_API_KEY
+        sync: false
       - key: PORT
         value: 3000
       - key: NODE_ENV

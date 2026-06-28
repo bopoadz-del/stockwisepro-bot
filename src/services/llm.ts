@@ -23,9 +23,13 @@ export async function llmGenerate(prompt: string, system?: string, timeoutMs = 3
       ...(system ? [{ role: 'system', content: system }] : []),
       { role: 'user', content: prompt },
     ];
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    // Ollama Cloud (and other hosted gateways) require a bearer token.
+    if (config.ollamaApiKey) headers.Authorization = `Bearer ${config.ollamaApiKey}`;
+
     const res = await fetch(`${config.ollamaUrl}/api/chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ model: config.ollamaModel, messages, stream: false }),
       signal: controller.signal,
     });
