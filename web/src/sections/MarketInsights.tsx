@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, Target, Database, Bell } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, Database, Bell, Sparkles, Loader2 } from 'lucide-react';
 import { liveApi, type MarketInsights as MarketInsightsData } from '@/lib/api/live';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { ScrollReveal } from '@/components/ScrollReveal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 function signed(n: number): string {
   const r = Math.round(n);
@@ -10,8 +12,35 @@ function signed(n: number): string {
 }
 
 export function MarketInsights() {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const [data, setData] = useState<MarketInsightsData | null>(null);
+
+  // "Explain with AI" — one-shot, not a chat.
+  const [aiTicker, setAiTicker] = useState('');
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const handleExplain = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const ticker = aiTicker.trim().toUpperCase();
+    if (!ticker) return;
+    setAiLoading(true);
+    setAiSummary(null);
+    setAiError(null);
+    const res = await liveApi.explain(ticker, lang);
+    setAiLoading(false);
+    if (res.data?.summary) {
+      setAiSummary(res.data.summary);
+    } else {
+      const err = res.error || '';
+      setAiError(
+        /configured/i.test(err) ? t('insights.ai.disabled')
+        : /No data/i.test(err) ? t('insights.ai.noData')
+        : t('insights.ai.error')
+      );
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -121,6 +150,39 @@ export function MarketInsights() {
             </div>
           </>
         )}
+
+        {/* Explain with AI (one-shot) */}
+        <ScrollReveal>
+          <div className="mt-6 bg-[#1f1f1f] border border-white/10 rounded-xl p-5">
+            <div className="flex items-center gap-2 text-gold font-semibold mb-3">
+              <Sparkles size={18} /> {t('insights.ai.title')}
+            </div>
+            <form onSubmit={handleExplain} className="flex gap-2">
+              <Input
+                value={aiTicker}
+                onChange={(e) => setAiTicker(e.target.value)}
+                placeholder={t('insights.ai.placeholder')}
+                className="bg-[#141414] border-white/10 text-white max-w-[200px]"
+              />
+              <Button
+                type="submit"
+                disabled={aiLoading || !aiTicker.trim()}
+                className="bg-gold hover:bg-gold-light text-[#0a0a0a] font-semibold"
+              >
+                {aiLoading ? <Loader2 size={18} className="animate-spin" /> : t('insights.ai.button')}
+              </Button>
+            </form>
+
+            {aiLoading && <p className="text-white/50 text-sm mt-3">{t('insights.ai.loading')}</p>}
+            {aiError && <p className="text-red-400 text-sm mt-3">{aiError}</p>}
+            {aiSummary && (
+              <div className="mt-3">
+                <p className="text-white/80 text-sm leading-relaxed whitespace-pre-line">{aiSummary}</p>
+                <p className="text-white/30 text-xs mt-2">{t('insights.ai.disclaimer')}</p>
+              </div>
+            )}
+          </div>
+        </ScrollReveal>
       </div>
     </section>
   );
