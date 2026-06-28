@@ -124,6 +124,7 @@ docker-compose up --build -d
 | `/alerts` | View your alerts |
 | `/marketalerts` | Toggle big market-move push alerts |
 | `/insights [ticker]` | Market insights & score signal-accuracy |
+| `/explain <ticker>` | AI explanation of a ticker (needs Ollama) |
 | `/admin` | Usage stats (admin only) |
 | `/admin_export` | Download CSV analytics (admin only) |
 | `/admin_export_scores` | Download live score-history dataset CSV (admin only) |
@@ -198,8 +199,22 @@ external model required:
 - **Per-ticker context pack** — samples, score range/avg/trend, latest reading, and
   recent alerts — the exact substrate a future LLM (RAG) generation step would consume.
 
-Exposed via `/insights [ticker]` on the bot and `GET /api/live/insights[?ticker=AAPL]`.
+Exposed via `/insights [ticker]` on the bot, `GET /api/live/insights[?ticker=AAPL]`, and the
+**Market Insights** section on the website (after the market overview).
 The engine degrades gracefully while data is thin and sharpens as `score_history` grows.
+
+#### AI explanations (optional, via Ollama)
+
+The per-ticker context pack can be turned into a natural-language explanation by a **local
+[Ollama](https://ollama.com) server** — free, self-hosted, no per-token cost. Set `OLLAMA_URL`
+(e.g. `http://your-box:11434`) and optionally `OLLAMA_MODEL` (default `llama3.1`), then use
+`/explain <ticker>`. When `OLLAMA_URL` is unset or unreachable, the bot simply falls back to the
+deterministic `/insights` output. Ollama needs a real host (RAM/GPU) — run it on your own
+machine, not the small Render worker.
+
+> **Roadmap:** once `score_history` is rich, a training/fine-tuning lab (e.g. Tinker) can fit a
+> price-move model on the CSV export (`/admin_export_scores`). For the tabular score→move task a
+> classic gradient-boosted model is the better fit; reserve LLM fine-tuning for language tasks.
 
 ---
 

@@ -109,6 +109,27 @@ export function computeMarketInsights(): MarketInsights {
   };
 }
 
+/** Compact, model-ready context block describing a ticker's recorded history. */
+export function buildTickerContextText(ins: TickerInsight): string {
+  const lines: string[] = [];
+  lines.push(`Ticker: ${ins.ticker}${ins.name ? ` (${ins.name})` : ''}`);
+  lines.push(`Recorded snapshots: ${ins.samples}`);
+  if (ins.latest) {
+    lines.push(`Latest score: ${ins.latest.score ?? 'n/a'} (signal ${ins.latest.signal ?? 'n/a'}), price ${ins.latest.price ?? 'n/a'}, intraday change ${ins.latest.changePct ?? 'n/a'}%`);
+  }
+  if (ins.scoreMin != null) {
+    lines.push(`Score range ${Math.round(ins.scoreMin)}–${Math.round(ins.scoreMax ?? 0)}, avg ${ins.scoreAvg != null ? Math.round(ins.scoreAvg) : 'n/a'}, trend ${ins.scoreTrend != null ? Math.round(ins.scoreTrend) : 'n/a'}`);
+  }
+  lines.push(`Score signal accuracy: ${ins.accuracy.hitRate != null ? Math.round(ins.accuracy.hitRate * 100) + '%' : 'n/a'} over ${ins.accuracy.evaluated} evaluated transitions`);
+  if (ins.recentAlerts.length) {
+    lines.push('Recent alerts:');
+    for (const a of ins.recentAlerts) {
+      lines.push(`- ${a.direction} ${a.changePct.toFixed(2)}% (${a.severity})${a.headline ? `: ${a.headline}` : ''}`);
+    }
+  }
+  return lines.join('\n');
+}
+
 export function computeTickerInsight(ticker: string): TickerInsight | null {
   const rows = getScoreHistoryForTicker(ticker, 1000);
   if (rows.length === 0) return null;

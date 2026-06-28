@@ -217,6 +217,20 @@ const en: Dict = {
   'faqItem.4.a': 'Free users receive delayed data (15-minute delay). Pro and Elite subscribers get real-time market data during trading hours. All plans have access to historical data and after-hours pricing.',
   'faqItem.5.q': 'How do I cancel my subscription?',
   'faqItem.5.a': 'You can cancel your subscription at any time from your account settings. Your access will continue until the end of your current billing period. We also offer a 30-day money-back guarantee for new subscribers.',
+
+  // Market insights panel
+  'insights.title': 'Market',
+  'insights.titleHighlight': 'Insights',
+  'insights.subtitle': 'Live analytics over our recorded scoring data — including how often the score predicts the next move.',
+  'insights.snapshots': 'Snapshots',
+  'insights.tickers': 'Tickers',
+  'insights.hitRate': 'Signal hit-rate',
+  'insights.hitRateSub': '{hits}/{evaluated} evaluated',
+  'insights.gainers': 'Top score gainers',
+  'insights.losers': 'Top score drops',
+  'insights.mostAlerted': 'Most alerted',
+  'insights.empty': 'Collecting data… the live feed records one ticker per minute. Insights appear as data accumulates.',
+  'insights.none': '—',
 };
 
 const ar: Dict = {
@@ -426,6 +440,20 @@ const ar: Dict = {
   'faqItem.4.a': 'يحصل المستخدمون المجانيون على بيانات مؤجلة (تأخير 15 دقيقة). يحصل مشتركو Pro وElite على بيانات السوق اللحظية خلال ساعات التداول. تتوفر البيانات التاريخية وأسعار ما بعد التداول لجميع الخطط.',
   'faqItem.5.q': 'كيف ألغي اشتراكي؟',
   'faqItem.5.a': 'يمكنك إلغاء اشتراكك في أي وقت من إعدادات حسابك. سيستمر وصولك حتى نهاية فترة الفوترة الحالية. كما نقدم ضمان استرداد الأموال خلال 30 يومًا للمشتركين الجدد.',
+
+  // Market insights panel
+  'insights.title': 'رؤى',
+  'insights.titleHighlight': 'السوق',
+  'insights.subtitle': 'تحليلات مباشرة على بيانات التقييم المسجّلة لدينا — بما في ذلك مدى تكرار توقّع التقييم للتحرك التالي.',
+  'insights.snapshots': 'اللقطات',
+  'insights.tickers': 'الرموز',
+  'insights.hitRate': 'دقة الإشارة',
+  'insights.hitRateSub': '{hits}/{evaluated} تم تقييمها',
+  'insights.gainers': 'أكبر ارتفاعات التقييم',
+  'insights.losers': 'أكبر انخفاضات التقييم',
+  'insights.mostAlerted': 'الأكثر تنبيهًا',
+  'insights.empty': 'يجري جمع البيانات… تسجّل التغذية المباشرة رمزًا واحدًا كل دقيقة. تظهر الرؤى مع تراكم البيانات.',
+  'insights.none': '—',
 };
 
 export const TRANSLATIONS: Record<Lang, Dict> = { en, ar };

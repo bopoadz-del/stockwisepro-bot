@@ -4,6 +4,7 @@ import { Navbar } from './sections/Navbar';
 import { Hero } from './sections/Hero';
 import { LiveMarketData } from './sections/LiveMarketData';
 import { StockScreener } from './sections/StockScreener';
+import { MarketInsights } from './sections/MarketInsights';
 import { ScoringSystem } from './sections/ScoringSystem';
 import { InvestorPortfolios } from './sections/InvestorPortfolios';
 
@@ -107,11 +108,12 @@ function App() {
         <Hero onCtaClick={() => setIsAuthOpen(true)} />
         <LiveTicker />
         <LiveMarketData />
-        <StockScreener 
-          onSelectStock={setSelectedStock} 
+        <MarketInsights />
+        <StockScreener
+          onSelectStock={setSelectedStock}
           isAuthenticated={isAuthenticated}
         />
-        
+
         <ScoringSystem />
         <InvestorPortfolios isAuthenticated={isAuthenticated} />
         <FAQ />
