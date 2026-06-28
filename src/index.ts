@@ -175,6 +175,7 @@ async function main() {
         { command: 'dcf', description: 'DCF valuation' },
         { command: 'insider', description: 'Insider trading' },
         { command: 'language', description: 'Change language / تغيير اللغة' },
+        { command: 'profile', description: 'View or set your profile (email)' },
         { command: 'cancel', description: 'Cancel pending action' },
       ]),
       new Promise((_, reject) => setTimeout(() => reject(new Error('setMyCommands timeout')), 5000)),

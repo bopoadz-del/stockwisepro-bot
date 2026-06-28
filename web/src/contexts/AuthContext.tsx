@@ -7,6 +7,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (email: string, password: string, name?: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithEmail: (email: string, name?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   setUser: (user: User | null) => void;
 }
@@ -80,6 +81,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const signInWithEmail = useCallback(async (email: string, name?: string) => {
+    setIsLoading(true);
+    try {
+      const response = await authApi.emailSignIn({ email, name });
+      if (response.error) {
+        return { success: false, error: response.error };
+      }
+      if (response.data) {
+        setUser(response.data.user);
+        return { success: true };
+      }
+      return { success: false, error: 'Sign-in failed' };
+    } catch (error) {
+      return { success: false, error: 'Network error. Please try again.' };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const logout = useCallback(() => {
     authApi.logout().catch(() => {});
     setUser(null);
@@ -93,6 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         login,
         register,
+        signInWithEmail,
         logout,
         setUser,
       }}

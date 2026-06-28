@@ -9,6 +9,7 @@ import { logger } from '../utils/logger';
 import {
   createWebUser,
   findWebUserByEmail,
+  upsertWebUserByEmail,
   getWebWatchlist,
   addWebWatchlistItem,
   removeWebWatchlistItem,
@@ -163,6 +164,36 @@ router.post('/auth/login', async (req: Request, res: Response) => {
   } catch (err) {
     logger.error('Login error', { error: String(err) });
     res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Email-only profile: enter an email, you're in. No password, no confirmation.
+router.post('/auth/email', (req: Request, res: Response) => {
+  try {
+    const { email, name } = req.body;
+    const emailStr = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!emailStr || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr)) {
+      res.status(400).json({ error: 'Please enter a valid email' });
+      return;
+    }
+
+    const user = upsertWebUserByEmail(emailStr, typeof name === 'string' ? name : undefined);
+    if (!user) {
+      res.status(500).json({ error: 'Failed to create profile' });
+      return;
+    }
+
+    const session = (req as any).session;
+    session.userId = user.id;
+    session.webUser = { id: user.id, email: user.email, name: user.name };
+
+    res.json({
+      message: 'Signed in',
+      user: { id: user.id, email: user.email, name: user.name },
+    });
+  } catch (err) {
+    logger.error('Email sign-in error', { error: String(err) });
+    res.status(500).json({ error: 'Sign-in failed' });
   }
 });
 

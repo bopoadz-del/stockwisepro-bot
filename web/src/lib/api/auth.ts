@@ -23,6 +23,9 @@ export interface LoginData {
 }
 
 export const authApi = {
+  emailSignIn: (data: { email: string; name?: string }) =>
+    apiClient.post<AuthResponse>('/auth/email', data),
+
   register: (data: RegisterData) =>
     apiClient.post<AuthResponse>('/auth/register', data),
 
