@@ -11,6 +11,9 @@ Telegram bot for [StockWisePro / AlphaSpectrum](https://github.com/bopoadz-del/S
 - **Investor Mimicry** — Copy strategies from Buffett, Dalio, Wood, Lynch, Graham, Templeton
 - **Experiment Workspace** — Run custom scoring formulas and backtests
 - **Price Alerts** — Background cron checks prices and notifies users
+- **Live Score Feed** — Rotates an S&P-500-class ticker every minute, scores it, records the time-series, and pushes big-move alerts
+- **Bilingual (EN / AR)** — Full English + Arabic on the bot and the web app, with RTL support
+- **Frictionless Profiles** — Email-only sign-in (no password, no confirmation) shared between Telegram and the website
 - **Rich Analytics** — SQLite-backed logging of every command, ticker, API latency, and user feedback
 - **Admin Dashboard** — Export CSV analytics and view usage summaries
 - **Redeployable** — Dockerized, env-driven, portable SQLite database
@@ -72,6 +75,16 @@ STOCKWISE_API_KEY=optional
 BOT_ADMIN_TELEGRAM_IDS=123456789
 DATA_DIR=./data
 ALERT_CHECK_INTERVAL_MINUTES=5
+
+# Public website URL — shown as a button in /start and /profile, and the
+# target of the Telegram → web auto-login link
+WEBSITE_URL=https://your-app.onrender.com
+# Signs the Telegram→web auto-login token (falls back to SESSION_SECRET)
+JWT_SECRET=change-me-to-a-random-string
+SESSION_SECRET=change-me-to-a-random-string
+# Live score feed / market data + news headlines
+FMP_API_KEY=optional_financial_modeling_prep_key
+BRAVE_API_KEY=optional_brave_search_key
 ```
 
 ### 3. Run
@@ -131,6 +144,46 @@ Both the Telegram bot and the web app ship with full **English + Arabic** suppor
   selection persists in `localStorage` and is auto-detected from the browser locale on
   first visit. Translations live in `web/src/i18n/translations.ts`, wired through
   `web/src/contexts/LanguageContext.tsx`.
+
+---
+
+## 👤 Profiles & Sign-in
+
+Frictionless, email-only profiles shared between the bot and the website — **no password,
+no confirmation, no verification**.
+
+- **Bot** — A profile is auto-created on `/start`. `/profile` shows your email, language,
+  and alert status; `/profile you@email.com` sets your email. No confirmation step.
+- **Web** — The auth modal asks for an email (and optional name) only. `POST /api/auth/email`
+  upserts a `web_users` row (with no usable password) and starts the session.
+- **Telegram → Web auto-login** — Starting the bot links a web profile (`web_users.telegram_id`).
+  The `/start` and `/profile` **Visit Website** buttons carry a short-lived signed JWT
+  (`?tg=<token>`); the site redeems it via `POST /api/auth/telegram`, opening a session for
+  the **same profile**, then strips the token from the URL. The token is signed with
+  `JWT_SECRET` (falls back to `SESSION_SECRET`) — the bot and web run in one process.
+
+> ⚠️ **Security note:** by design there is no verification anywhere, so anyone with a
+> profile's email or link token can sign in as that profile. This suits the ~50-user
+> experiment; add magic-link/OTP and short token expiry before a wider launch.
+
+---
+
+## 📡 Live Score Feed & Market Alerts
+
+A `node-cron` job (`src/services/livefeed.ts`) rotates to a new S&P-500-class ticker every
+minute, computes its OpenBox score + live quote, and:
+
+- **Records** a snapshot to the `score_history` table — the growing time-series that seeds
+  future RAG/ML work. Export it with `/admin_export_scores` or `GET /api/live/history`.
+- **Raises alerts** on big price moves — `notable` (≥3%), `big` (≥6%), `extreme` (≥10%),
+  enriched with a Brave news headline for big/extreme. Stored in `market_alerts`.
+- **Pushes** big/extreme moves to Telegram users who opted in via `/marketalerts` (localized).
+
+On the website, the hero card is a **live rotating score bubble** (colored by band, animated
+pillar bars) and a **floating alert bubble** (gold/green/red by severity) — both poll
+`GET /api/live/feed`.
+
+Live data needs `FMP_API_KEY` (Yahoo is the fallback) and `BRAVE_API_KEY` for headlines.
 
 ---
 
