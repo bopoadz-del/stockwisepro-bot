@@ -15,6 +15,7 @@ import { registerCommands } from './commands';
 import { registerScenes } from './scenes';
 import { startAlertService } from './services/alerts';
 import { startLearningReportService } from './services/learning';
+import { startLiveFeedService } from './services/livefeed';
 import { getLocalMimicAllocation } from './services/mimic';
 import { BotContext } from './types';
 
@@ -88,6 +89,10 @@ async function main() {
     logger.info('Step 6b: Starting learning report service...');
     const learningTask = startLearningReportService(bot);
     logger.info('Step 6b: Learning report service started');
+
+    logger.info('Step 6c: Starting live score feed service...');
+    const liveFeedTask = startLiveFeedService();
+    logger.info('Step 6c: Live score feed service started');
 
     logger.info('Step 7: Starting web server...');
     const webApp = createWebServer();
@@ -181,6 +186,7 @@ async function main() {
       flushAnalytics();
       alertTask.stop();
       learningTask.stop();
+      liveFeedTask.stop();
       webServer.close();
       bot.stop('SIGINT');
     });
@@ -189,6 +195,7 @@ async function main() {
       flushAnalytics();
       alertTask.stop();
       learningTask.stop();
+      liveFeedTask.stop();
       webServer.close();
       bot.stop('SIGTERM');
     });

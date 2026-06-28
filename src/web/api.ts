@@ -18,6 +18,8 @@ import {
 } from '../db';
 import { runOCR, scoreTickers, makeTmpPath, cleanupFile } from '../services/ocr';
 import { runBacktest } from '../services/backtest';
+import { getLatestSnapshot, getLiveAlerts } from '../services/livefeed';
+import { getRecentScoreHistory } from '../db';
 import { hashPassword, comparePassword, authMiddleware, WebAuthRequest } from './auth';
 import fs from 'fs';
 import path from 'path';
@@ -416,6 +418,22 @@ router.get('/stocks/indices', async (_req: Request, res: Response) => {
     logger.error('Indices error', { error: String(err) });
     res.status(500).json({ error: 'Failed to fetch indices' });
   }
+});
+
+/* ─── Live score feed ─── */
+
+// Combined feed for the live hero card + alert bubble (frontend polls this).
+router.get('/live/feed', (_req: Request, res: Response) => {
+  res.json({
+    snapshot: getLatestSnapshot(),
+    alerts: getLiveAlerts(8),
+  });
+});
+
+// Recorded score time-series (the dataset seed). Capped at 5000 rows.
+router.get('/live/history', (req: Request, res: Response) => {
+  const limit = parseInt(String(req.query.limit || '200'), 10) || 200;
+  res.json(getRecentScoreHistory(limit));
 });
 
 router.get('/stocks/historical/:ticker', async (req: Request, res: Response) => {

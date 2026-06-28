@@ -164,6 +164,20 @@ const en: Dict = {
   'signal.hold': 'HOLD',
   'signal.sell': 'SELL',
 
+  // Live score feed
+  'live.badge': 'LIVE',
+  'live.loading': 'Loading live score…',
+  'live.calm': 'Markets calm — no major moves',
+  'pillar.fundamentals': 'Fundamentals',
+  'pillar.marketDynamics': 'Market Dynamics',
+  'pillar.balanceSheet': 'Balance Sheet',
+  'pillar.leadership': 'Leadership',
+  'pillar.innovation': 'Innovation',
+  'pillar.ethics': 'Ethics',
+  'alert.severity.notable': 'Notable move',
+  'alert.severity.big': 'Big move',
+  'alert.severity.extreme': 'Extreme move',
+
   // Scoring criteria names/descriptions (by id)
   'criteria.valuation.name': 'Valuation',
   'criteria.valuation.description': 'Measures if the stock is priced fairly relative to its fundamentals',
@@ -348,6 +362,20 @@ const ar: Dict = {
   'signal.buy': 'شراء',
   'signal.hold': 'احتفاظ',
   'signal.sell': 'بيع',
+
+  // Live score feed
+  'live.badge': 'مباشر',
+  'live.loading': 'جارٍ تحميل التقييم المباشر…',
+  'live.calm': 'الأسواق هادئة — لا تحركات كبيرة',
+  'pillar.fundamentals': 'الأساسيات',
+  'pillar.marketDynamics': 'ديناميكيات السوق',
+  'pillar.balanceSheet': 'الميزانية العمومية',
+  'pillar.leadership': 'القيادة',
+  'pillar.innovation': 'الابتكار',
+  'pillar.ethics': 'الأخلاقيات',
+  'alert.severity.notable': 'تحرك ملحوظ',
+  'alert.severity.big': 'تحرك كبير',
+  'alert.severity.extreme': 'تحرك حاد',
 
   // Scoring criteria names/descriptions (by id)
   'criteria.valuation.name': 'التقييم',

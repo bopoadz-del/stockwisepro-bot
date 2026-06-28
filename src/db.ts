@@ -173,6 +173,42 @@ const MIGRATIONS: Array<{ version: number; sql: string }> = [
       ALTER TABLE users ADD COLUMN language TEXT NOT NULL DEFAULT 'en';
     `,
   },
+  {
+    version: 6,
+    sql: `
+      CREATE TABLE IF NOT EXISTS score_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ticker TEXT NOT NULL,
+        name TEXT,
+        sector TEXT,
+        score REAL,
+        signal TEXT,
+        price REAL,
+        change_pct REAL,
+        pillars_json TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_score_history_ticker ON score_history(ticker);
+      CREATE INDEX IF NOT EXISTS idx_score_history_created_at ON score_history(created_at);
+
+      CREATE TABLE IF NOT EXISTS market_alerts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ticker TEXT NOT NULL,
+        name TEXT,
+        severity TEXT NOT NULL,
+        direction TEXT NOT NULL,
+        change_pct REAL NOT NULL,
+        price REAL,
+        score REAL,
+        headline TEXT,
+        headline_url TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_market_alerts_created_at ON market_alerts(created_at);
+    `,
+  },
 ];
 
 export function initDb() {
@@ -682,6 +718,125 @@ export function removeWebAlert(webUserId: number, alertId: number) {
   const conn = ensureDb();
   conn.prepare('DELETE FROM web_alerts WHERE id = ? AND web_user_id = ?').run(alertId, webUserId);
   return true;
+}
+
+/* ─── Live Score Feed & Market Alerts ─── */
+
+export interface ScoreSnapshot {
+  ticker: string;
+  name?: string | null;
+  sector?: string | null;
+  score: number | null;
+  signal?: string | null;
+  price?: number | null;
+  changePct?: number | null;
+  pillars?: Record<string, number> | null;
+}
+
+export function recordScoreSnapshot(s: ScoreSnapshot) {
+  try {
+    const conn = ensureDb();
+    conn.prepare(`
+      INSERT INTO score_history (ticker, name, sector, score, signal, price, change_pct, pillars_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      s.ticker.toUpperCase(),
+      s.name ?? null,
+      s.sector ?? null,
+      s.score ?? null,
+      s.signal ?? null,
+      s.price ?? null,
+      s.changePct ?? null,
+      s.pillars ? JSON.stringify(s.pillars) : null
+    );
+  } catch (err) {
+    logger.warn('recordScoreSnapshot failed (non-fatal)', { error: (err as Error).message });
+  }
+}
+
+export function getRecentScoreHistory(limit = 100) {
+  const conn = ensureDb();
+  const safe = Math.min(Math.max(Math.floor(limit), 1), 5000);
+  return conn.prepare(
+    `SELECT * FROM score_history ORDER BY created_at DESC LIMIT ?`
+  ).all(safe) as Array<Record<string, unknown>>;
+}
+
+export interface MarketAlertRow {
+  ticker: string;
+  name?: string | null;
+  severity: 'notable' | 'big' | 'extreme';
+  direction: 'up' | 'down';
+  changePct: number;
+  price?: number | null;
+  score?: number | null;
+  headline?: string | null;
+  headlineUrl?: string | null;
+}
+
+export function recordMarketAlert(a: MarketAlertRow) {
+  try {
+    const conn = ensureDb();
+    const result = conn.prepare(`
+      INSERT INTO market_alerts (ticker, name, severity, direction, change_pct, price, score, headline, headline_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      a.ticker.toUpperCase(),
+      a.name ?? null,
+      a.severity,
+      a.direction,
+      a.changePct,
+      a.price ?? null,
+      a.score ?? null,
+      a.headline ?? null,
+      a.headlineUrl ?? null
+    );
+    return Number(result.lastInsertRowid);
+  } catch (err) {
+    logger.warn('recordMarketAlert failed (non-fatal)', { error: (err as Error).message });
+    return 0;
+  }
+}
+
+export function getRecentMarketAlerts(limit = 10) {
+  const conn = ensureDb();
+  const safe = Math.min(Math.max(Math.floor(limit), 1), 100);
+  return conn.prepare(
+    `SELECT * FROM market_alerts ORDER BY created_at DESC LIMIT ?`
+  ).all(safe) as Array<{
+    id: number;
+    ticker: string;
+    name: string | null;
+    severity: string;
+    direction: string;
+    change_pct: number;
+    price: number | null;
+    score: number | null;
+    headline: string | null;
+    headline_url: string | null;
+    created_at: string;
+  }>;
+}
+
+export function exportScoreHistoryCsv(days = 7): string {
+  const conn = ensureDb();
+  const safeDays = clampDays(days);
+  const rows = conn.prepare(
+    `SELECT * FROM score_history WHERE created_at >= datetime('now', '-${safeDays} days') ORDER BY created_at DESC`
+  ).all() as Array<Record<string, unknown>>;
+
+  if (rows.length === 0) return '';
+
+  const headers = Object.keys(rows[0]);
+  return [
+    headers.join(','),
+    ...rows.map(row => headers.map(h => {
+      const val = row[h];
+      if (val == null) return '';
+      const str = String(val).replace(/"/g, '""');
+      return str.includes(',') || str.includes('\n') ? `"${str}"` : str;
+    }).join(','))
+  ].join('\n');
 }
 
 // Backward-compatible accessor — always returns initialized db
