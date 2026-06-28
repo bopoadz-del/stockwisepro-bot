@@ -1,5 +1,5 @@
 import { BotContext } from '../types';
-import { ensureUser, setUserEmail, getUserProfile } from '../db';
+import { ensureUser, setUserEmail, getUserProfile, upsertWebUserByTelegram } from '../db';
 import { t, LANG_NAMES } from '../i18n';
 import { langOf } from '../middleware/i18n';
 
@@ -25,6 +25,9 @@ export async function profileCommand(ctx: BotContext) {
       return;
     }
     setUserEmail(from.id, arg);
+    // Keep the linked web profile in sync so the website shows the same email.
+    const displayName = [from.first_name, from.last_name].filter(Boolean).join(' ') || from.username || null;
+    upsertWebUserByTelegram(from.id, arg, displayName);
     await ctx.replyWithMarkdown(t(lang, 'profile.saved', { email: arg.toLowerCase() }));
     return;
   }
