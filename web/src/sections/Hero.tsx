@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
 import { DemoModal } from '@/components/DemoModal';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { useLiveFeed } from '@/hooks/useLiveFeed';
+import { LiveScoreCard } from '@/components/LiveScoreCard';
+import { LiveAlertBubble } from '@/components/LiveAlertBubble';
 
 const stats = [
   { icon: Users, value: 50000, suffix: '+', label: 'hero.stat.investors' },
@@ -19,6 +22,7 @@ interface HeroProps {
 export function Hero({ onCtaClick }: HeroProps) {
   const [isDemoOpen, setIsDemoOpen] = useState(false);
   const { t } = useTranslation();
+  const { snapshot, alerts } = useLiveFeed();
   return (
     <section className="relative min-h-screen bg-gradient-to-b from-[#0a0a0a] via-[#0f0f0f] to-[#141414] pt-[120px] pb-20 overflow-hidden">
       {/* Background Effects */}
@@ -120,83 +124,11 @@ export function Hero({ onCtaClick }: HeroProps) {
             className="relative hidden lg:block"
           >
             <div className="relative">
-              {/* Main Card */}
-              <div className="bg-[#1f1f1f] rounded-2xl border border-white/10 p-6 shadow-card">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-white font-semibold text-lg">{t('hero.card.title')}</h3>
-                    <p className="text-white/50 text-sm">AAPL - Apple Inc.</p>
-                  </div>
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-400 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-white">78</span>
-                  </div>
-                </div>
+              {/* Live, rotating score card */}
+              <LiveScoreCard snapshot={snapshot} />
 
-                {/* Score Breakdown */}
-                <div className="space-y-4">
-                  {[
-                    { label: 'criteria.valuation.name', score: 75, color: 'bg-green-500' },
-                    { label: 'criteria.profitability.name', score: 85, color: 'bg-green-500' },
-                    { label: 'criteria.growth.name', score: 70, color: 'bg-amber-500' },
-                    { label: 'criteria.financialHealth.name', score: 80, color: 'bg-green-500' },
-                    { label: 'criteria.momentum.name', score: 65, color: 'bg-amber-500' },
-                  ].map((item, index) => (
-                    <div key={index} className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-white/70">{t(item.label)}</span>
-                        <span className="text-white font-medium">{item.score}</span>
-                      </div>
-                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${item.score}%` }}
-                          transition={{ duration: 1, delay: 0.5 + index * 0.1 }}
-                          className={`h-full ${item.color} rounded-full`}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 pt-6 border-t border-white/10">
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/70">{t('hero.card.signal')}</span>
-                    <span className="px-3 py-1 rounded-full bg-green-500/10 border border-green-500/30 text-green-500 font-semibold text-sm">
-                      {t('signal.buy')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating Cards */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.8 }}
-                className="absolute -left-8 top-1/4 bg-[#1f1f1f] rounded-xl border border-white/10 p-4 shadow-card"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
-                    <span className="text-purple-400 font-bold">B</span>
-                  </div>
-                  <div>
-                    <p className="text-white font-medium text-sm">{t('hero.card.buffett')}</p>
-                    <p className="text-green-500 text-xs">{t('hero.card.ytd')}</p>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 1 }}
-                className="absolute -right-4 bottom-1/4 bg-[#1f1f1f] rounded-xl border border-white/10 p-4 shadow-card"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-white/70 text-sm">{t('hero.card.liveData')}</span>
-                </div>
-              </motion.div>
+              {/* Floating live market-alert bubble */}
+              <LiveAlertBubble alert={alerts[0] ?? null} />
             </div>
           </motion.div>
         </div>
