@@ -29,9 +29,9 @@ services:
       - key: WEBSITE_URL
         value: https://stockwisepro-bot-pzi2.onrender.com
       - key: OLLAMA_URL
-        sync: false
+        value: https://ollama.com
       - key: OLLAMA_MODEL
-        sync: false
+        value: gpt-oss:120b
       - key: OLLAMA_API_KEY
         sync: false
       - key: PORT
