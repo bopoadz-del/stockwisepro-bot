@@ -54,6 +54,7 @@ const en: Dict = {
   'help.tools.experiment': '/experiment — Test custom formulas',
   'help.tools.alert': '/alert — Set price alerts',
   'help.tools.alerts': '/alerts — View your alerts',
+  'help.tools.marketalerts': '/marketalerts — Toggle big market-move alerts',
   'help.section.admin': '*Admin*',
   'help.admin.admin': '/admin — Usage stats',
   'help.admin.export': '/admin_export — Download CSV analytics',
@@ -69,6 +70,13 @@ const en: Dict = {
 
   // website
   'start.website': '🌐 Visit Website',
+
+  // market alerts
+  'marketalerts.enabled': "🔔 Market alerts *enabled*. You'll be notified of big market moves. Send /marketalerts again to turn off.",
+  'marketalerts.disabled': '🔕 Market alerts *disabled*. Send /marketalerts to turn them back on.',
+  'marketalert.big': '📊 *Big Market Move*',
+  'marketalert.extreme': '🚨 *Extreme Market Move*',
+  'marketalert.score': 'Score',
 
   // common
   'common.error': '❌ Something went wrong. Please try again later.',
@@ -116,6 +124,7 @@ const ar: Dict = {
   'help.tools.experiment': '/experiment — اختبار صيغ مخصصة',
   'help.tools.alert': '/alert — ضبط تنبيهات الأسعار',
   'help.tools.alerts': '/alerts — عرض تنبيهاتك',
+  'help.tools.marketalerts': '/marketalerts — تفعيل/إيقاف تنبيهات تحركات السوق الكبيرة',
   'help.section.admin': '*الإدارة*',
   'help.admin.admin': '/admin — إحصاءات الاستخدام',
   'help.admin.export': '/admin_export — تنزيل تحليلات CSV',
@@ -131,6 +140,13 @@ const ar: Dict = {
 
   // website
   'start.website': '🌐 زيارة الموقع',
+
+  // market alerts
+  'marketalerts.enabled': '🔔 تم *تفعيل* تنبيهات السوق. سيتم إعلامك بالتحركات الكبيرة في السوق. أرسل /marketalerts مرة أخرى لإيقافها.',
+  'marketalerts.disabled': '🔕 تم *إيقاف* تنبيهات السوق. أرسل /marketalerts لإعادة تفعيلها.',
+  'marketalert.big': '📊 *تحرك كبير في السوق*',
+  'marketalert.extreme': '🚨 *تحرك حاد في السوق*',
+  'marketalert.score': 'الدرجة',
 
   // common
   'common.error': '❌ حدث خطأ ما. يرجى المحاولة لاحقًا.',
@@ -190,6 +206,7 @@ function buildHelp(lang: Lang): string {
     k('help.tools.experiment'),
     k('help.tools.alert'),
     k('help.tools.alerts'),
+    k('help.tools.marketalerts'),
     '',
     k('help.section.admin'),
     k('help.admin.admin'),

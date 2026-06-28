@@ -1,11 +1,14 @@
 import cron from 'node-cron';
+import { Telegraf } from 'telegraf';
 import { fmp } from '../api/fmp';
 import { getYahooQuote } from '../api/yahoo';
 import { computeOpenBoxScore } from './openbox/engine';
 import { loadStockUniverse } from './universe';
 import { brave } from '../api/brave';
-import { recordScoreSnapshot, recordMarketAlert, getRecentMarketAlerts } from '../db';
+import { recordScoreSnapshot, recordMarketAlert, getRecentMarketAlerts, getMarketAlertSubscribers } from '../db';
 import { logger } from '../utils/logger';
+import { BotContext } from '../types';
+import { t, normalizeLang } from '../i18n';
 
 /**
  * Live score feed: every minute it rotates to a new S&P-500-class ticker,
@@ -49,6 +52,7 @@ const FALLBACK_UNIVERSE = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSL
 let universe: string[] = [];
 let cursor = 0;
 let latestSnapshot: LiveSnapshot | null = null;
+let botRef: Telegraf<BotContext> | null = null;
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -160,6 +164,46 @@ async function processTicker(ticker: string): Promise<void> {
         headlineUrl,
       });
       logger.info('Market alert', { ticker: snap.ticker, severity, changePct });
+
+      // Push big/extreme moves to opted-in Telegram users (notable is web-only).
+      if (severity === 'big' || severity === 'extreme') {
+        await pushMarketAlert({
+          ticker: snap.ticker,
+          name: snap.name,
+          severity,
+          changePct,
+          score,
+          headline,
+        });
+      }
+    }
+  }
+}
+
+async function pushMarketAlert(a: {
+  ticker: string;
+  name: string | null;
+  severity: 'big' | 'extreme';
+  changePct: number;
+  score: number | null;
+  headline: string | null;
+}): Promise<void> {
+  if (!botRef) return;
+  const subscribers = getMarketAlertSubscribers();
+  if (subscribers.length === 0) return;
+
+  const sign = a.changePct >= 0 ? '+' : '';
+  for (const sub of subscribers) {
+    const lang = normalizeLang(sub.language);
+    const titleKey = a.severity === 'extreme' ? 'marketalert.extreme' : 'marketalert.big';
+    let msg = `${t(lang, titleKey)}\n\n*${a.ticker}* ${sign}${a.changePct.toFixed(2)}%`;
+    if (a.name) msg += ` — ${a.name}`;
+    if (a.score != null) msg += `\n${t(lang, 'marketalert.score')}: ${Math.round(a.score)}`;
+    if (a.headline) msg += `\n\n📰 ${a.headline}`;
+    try {
+      await botRef.telegram.sendMessage(sub.telegram_id, msg, { parse_mode: 'Markdown' });
+    } catch (err) {
+      logger.warn('Failed to push market alert', { userId: sub.telegram_id, error: String(err) });
     }
   }
 }
@@ -183,7 +227,8 @@ export function getLiveAlerts(limit = 8): LiveAlert[] {
   }));
 }
 
-export function startLiveFeedService() {
+export function startLiveFeedService(bot?: Telegraf<BotContext>) {
+  botRef = bot ?? null;
   universe = buildUniverse();
   // Prime immediately so the live card has data on first page load.
   processTicker('AAPL').catch(err => logger.warn('Live feed prime failed', { error: String(err) }));

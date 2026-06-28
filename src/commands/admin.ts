@@ -1,6 +1,6 @@
 import { Context } from 'telegraf';
 import { config } from '../config';
-import { getAnalyticsSummary, exportAnalyticsCsv, exportWeightsCsv } from '../db';
+import { getAnalyticsSummary, exportAnalyticsCsv, exportWeightsCsv, exportScoreHistoryCsv } from '../db';
 import { userSafeError } from '../utils/logger';
 import fs from 'fs';
 import path from 'path';
@@ -52,6 +52,34 @@ export async function adminExportCommand(ctx: Context) {
 
   try {
     await ctx.replyWithDocument({ source: filePath, filename: 'stockwise_analytics.csv' });
+  } finally {
+    try {
+      fs.unlinkSync(filePath);
+    } catch {
+      // ignore cleanup errors
+    }
+  }
+}
+
+export async function adminExportScoresCommand(ctx: Context) {
+  if (!isAdmin(ctx)) {
+    await ctx.reply('⛔ Admin only.');
+    return;
+  }
+
+  await ctx.replyWithChatAction('upload_document');
+  const csv = exportScoreHistoryCsv(30);
+
+  if (!csv) {
+    await ctx.reply('No score history to export yet. Data is recorded once per minute.');
+    return;
+  }
+
+  const filePath = path.join(config.dataDir, `score_history_export_${Date.now()}.csv`);
+  fs.writeFileSync(filePath, csv);
+
+  try {
+    await ctx.replyWithDocument({ source: filePath, filename: 'stockwise_score_history.csv' });
   } finally {
     try {
       fs.unlinkSync(filePath);

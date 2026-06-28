@@ -91,7 +91,7 @@ async function main() {
     logger.info('Step 6b: Learning report service started');
 
     logger.info('Step 6c: Starting live score feed service...');
-    const liveFeedTask = startLiveFeedService();
+    const liveFeedTask = startLiveFeedService(bot);
     logger.info('Step 6c: Live score feed service started');
 
     logger.info('Step 7: Starting web server...');
@@ -168,6 +168,7 @@ async function main() {
         { command: 'experiment', description: 'Test custom formulas' },
         { command: 'alert', description: 'Set price alerts' },
         { command: 'alerts', description: 'View your alerts' },
+        { command: 'marketalerts', description: 'Toggle big market-move alerts' },
         { command: 'weights', description: 'Set scoring weights' },
         { command: 'weights_set', description: 'Configure scoring weights' },
         { command: 'alpaca', description: 'Alpaca trading info' },

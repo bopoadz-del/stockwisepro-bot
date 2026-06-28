@@ -109,8 +109,10 @@ docker-compose up --build -d
 | `/experiment <formula>` | Run custom scoring formula |
 | `/alert <ticker> <above\|below> <price>` | Set price alert |
 | `/alerts` | View your alerts |
+| `/marketalerts` | Toggle big market-move push alerts |
 | `/admin` | Usage stats (admin only) |
 | `/admin_export` | Download CSV analytics (admin only) |
+| `/admin_export_scores` | Download live score-history dataset CSV (admin only) |
 | `/language` | Switch language (English / العربية) |
 | `/help` | Show help |
 
