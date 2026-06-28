@@ -1,31 +1,16 @@
-import { Context, Markup } from 'telegraf';
+import { Markup } from 'telegraf';
+import { BotContext } from '../types';
 import { ensureUser } from '../db';
+import { t } from '../i18n';
+import { langOf } from '../middleware/i18n';
 
-export async function startCommand(ctx: Context) {
+export async function startCommand(ctx: BotContext) {
   const from = ctx.from;
   if (!from) return;
 
   ensureUser(from.id, from.username, from.first_name, from.last_name);
 
-  const welcome = `
-🚀 *Welcome to StockWiseBot!*
-
-Your AI-powered stock research companion.
-
-*Quick commands:*
-🔍 /search <ticker> — Lookup a stock
-📊 /score <ticker> — Get AI scoring
-🎲 /simulate <ticker> <days> — Monte Carlo forecast
-📐 /metrics <ticker> — Risk stats
-⭐ /watchlist — Manage watchlist
-💼 /portfolio — View portfolio
-🧠 /mimic — Copy legendary investors
-🧪 /experiment — Test scoring formulas
-🔔 /alert — Price alerts
-📈 /help — Full command list
-
-_Built for experimental research. Data is logged to improve scoring accuracy._
-  `.trim();
+  const welcome = t(langOf(ctx), 'start.welcome');
 
   await ctx.replyWithMarkdown(welcome, Markup.removeKeyboard());
 }

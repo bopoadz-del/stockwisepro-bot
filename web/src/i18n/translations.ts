@@ -1,0 +1,383 @@
+export type Lang = 'en' | 'ar';
+
+export const SUPPORTED_LANGS: Lang[] = ['en', 'ar'];
+export const DEFAULT_LANG: Lang = 'en';
+
+export const LANG_LABELS: Record<Lang, string> = {
+  en: 'English',
+  ar: 'العربية',
+};
+
+type Dict = Record<string, string>;
+
+const en: Dict = {
+  // Navbar
+  'nav.dashboard': 'Dashboard',
+  'nav.screener': 'Stock Screener',
+  'nav.portfolios': 'Portfolios',
+  'nav.signIn': 'Sign In',
+  'nav.startFreeTrial': 'Start Free Trial',
+  'nav.logout': 'Logout',
+  'nav.freePlan': 'Free Plan',
+  'nav.planSuffix': 'Plan',
+
+  // App floating buttons
+  'app.watchlist': 'Watchlist',
+  'app.compare': 'Compare',
+  'app.signIn': 'Sign In',
+  'app.logout': 'Logout',
+  'app.loggedOut': 'Logged out successfully',
+
+  // Hero
+  'hero.badge': 'Now with real-time data',
+  'hero.title': 'AI-Powered Stock Analysis for',
+  'hero.titleHighlight': 'Smarter Investing',
+  'hero.subtitle':
+    'Get professional-grade stock scores, mimic legendary investor portfolios, and make data-driven decisions with our transparent scoring system.',
+  'hero.startFreeTrial': 'Start Free Trial',
+  'hero.viewDemo': 'View Demo',
+  'hero.stat.investors': 'Active Investors',
+  'hero.stat.assets': 'Assets Analyzed',
+  'hero.stat.accuracy': 'Accuracy Rate',
+  'hero.card.title': 'Stock Score Analysis',
+  'hero.card.signal': 'Signal',
+  'hero.card.buffett': 'Buffett Portfolio',
+  'hero.card.ytd': '+12.4% YTD',
+  'hero.card.liveData': 'Live Market Data',
+
+  // Market overview
+  'market.title': 'Market Overview',
+  'market.subtitle': 'Real-time market indices and trending stocks',
+  'market.trendingNow': 'Trending Now',
+  'market.open': 'Market Open',
+  'market.closed': 'Market Closed',
+
+  // Screener
+  'screener.title': 'Stock',
+  'screener.titleHighlight': 'Screener',
+  'screener.subtitle': 'Search stocks in real-time. Filter by sector, valuation, and our proprietary AI score.',
+  'screener.searchPlaceholder': 'Search any stock (e.g., AAPL, Tesla)...',
+  'screener.filters': 'Filters',
+  'screener.sector': 'Sector:',
+  'screener.all': 'All',
+  'screener.col.stock': 'Stock',
+  'screener.col.price': 'Price',
+  'screener.col.change': 'Change',
+  'screener.col.chart': 'Chart',
+  'screener.col.score': 'Score',
+  'screener.col.signal': 'Signal',
+  'screener.noResultsFor': 'No stocks found matching "{query}"',
+  'screener.noStocks': 'No stocks available',
+  'screener.clearSearch': 'Clear Search',
+  'screener.dataProvider': 'Real-time data provided by Financial Modeling Prep API',
+  'screener.errorLoad': 'Failed to load screener data',
+  'screener.searchFailed': 'Search failed',
+
+  // Scoring system
+  'scoring.title': 'Transparent',
+  'scoring.titleHighlight': 'Scoring System',
+  'scoring.subtitle': 'See exactly how we calculate scores. Customize weights to match your investment strategy and risk tolerance.',
+  'scoring.criteria': 'Scoring Criteria',
+  'scoring.total': 'Total: {value}%',
+  'scoring.presets': 'Presets:',
+  'scoring.preset.balanced': 'Balanced',
+  'scoring.preset.value': 'Value',
+  'scoring.preset.growth': 'Growth',
+  'scoring.preset.quality': 'Quality',
+  'scoring.weight': 'Weight',
+  'scoring.metricsIncluded': 'Metrics included:',
+  'scoring.reset': 'Reset',
+  'scoring.saveWeights': 'Save Weights',
+  'scoring.savedSuccess': 'Weights saved successfully!',
+  'scoring.scorePreview': 'Score Preview',
+  'scoring.breakdown': 'Breakdown',
+  'scoring.finalScore': 'Final Score',
+  'scoring.signal': 'Signal',
+
+  // Investor portfolios
+  'investors.title': 'Invest Like the',
+  'investors.titleHighlight': 'Legends',
+  'investors.subtitle': "Mimic the strategies of history's greatest investors within your budget. Our AI creates a personalized portfolio based on their proven approaches.",
+  'investors.loadingProfiles': 'Loading investor profiles...',
+  'investors.holdings': 'Holdings',
+  'investors.topHoldings': 'Top Holdings',
+  'investors.portfolioBuilder': 'Portfolio Builder',
+  'investors.investmentBudget': 'Your Investment Budget',
+  'investors.ethicalInvesting': 'Ethical Investing',
+  'investors.excludeHarmful': 'Exclude harmful industries',
+  'investors.generatePortfolio': 'Generate Portfolio',
+  'investors.buildingPortfolio': 'Building Portfolio...',
+  'investors.portfolioValue': 'Portfolio Value',
+  'investors.cashRemaining': 'Cash Remaining',
+  'investors.ethicalApplied': 'Ethical filters applied',
+  'investors.tickersReplaced': '{count} ticker(s) replaced with ethical alternatives',
+  'investors.sharesAt': '{shares} shares @ {price}',
+  'investors.saveAllWatchlist': 'Save All to Watchlist',
+  'investors.minBudget': 'Minimum budget is $1,000',
+
+  // FAQ
+  'faq.title': 'Frequently Asked',
+  'faq.titleHighlight': 'Questions',
+  'faq.subtitle': 'Everything you need to know about StockWise Pro.',
+
+  // CTA
+  'cta.badge': 'Limited Time: 14-Day Free Trial',
+  'cta.title': 'Ready to Make Smarter Investment Decisions?',
+  'cta.subtitle': 'Join 50,000+ investors using StockWise Pro to analyze stocks, mimic legendary portfolios, and achieve their financial goals.',
+  'cta.startFreeTrial': 'Start Your Free Trial',
+  'cta.viewPricing': 'View Pricing',
+  'cta.noCreditCard': 'No credit card required. Cancel anytime.',
+
+  // Footer
+  'footer.tagline': 'Professional-grade stock analysis for everyone. Make smarter investment decisions with AI-powered insights.',
+  'footer.cat.Product': 'Product',
+  'footer.cat.Resources': 'Resources',
+  'footer.cat.Company': 'Company',
+  'footer.cat.Legal': 'Legal',
+  'footer.copyright': '© 2026 StockWise Pro. All rights reserved.',
+  'footer.terms': 'Terms',
+  'footer.privacy': 'Privacy',
+  'footer.cookies': 'Cookies',
+  // Footer links
+  'footer.link.Features': 'Features',
+  'footer.link.Stock Screener': 'Stock Screener',
+  'footer.link.Portfolios': 'Portfolios',
+  'footer.link.Pricing': 'Pricing',
+  'footer.link.API': 'API',
+  'footer.link.Blog': 'Blog',
+  'footer.link.Help Center': 'Help Center',
+  'footer.link.Documentation': 'Documentation',
+  'footer.link.Community': 'Community',
+  'footer.link.Webinars': 'Webinars',
+  'footer.link.About': 'About',
+  'footer.link.Careers': 'Careers',
+  'footer.link.Press': 'Press',
+  'footer.link.Partners': 'Partners',
+  'footer.link.Contact': 'Contact',
+  'footer.link.Terms of Service': 'Terms of Service',
+  'footer.link.Privacy Policy': 'Privacy Policy',
+  'footer.link.Cookie Policy': 'Cookie Policy',
+  'footer.link.Disclaimer': 'Disclaimer',
+
+  // Signals (shared)
+  'signal.buy': 'BUY',
+  'signal.hold': 'HOLD',
+  'signal.sell': 'SELL',
+
+  // Scoring criteria names/descriptions (by id)
+  'criteria.valuation.name': 'Valuation',
+  'criteria.valuation.description': 'Measures if the stock is priced fairly relative to its fundamentals',
+  'criteria.profitability.name': 'Profitability',
+  'criteria.profitability.description': 'Evaluates how efficiently the company generates profits',
+  'criteria.growth.name': 'Growth',
+  'criteria.growth.description': "Assesses the company's revenue and earnings growth trajectory",
+  'criteria.financialHealth.name': 'Financial Health',
+  'criteria.financialHealth.description': "Analyzes the company's balance sheet strength and debt levels",
+  'criteria.momentum.name': 'Momentum',
+  'criteria.momentum.description': 'Tracks price performance and technical indicators',
+
+  // Preset descriptions
+  'preset.balanced.description': 'Equal focus on all criteria',
+  'preset.value.description': 'Prioritizes low valuations',
+  'preset.growth.description': 'Focuses on growth metrics',
+  'preset.quality.description': 'Emphasizes profitability',
+
+  // FAQ items
+  'faqItem.1.q': 'How does the scoring system work?',
+  'faqItem.1.a': 'Our scoring system evaluates stocks across five key criteria: Valuation (P/E, P/B, P/S ratios), Profitability (ROE, ROA, margins), Growth (revenue and EPS growth), Financial Health (debt ratios, liquidity), and Momentum (price performance). Each criterion receives a sub-score from 0-100, which is then weighted and combined into a final score. Scores above 70 indicate a BUY signal, 40-69 indicate HOLD, and below 40 suggest SELL.',
+  'faqItem.2.q': 'Can I customize the scoring weights?',
+  'faqItem.2.a': 'Yes! Pro and Elite subscribers can fully customize the scoring weights to match their investment strategy. You can adjust the importance of each criterion using our intuitive slider interface. Save multiple weight presets for different strategies (e.g., value-focused, growth-focused, balanced).',
+  'faqItem.3.q': "Which investors' portfolios can I mimic?",
+  'faqItem.3.a': 'Elite subscribers can mimic portfolios from legendary investors including Warren Buffett (value investing), Ray Dalio (all-weather portfolio), Cathie Wood (innovation-focused), Peter Lynch (GARP strategy), and Benjamin Graham (deep value). We regularly add new investor profiles based on user requests.',
+  'faqItem.4.q': 'Is the data real-time?',
+  'faqItem.4.a': 'Free users receive delayed data (15-minute delay). Pro and Elite subscribers get real-time market data during trading hours. All plans have access to historical data and after-hours pricing.',
+  'faqItem.5.q': 'How do I cancel my subscription?',
+  'faqItem.5.a': 'You can cancel your subscription at any time from your account settings. Your access will continue until the end of your current billing period. We also offer a 30-day money-back guarantee for new subscribers.',
+};
+
+const ar: Dict = {
+  // Navbar
+  'nav.dashboard': 'لوحة التحكم',
+  'nav.screener': 'فاحص الأسهم',
+  'nav.portfolios': 'المحافظ',
+  'nav.signIn': 'تسجيل الدخول',
+  'nav.startFreeTrial': 'ابدأ التجربة المجانية',
+  'nav.logout': 'تسجيل الخروج',
+  'nav.freePlan': 'الخطة المجانية',
+  'nav.planSuffix': 'الخطة',
+
+  // App floating buttons
+  'app.watchlist': 'قائمة المتابعة',
+  'app.compare': 'مقارنة',
+  'app.signIn': 'تسجيل الدخول',
+  'app.logout': 'تسجيل الخروج',
+  'app.loggedOut': 'تم تسجيل الخروج بنجاح',
+
+  // Hero
+  'hero.badge': 'الآن مع بيانات لحظية',
+  'hero.title': 'تحليل الأسهم المدعوم بالذكاء الاصطناعي من أجل',
+  'hero.titleHighlight': 'استثمار أذكى',
+  'hero.subtitle':
+    'احصل على تقييمات احترافية للأسهم، وحاكِ محافظ كبار المستثمرين، واتخذ قرارات قائمة على البيانات بفضل نظام التقييم الشفاف لدينا.',
+  'hero.startFreeTrial': 'ابدأ التجربة المجانية',
+  'hero.viewDemo': 'عرض توضيحي',
+  'hero.stat.investors': 'مستثمر نشط',
+  'hero.stat.assets': 'أصول تم تحليلها',
+  'hero.stat.accuracy': 'معدل الدقة',
+  'hero.card.title': 'تحليل تقييم السهم',
+  'hero.card.signal': 'الإشارة',
+  'hero.card.buffett': 'محفظة بافيت',
+  'hero.card.ytd': '+12.4% منذ بداية العام',
+  'hero.card.liveData': 'بيانات السوق اللحظية',
+
+  // Market overview
+  'market.title': 'نظرة عامة على السوق',
+  'market.subtitle': 'مؤشرات السوق اللحظية والأسهم الرائجة',
+  'market.trendingNow': 'الرائج الآن',
+  'market.open': 'السوق مفتوح',
+  'market.closed': 'السوق مغلق',
+
+  // Screener
+  'screener.title': 'فاحص',
+  'screener.titleHighlight': 'الأسهم',
+  'screener.subtitle': 'ابحث عن الأسهم لحظيًا. صفِّ حسب القطاع والتقييم ودرجتنا الذكية الخاصة.',
+  'screener.searchPlaceholder': 'ابحث عن أي سهم (مثل AAPL، Tesla)...',
+  'screener.filters': 'عوامل التصفية',
+  'screener.sector': 'القطاع:',
+  'screener.all': 'الكل',
+  'screener.col.stock': 'السهم',
+  'screener.col.price': 'السعر',
+  'screener.col.change': 'التغير',
+  'screener.col.chart': 'الرسم البياني',
+  'screener.col.score': 'الدرجة',
+  'screener.col.signal': 'الإشارة',
+  'screener.noResultsFor': 'لا توجد أسهم مطابقة لـ "{query}"',
+  'screener.noStocks': 'لا توجد أسهم متاحة',
+  'screener.clearSearch': 'مسح البحث',
+  'screener.dataProvider': 'البيانات اللحظية مقدمة من واجهة Financial Modeling Prep',
+  'screener.errorLoad': 'تعذّر تحميل بيانات الفاحص',
+  'screener.searchFailed': 'فشل البحث',
+
+  // Scoring system
+  'scoring.title': 'نظام تقييم',
+  'scoring.titleHighlight': 'شفّاف',
+  'scoring.subtitle': 'شاهد بالضبط كيف نحسب الدرجات. خصّص الأوزان لتناسب استراتيجيتك الاستثمارية ومدى تحملك للمخاطر.',
+  'scoring.criteria': 'معايير التقييم',
+  'scoring.total': 'المجموع: {value}%',
+  'scoring.presets': 'الإعدادات الجاهزة:',
+  'scoring.preset.balanced': 'متوازن',
+  'scoring.preset.value': 'القيمة',
+  'scoring.preset.growth': 'النمو',
+  'scoring.preset.quality': 'الجودة',
+  'scoring.weight': 'الوزن',
+  'scoring.metricsIncluded': 'المقاييس المضمّنة:',
+  'scoring.reset': 'إعادة تعيين',
+  'scoring.saveWeights': 'حفظ الأوزان',
+  'scoring.savedSuccess': 'تم حفظ الأوزان بنجاح!',
+  'scoring.scorePreview': 'معاينة الدرجة',
+  'scoring.breakdown': 'التفصيل',
+  'scoring.finalScore': 'الدرجة النهائية',
+  'scoring.signal': 'الإشارة',
+
+  // Investor portfolios
+  'investors.title': 'استثمر مثل',
+  'investors.titleHighlight': 'الأساطير',
+  'investors.subtitle': 'حاكِ استراتيجيات أعظم المستثمرين في التاريخ ضمن ميزانيتك. ينشئ الذكاء الاصطناعي لدينا محفظة مخصصة بناءً على أساليبهم المثبتة.',
+  'investors.loadingProfiles': 'جارٍ تحميل ملفات المستثمرين...',
+  'investors.holdings': 'حيازات',
+  'investors.topHoldings': 'أبرز الحيازات',
+  'investors.portfolioBuilder': 'منشئ المحفظة',
+  'investors.investmentBudget': 'ميزانيتك الاستثمارية',
+  'investors.ethicalInvesting': 'الاستثمار الأخلاقي',
+  'investors.excludeHarmful': 'استبعاد الصناعات الضارة',
+  'investors.generatePortfolio': 'إنشاء المحفظة',
+  'investors.buildingPortfolio': 'جارٍ إنشاء المحفظة...',
+  'investors.portfolioValue': 'قيمة المحفظة',
+  'investors.cashRemaining': 'النقد المتبقي',
+  'investors.ethicalApplied': 'تم تطبيق عوامل التصفية الأخلاقية',
+  'investors.tickersReplaced': 'تم استبدال {count} رمز ببدائل أخلاقية',
+  'investors.sharesAt': '{shares} سهم بسعر {price}',
+  'investors.saveAllWatchlist': 'حفظ الكل في قائمة المتابعة',
+  'investors.minBudget': 'الحد الأدنى للميزانية هو 1,000 دولار',
+
+  // FAQ
+  'faq.title': 'الأسئلة',
+  'faq.titleHighlight': 'الشائعة',
+  'faq.subtitle': 'كل ما تحتاج معرفته عن StockWise Pro.',
+
+  // CTA
+  'cta.badge': 'لفترة محدودة: تجربة مجانية لمدة 14 يومًا',
+  'cta.title': 'هل أنت مستعد لاتخاذ قرارات استثمارية أذكى؟',
+  'cta.subtitle': 'انضم إلى أكثر من 50,000 مستثمر يستخدمون StockWise Pro لتحليل الأسهم ومحاكاة المحافظ الأسطورية وتحقيق أهدافهم المالية.',
+  'cta.startFreeTrial': 'ابدأ تجربتك المجانية',
+  'cta.viewPricing': 'عرض الأسعار',
+  'cta.noCreditCard': 'لا حاجة لبطاقة ائتمان. ألغِ في أي وقت.',
+
+  // Footer
+  'footer.tagline': 'تحليل احترافي للأسهم للجميع. اتخذ قرارات استثمارية أذكى برؤى مدعومة بالذكاء الاصطناعي.',
+  'footer.cat.Product': 'المنتج',
+  'footer.cat.Resources': 'الموارد',
+  'footer.cat.Company': 'الشركة',
+  'footer.cat.Legal': 'قانوني',
+  'footer.copyright': '© 2026 StockWise Pro. جميع الحقوق محفوظة.',
+  'footer.terms': 'الشروط',
+  'footer.privacy': 'الخصوصية',
+  'footer.cookies': 'ملفات تعريف الارتباط',
+  // Footer links
+  'footer.link.Features': 'الميزات',
+  'footer.link.Stock Screener': 'فاحص الأسهم',
+  'footer.link.Portfolios': 'المحافظ',
+  'footer.link.Pricing': 'الأسعار',
+  'footer.link.API': 'واجهة برمجة التطبيقات',
+  'footer.link.Blog': 'المدونة',
+  'footer.link.Help Center': 'مركز المساعدة',
+  'footer.link.Documentation': 'التوثيق',
+  'footer.link.Community': 'المجتمع',
+  'footer.link.Webinars': 'الندوات',
+  'footer.link.About': 'من نحن',
+  'footer.link.Careers': 'الوظائف',
+  'footer.link.Press': 'الصحافة',
+  'footer.link.Partners': 'الشركاء',
+  'footer.link.Contact': 'اتصل بنا',
+  'footer.link.Terms of Service': 'شروط الخدمة',
+  'footer.link.Privacy Policy': 'سياسة الخصوصية',
+  'footer.link.Cookie Policy': 'سياسة ملفات تعريف الارتباط',
+  'footer.link.Disclaimer': 'إخلاء المسؤولية',
+
+  // Signals (shared)
+  'signal.buy': 'شراء',
+  'signal.hold': 'احتفاظ',
+  'signal.sell': 'بيع',
+
+  // Scoring criteria names/descriptions (by id)
+  'criteria.valuation.name': 'التقييم',
+  'criteria.valuation.description': 'يقيس ما إذا كان سعر السهم عادلاً مقارنةً بأساسياته',
+  'criteria.profitability.name': 'الربحية',
+  'criteria.profitability.description': 'يقيّم مدى كفاءة الشركة في تحقيق الأرباح',
+  'criteria.growth.name': 'النمو',
+  'criteria.growth.description': 'يقيّم مسار نمو إيرادات الشركة وأرباحها',
+  'criteria.financialHealth.name': 'الصحة المالية',
+  'criteria.financialHealth.description': 'يحلّل قوة الميزانية العمومية للشركة ومستويات الديون',
+  'criteria.momentum.name': 'الزخم',
+  'criteria.momentum.description': 'يتتبع أداء السعر والمؤشرات الفنية',
+
+  // Preset descriptions
+  'preset.balanced.description': 'تركيز متساوٍ على جميع المعايير',
+  'preset.value.description': 'يعطي الأولوية للتقييمات المنخفضة',
+  'preset.growth.description': 'يركّز على مقاييس النمو',
+  'preset.quality.description': 'يشدّد على الربحية',
+
+  // FAQ items
+  'faqItem.1.q': 'كيف يعمل نظام التقييم؟',
+  'faqItem.1.a': 'يقيّم نظام التقييم لدينا الأسهم عبر خمسة معايير رئيسية: التقييم (نسب السعر إلى الأرباح والقيمة الدفترية والمبيعات)، والربحية (العائد على حقوق الملكية والأصول والهوامش)، والنمو (نمو الإيرادات وربحية السهم)، والصحة المالية (نسب الديون والسيولة)، والزخم (أداء السعر). يحصل كل معيار على درجة فرعية من 0 إلى 100، ثم تُرجّح وتُدمج في درجة نهائية. الدرجات فوق 70 تشير إلى إشارة شراء، و40-69 إلى احتفاظ، وأقل من 40 إلى بيع.',
+  'faqItem.2.q': 'هل يمكنني تخصيص أوزان التقييم؟',
+  'faqItem.2.a': 'نعم! يمكن لمشتركي Pro وElite تخصيص أوزان التقييم بالكامل لتناسب استراتيجيتهم الاستثمارية. يمكنك ضبط أهمية كل معيار باستخدام واجهة المنزلقات السهلة لدينا. احفظ عدة إعدادات أوزان لاستراتيجيات مختلفة (مثل التركيز على القيمة أو النمو أو المتوازن).',
+  'faqItem.3.q': 'محافظ أي المستثمرين يمكنني محاكاتها؟',
+  'faqItem.3.a': 'يمكن لمشتركي Elite محاكاة محافظ المستثمرين الأسطوريين بمن فيهم وارن بافيت (الاستثمار في القيمة)، وراي داليو (المحفظة لكل الأحوال)، وكاثي وود (التركيز على الابتكار)، وبيتر لينش (استراتيجية GARP)، وبنجامين جراهام (القيمة العميقة). نضيف بانتظام ملفات مستثمرين جديدة بناءً على طلبات المستخدمين.',
+  'faqItem.4.q': 'هل البيانات لحظية؟',
+  'faqItem.4.a': 'يحصل المستخدمون المجانيون على بيانات مؤجلة (تأخير 15 دقيقة). يحصل مشتركو Pro وElite على بيانات السوق اللحظية خلال ساعات التداول. تتوفر البيانات التاريخية وأسعار ما بعد التداول لجميع الخطط.',
+  'faqItem.5.q': 'كيف ألغي اشتراكي؟',
+  'faqItem.5.a': 'يمكنك إلغاء اشتراكك في أي وقت من إعدادات حسابك. سيستمر وصولك حتى نهاية فترة الفوترة الحالية. كما نقدم ضمان استرداد الأموال خلال 30 يومًا للمشتركين الجدد.',
+};
+
+export const TRANSLATIONS: Record<Lang, Dict> = { en, ar };

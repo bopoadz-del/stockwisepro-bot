@@ -3,8 +3,10 @@ import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { faqItems } from '@/lib/data';
 import { ScrollReveal } from '@/components/ScrollReveal';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 export function FAQ() {
+  const { t } = useTranslation();
   const [openItem, setOpenItem] = useState<string | null>('1');
 
   return (
@@ -13,10 +15,10 @@ export function FAQ() {
         <ScrollReveal>
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Frequently Asked <span className="text-gradient-gold">Questions</span>
+              {t('faq.title')} <span className="text-gradient-gold">{t('faq.titleHighlight')}</span>
             </h2>
             <p className="text-white/60">
-              Everything you need to know about StockWise Pro.
+              {t('faq.subtitle')}
             </p>
           </div>
         </ScrollReveal>
@@ -32,7 +34,7 @@ export function FAQ() {
                   onClick={() => setOpenItem(openItem === item.id ? null : item.id)}
                   className="w-full flex items-center justify-between p-5 text-left hover:bg-white/5 transition-colors"
                 >
-                  <span className="text-white font-medium pr-4">{item.question}</span>
+                  <span className="text-white font-medium pr-4">{t('faqItem.' + item.id + '.q')}</span>
                   <motion.div
                     animate={{ rotate: openItem === item.id ? 180 : 0 }}
                     transition={{ duration: 0.2 }}
@@ -51,7 +53,7 @@ export function FAQ() {
                       className="overflow-hidden"
                     >
                       <div className="px-5 pb-5 border-t border-white/10">
-                        <p className="text-white/70 leading-relaxed pt-4">{item.answer}</p>
+                        <p className="text-white/70 leading-relaxed pt-4">{t('faqItem.' + item.id + '.a')}</p>
                       </div>
                     </motion.div>
                   )}

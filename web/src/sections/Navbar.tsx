@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, TrendingUp, User, LogOut, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from '@/contexts/LanguageContext';
+import { LanguageToggle } from '@/components/LanguageToggle';
 
 const navLinks = [
-  { label: 'Dashboard', href: '#dashboard' },
-  { label: 'Stock Screener', href: '#screener' },
-  { label: 'Portfolios', href: '#portfolios' },
+  { key: 'nav.dashboard', href: '#dashboard' },
+  { key: 'nav.screener', href: '#screener' },
+  { key: 'nav.portfolios', href: '#portfolios' },
 ];
 
 interface NavbarProps {
@@ -17,6 +19,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ onLoginClick, user, isAuthenticated, onLogout }: NavbarProps) {
+  const { t } = useTranslation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -57,11 +60,11 @@ export function Navbar({ onLoginClick, user, isAuthenticated, onLogout }: Navbar
             <div className="hidden md:flex items-center gap-8">
               {navLinks.map((link) => (
                 <a
-                  key={link.label}
+                  key={link.key}
                   href={link.href}
                   className="relative text-white/70 hover:text-white transition-colors duration-200 py-2 group"
                 >
-                  {link.label}
+                  {t(link.key)}
                   <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gold transition-all duration-300 group-hover:w-full" />
                 </a>
               ))}
@@ -69,6 +72,7 @@ export function Navbar({ onLoginClick, user, isAuthenticated, onLogout }: Navbar
 
             {/* Auth Buttons */}
             <div className="hidden md:flex items-center gap-4">
+              <LanguageToggle />
               {isAuthenticated ? (
                 <>
                   {/* User Plan Badge */}
@@ -97,23 +101,23 @@ export function Navbar({ onLoginClick, user, isAuthenticated, onLogout }: Navbar
                     className="text-white/70 hover:text-white hover:bg-white/10"
                   >
                     <LogOut size={18} className="mr-2" />
-                    Logout
+                    {t('nav.logout')}
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     onClick={onLoginClick}
                     className="text-white/70 hover:text-white hover:bg-white/10"
                   >
-                    Sign In
+                    {t('nav.signIn')}
                   </Button>
-                  <Button 
+                  <Button
                     onClick={onLoginClick}
                     className="bg-gold hover:bg-gold-light text-[#0a0a0a] font-semibold"
                   >
-                    Start Free Trial
+                    {t('nav.startFreeTrial')}
                   </Button>
                 </>
               )}
@@ -143,16 +147,17 @@ export function Navbar({ onLoginClick, user, isAuthenticated, onLogout }: Navbar
             <div className="flex flex-col p-6 gap-4">
               {navLinks.map((link) => (
                 <a
-                  key={link.label}
+                  key={link.key}
                   href={link.href}
                   className="text-xl text-white/70 hover:text-white py-3 border-b border-white/10"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {link.label}
+                  {t(link.key)}
                 </a>
               ))}
               
               <div className="flex flex-col gap-3 mt-6">
+                <LanguageToggle />
                 {isAuthenticated ? (
                   <>
                     <div className="flex items-center gap-3 p-4 bg-[#1f1f1f] rounded-lg">
@@ -161,7 +166,7 @@ export function Navbar({ onLoginClick, user, isAuthenticated, onLogout }: Navbar
                       </div>
                       <div>
                         <p className="text-white font-medium">{user?.name || user?.email}</p>
-                        <p className="text-white/50 text-sm">{user?.plan ? `${user.plan} Plan` : 'Free Plan'}</p>
+                        <p className="text-white/50 text-sm">{user?.plan ? `${user.plan} ${t('nav.planSuffix')}` : t('nav.freePlan')}</p>
                       </div>
                     </div>
                     <Button 
@@ -173,29 +178,29 @@ export function Navbar({ onLoginClick, user, isAuthenticated, onLogout }: Navbar
                       className="w-full border-white/20 text-white"
                     >
                       <LogOut size={18} className="mr-2" />
-                      Logout
+                      {t('nav.logout')}
                     </Button>
                   </>
                 ) : (
                   <>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => {
                         onLoginClick();
                         setIsMobileMenuOpen(false);
                       }}
                       className="w-full border-white/20 text-white"
                     >
-                      Sign In
+                      {t('nav.signIn')}
                     </Button>
-                    <Button 
+                    <Button
                       onClick={() => {
                         onLoginClick();
                         setIsMobileMenuOpen(false);
                       }}
                       className="w-full bg-gold hover:bg-gold-light text-[#0a0a0a] font-semibold"
                     >
-                      Start Free Trial
+                      {t('nav.startFreeTrial')}
                     </Button>
                   </>
                 )}

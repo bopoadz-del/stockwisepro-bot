@@ -1,5 +1,6 @@
 import type { SignalType } from '@/types';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface SignalBadgeProps {
   signal: SignalType;
@@ -8,6 +9,7 @@ interface SignalBadgeProps {
 }
 
 export function SignalBadge({ signal, size = 'md', showIcon = true }: SignalBadgeProps) {
+  const { t } = useTranslation();
   const sizeClasses = {
     sm: 'px-2 py-0.5 text-xs',
     md: 'px-3 py-1 text-sm',
@@ -26,21 +28,21 @@ export function SignalBadge({ signal, size = 'md', showIcon = true }: SignalBadg
       border: 'border-green-500/30',
       text: 'text-green-500',
       icon: TrendingUp,
-      label: 'BUY',
+      label: t('signal.buy'),
     },
     hold: {
       bg: 'bg-amber-500/10',
       border: 'border-amber-500/30',
       text: 'text-amber-500',
       icon: Minus,
-      label: 'HOLD',
+      label: t('signal.hold'),
     },
     sell: {
       bg: 'bg-red-500/10',
       border: 'border-red-500/30',
       text: 'text-red-500',
       icon: TrendingDown,
-      label: 'SELL',
+      label: t('signal.sell'),
     },
   };
 

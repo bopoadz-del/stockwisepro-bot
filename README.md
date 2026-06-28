@@ -111,7 +111,23 @@ docker-compose up --build -d
 | `/alerts` | View your alerts |
 | `/admin` | Usage stats (admin only) |
 | `/admin_export` | Download CSV analytics (admin only) |
+| `/language` | Switch language (English / العربية) |
 | `/help` | Show help |
+
+---
+
+## 🌐 Localization (Arabic / English)
+
+Both the Telegram bot and the web app ship with full **English + Arabic** support.
+
+- **Bot** — Users pick a language with `/language` (or `/lang`). The choice is stored
+  per-user in the `users.language` column and applied to every reply. Translations live
+  in `src/i18n/`.
+- **Web** — A language toggle in the navbar switches between English and Arabic. Arabic
+  flips the entire UI to **RTL** (`dir="rtl"`) and loads an Arabic-friendly font. The
+  selection persists in `localStorage` and is auto-detected from the browser locale on
+  first visit. Translations live in `web/src/i18n/translations.ts`, wired through
+  `web/src/contexts/LanguageContext.tsx`.
 
 ---
 

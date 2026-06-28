@@ -4,11 +4,12 @@ import { ArrowRight, Play, Users, TrendingUp, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
 import { DemoModal } from '@/components/DemoModal';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 const stats = [
-  { icon: Users, value: 50000, suffix: '+', label: 'Active Investors' },
-  { icon: TrendingUp, value: 2, prefix: '$', suffix: 'B+', label: 'Assets Analyzed' },
-  { icon: Target, value: 94, suffix: '%', label: 'Accuracy Rate' },
+  { icon: Users, value: 50000, suffix: '+', label: 'hero.stat.investors' },
+  { icon: TrendingUp, value: 2, prefix: '$', suffix: 'B+', label: 'hero.stat.assets' },
+  { icon: Target, value: 94, suffix: '%', label: 'hero.stat.accuracy' },
 ];
 
 interface HeroProps {
@@ -17,6 +18,7 @@ interface HeroProps {
 
 export function Hero({ onCtaClick }: HeroProps) {
   const [isDemoOpen, setIsDemoOpen] = useState(false);
+  const { t } = useTranslation();
   return (
     <section className="relative min-h-screen bg-gradient-to-b from-[#0a0a0a] via-[#0f0f0f] to-[#141414] pt-[120px] pb-20 overflow-hidden">
       {/* Background Effects */}
@@ -36,7 +38,7 @@ export function Hero({ onCtaClick }: HeroProps) {
             >
               <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold/10 border border-gold/30 text-gold text-sm font-medium">
                 <span className="w-2 h-2 rounded-full bg-gold animate-pulse" />
-                Now with real-time data
+                {t('hero.badge')}
               </span>
             </motion.div>
 
@@ -46,8 +48,8 @@ export function Hero({ onCtaClick }: HeroProps) {
               transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
               className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight tracking-tight"
             >
-              AI-Powered Stock Analysis for{' '}
-              <span className="text-gradient-gold">Smarter Investing</span>
+              {t('hero.title')}{' '}
+              <span className="text-gradient-gold">{t('hero.titleHighlight')}</span>
             </motion.h1>
 
             <motion.p
@@ -56,8 +58,7 @@ export function Hero({ onCtaClick }: HeroProps) {
               transition={{ duration: 0.6, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
               className="text-lg text-white/70 max-w-xl leading-relaxed"
             >
-              Get professional-grade stock scores, mimic legendary investor portfolios, and make
-              data-driven decisions with our transparent scoring system.
+              {t('hero.subtitle')}
             </motion.p>
 
             <motion.div
@@ -71,7 +72,7 @@ export function Hero({ onCtaClick }: HeroProps) {
                 onClick={onCtaClick}
                 className="bg-gold hover:bg-gold-light text-[#0a0a0a] font-semibold px-8 h-14 text-base group"
               >
-                Start Free Trial
+                {t('hero.startFreeTrial')}
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button
@@ -81,7 +82,7 @@ export function Hero({ onCtaClick }: HeroProps) {
                 className="border-white/20 text-white hover:bg-white/10 px-8 h-14 text-base"
               >
                 <Play className="mr-2 w-5 h-5" />
-                View Demo
+                {t('hero.viewDemo')}
               </Button>
             </motion.div>
 
@@ -105,7 +106,7 @@ export function Hero({ onCtaClick }: HeroProps) {
                       />
                     </span>
                   </div>
-                  <p className="text-sm text-white/50">{stat.label}</p>
+                  <p className="text-sm text-white/50">{t(stat.label)}</p>
                 </div>
               ))}
             </motion.div>
@@ -123,7 +124,7 @@ export function Hero({ onCtaClick }: HeroProps) {
               <div className="bg-[#1f1f1f] rounded-2xl border border-white/10 p-6 shadow-card">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h3 className="text-white font-semibold text-lg">Stock Score Analysis</h3>
+                    <h3 className="text-white font-semibold text-lg">{t('hero.card.title')}</h3>
                     <p className="text-white/50 text-sm">AAPL - Apple Inc.</p>
                   </div>
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-400 flex items-center justify-center">
@@ -134,15 +135,15 @@ export function Hero({ onCtaClick }: HeroProps) {
                 {/* Score Breakdown */}
                 <div className="space-y-4">
                   {[
-                    { label: 'Valuation', score: 75, color: 'bg-green-500' },
-                    { label: 'Profitability', score: 85, color: 'bg-green-500' },
-                    { label: 'Growth', score: 70, color: 'bg-amber-500' },
-                    { label: 'Financial Health', score: 80, color: 'bg-green-500' },
-                    { label: 'Momentum', score: 65, color: 'bg-amber-500' },
+                    { label: 'criteria.valuation.name', score: 75, color: 'bg-green-500' },
+                    { label: 'criteria.profitability.name', score: 85, color: 'bg-green-500' },
+                    { label: 'criteria.growth.name', score: 70, color: 'bg-amber-500' },
+                    { label: 'criteria.financialHealth.name', score: 80, color: 'bg-green-500' },
+                    { label: 'criteria.momentum.name', score: 65, color: 'bg-amber-500' },
                   ].map((item, index) => (
                     <div key={index} className="space-y-1">
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/70">{item.label}</span>
+                        <span className="text-white/70">{t(item.label)}</span>
                         <span className="text-white font-medium">{item.score}</span>
                       </div>
                       <div className="h-2 bg-white/10 rounded-full overflow-hidden">
@@ -159,9 +160,9 @@ export function Hero({ onCtaClick }: HeroProps) {
 
                 <div className="mt-6 pt-6 border-t border-white/10">
                   <div className="flex items-center justify-between">
-                    <span className="text-white/70">Signal</span>
+                    <span className="text-white/70">{t('hero.card.signal')}</span>
                     <span className="px-3 py-1 rounded-full bg-green-500/10 border border-green-500/30 text-green-500 font-semibold text-sm">
-                      BUY
+                      {t('signal.buy')}
                     </span>
                   </div>
                 </div>
@@ -179,8 +180,8 @@ export function Hero({ onCtaClick }: HeroProps) {
                     <span className="text-purple-400 font-bold">B</span>
                   </div>
                   <div>
-                    <p className="text-white font-medium text-sm">Buffett Portfolio</p>
-                    <p className="text-green-500 text-xs">+12.4% YTD</p>
+                    <p className="text-white font-medium text-sm">{t('hero.card.buffett')}</p>
+                    <p className="text-green-500 text-xs">{t('hero.card.ytd')}</p>
                   </div>
                 </div>
               </motion.div>
@@ -193,7 +194,7 @@ export function Hero({ onCtaClick }: HeroProps) {
               >
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-white/70 text-sm">Live Market Data</span>
+                  <span className="text-white/70 text-sm">{t('hero.card.liveData')}</span>
                 </div>
               </motion.div>
             </div>

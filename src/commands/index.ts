@@ -20,6 +20,9 @@ import { alpacaCommand } from './alpaca';
 import { dcfCommand } from './dcf';
 import { insiderCommand } from './insider';
 import { handleScreenshot } from './screenshot';
+import { languageCommand, handleSetLanguageCallback } from './language';
+import { t } from '../i18n';
+import { langOf } from '../middleware/i18n';
 
 export function registerCommands(bot: Telegraf<BotContext>) {
   bot.command('start', startCommand);
@@ -45,11 +48,13 @@ export function registerCommands(bot: Telegraf<BotContext>) {
       cancelled = true;
     }
     if (cancelled) {
-      await ctx.reply('Cancelled.');
+      await ctx.reply(t(langOf(ctx), 'common.cancelled'));
     } else {
-      await ctx.reply('Nothing to cancel.');
+      await ctx.reply(t(langOf(ctx), 'common.nothingToCancel'));
     }
   });
+  bot.command('language', languageCommand);
+  bot.command('lang', languageCommand); // alias
   bot.command('alert', alertCommand);
   bot.command('alerts', alertCommand); // alias
   bot.command('admin', adminCommand);
@@ -71,6 +76,7 @@ export function registerCommands(bot: Telegraf<BotContext>) {
   bot.action(/^replace_select:(\w+):(\w+)$/, handleReplaceSelectCallback);
   bot.action(/^replace_cancel:(\w+)$/, handleReplaceCancelCallback);
   bot.action(/^weight:(.+)$/, handleWeightCallback);
+  bot.action(/^setlang:(en|ar)$/, handleSetLanguageCallback);
 
   // Intent correction callbacks (learning)
   bot.action(/^correct_intent:(.+):(\d+)$/, handleCorrectIntentCallback);
@@ -86,12 +92,12 @@ export function registerCommands(bot: Telegraf<BotContext>) {
     // Verify the event belongs to the user submitting feedback
     const eventRow = getDb().prepare('SELECT telegram_id FROM analytics_events WHERE id = ?').get(eventId) as { telegram_id: number } | undefined;
     if (!eventRow || eventRow.telegram_id !== telegramId) {
-      await ctx.answerCbQuery('⛔ Unable to submit feedback.');
+      await ctx.answerCbQuery(t(langOf(ctx), 'common.feedbackError'));
       return;
     }
 
     saveFeedback(telegramId, eventId, rating);
-    await ctx.answerCbQuery('Thanks for your feedback!');
+    await ctx.answerCbQuery(t(langOf(ctx), 'common.feedbackThanks'));
     await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
   });
 
