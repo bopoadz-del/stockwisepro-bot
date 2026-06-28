@@ -32,6 +32,7 @@ export const config = {
   websiteUrl: process.env.WEBSITE_URL || 'https://stockwisepro-bot-pzi2.onrender.com',
   ollamaUrl: (process.env.OLLAMA_URL || '').replace(/\/$/, ''),
   ollamaModel: process.env.OLLAMA_MODEL || 'llama3.1',
+  ollamaApiKey: process.env.OLLAMA_API_KEY || '',
 };
 
 if (!config.telegramToken) {
