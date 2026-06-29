@@ -681,7 +681,8 @@ async function main() {
   await runCancelTests();
 
   // Cleanup
-  fs.rmSync(tmpDir, { recursive: true, force: true });
+  db.closeDb();
+  fs.rmSync(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
 
   console.log(`\n${'─'.repeat(50)}`);
   if (failed === 0) {
