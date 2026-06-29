@@ -9,6 +9,8 @@ const path = require('path');
 
 // Use a temp DB so we don't pollute the real one
 const tmpDir = path.join(__dirname, '.tmp_test');
+// Clear any leftover state from an interrupted prior run so counts start fresh
+fs.rmSync(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
 fs.mkdirSync(tmpDir, { recursive: true });
 const tmpDbPath = path.join(tmpDir, `test_${Date.now()}.db`);
 
@@ -17,7 +19,7 @@ process.env.DATA_DIR = tmpDir;
 process.env.TELEGRAM_BOT_TOKEN = '123456:TESTTESTTESTTESTTESTTESTTESTTESTTEST';
 process.env.SESSION_SECRET = 'test-secret-test-secret-test-secret';
 
-const { initDb, logChatIntent, getLearningStats, getMissedIntents, correctChatIntent, saveChatFeedback, exportMissedIntentsCsv } = require('../dist/db');
+const { initDb, logChatIntent, getLearningStats, getMissedIntents, correctChatIntent, saveChatFeedback, exportMissedIntentsCsv, closeDb } = require('../dist/db');
 
 console.log('Initializing test DB...');
 initDb();
@@ -100,5 +102,6 @@ assert.ok(msg.includes('help'), 'report message should include correction');
 console.log('✅ learning report message formatting works');
 
 // Cleanup
-fs.rmSync(tmpDir, { recursive: true, force: true });
+closeDb();
+fs.rmSync(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
 console.log('\n🎉 All learning integration tests passed');

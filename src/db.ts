@@ -1041,3 +1041,16 @@ export function exportScoreHistoryCsv(days = 7): string {
 export function getDb(): DatabaseType {
   return ensureDb();
 }
+
+/**
+ * Closes the SQLite connection and releases the WAL/SHM file handles.
+ * Primarily used by tests so the temp DB directory can be removed on Windows,
+ * where open handles hold exclusive locks (unlike POSIX). Safe to call when
+ * no connection is open.
+ */
+export function closeDb() {
+  if (db && db.open) {
+    db.close();
+  }
+  db = undefined as unknown as DatabaseType;
+}

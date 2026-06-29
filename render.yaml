@@ -31,7 +31,7 @@ services:
       - key: OLLAMA_URL
         value: https://ollama.com
       - key: OLLAMA_MODEL
-        value: gpt-oss:120b
+        value: kimi-k2.6
       - key: OLLAMA_API_KEY
         sync: false
       - key: PORT
