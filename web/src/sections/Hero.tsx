@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Play, Users, TrendingUp, Target } from 'lucide-react';
+import { Play, Users, TrendingUp, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
 import { DemoModal } from '@/components/DemoModal';
@@ -15,11 +15,7 @@ const stats = [
   { icon: Target, value: 94, suffix: '%', label: 'hero.stat.accuracy' },
 ];
 
-interface HeroProps {
-  onCtaClick?: () => void;
-}
-
-export function Hero({ onCtaClick }: HeroProps) {
+export function Hero() {
   const [isDemoOpen, setIsDemoOpen] = useState(false);
   const { t } = useTranslation();
   const { snapshot, alerts } = useLiveFeed();
@@ -71,14 +67,6 @@ export function Hero({ onCtaClick }: HeroProps) {
               transition={{ duration: 0.6, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
               className="flex flex-wrap gap-4"
             >
-              <Button
-                size="lg"
-                onClick={onCtaClick}
-                className="bg-gold hover:bg-gold-light text-[#0a0a0a] font-semibold px-8 h-14 text-base group"
-              >
-                {t('hero.startFreeTrial')}
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
               <Button
                 size="lg"
                 variant="outline"

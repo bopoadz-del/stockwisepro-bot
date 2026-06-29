@@ -44,27 +44,16 @@ export function CTABanner({ onCtaClick }: CTABannerProps) {
                 {t('cta.subtitle')}
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="flex justify-center">
                 <Button
                   size="lg"
                   onClick={onCtaClick}
                   className="bg-gold hover:bg-gold-light text-[#0a0a0a] font-semibold px-8 h-14 text-base group"
                 >
-                  {t('cta.startFreeTrial')}
+                  {t('cta.getStarted')}
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10 px-8 h-14 text-base"
-                >
-                  {t('cta.viewPricing')}
-                </Button>
               </div>
-
-              <p className="text-white/40 text-sm mt-6">
-                {t('cta.noCreditCard')}
-              </p>
             </div>
           </div>
         </ScrollReveal>
