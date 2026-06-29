@@ -1,6 +1,5 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { search, SafeSearchType } from 'duck-duck-scrape';
 import { logger } from '../utils/logger';
 import { Cache } from '../utils/cache';
 
@@ -22,27 +21,10 @@ class DuckDuckGoApi {
 
     const start = Date.now();
 
-    // Try official package first
-    try {
-      const res = await search(query, {
-        safeSearch: SafeSearchType.OFF,
-      });
-
-      const results = (res.results || []).slice(0, count).map((r: any) => ({
-        title: r.title || 'No title',
-        description: r.description || '',
-        url: r.url || '',
-      }));
-
-      const result = { data: results, duration: Date.now() - start, error: null };
-      cache.set(cacheKey, result);
-      return result;
-    } catch (pkgErr) {
-      const pkgMsg = pkgErr instanceof Error ? pkgErr.message : String(pkgErr);
-      logger.warn('DuckDuckGo package search failed, trying HTML fallback', { message: pkgMsg });
-    }
-
-    // Fallback: scrape DuckDuckGo Lite HTML
+    // Scrape DuckDuckGo Lite HTML directly. The duck-duck-scrape package was
+    // dropped: it is abandoned (v2.2.7) and DDG changed their d.js response, so
+    // its result parsing throws on every call. The Lite HTML endpoint still
+    // returns clean, parseable results.
     try {
       const results = await this.htmlSearch(query, count);
       const result = { data: results, duration: Date.now() - start, error: null };
@@ -50,7 +32,7 @@ class DuckDuckGoApi {
       return result;
     } catch (htmlErr) {
       const htmlMsg = htmlErr instanceof Error ? htmlErr.message : String(htmlErr);
-      logger.error('DuckDuckGo HTML fallback failed', { message: htmlMsg });
+      logger.error('DuckDuckGo HTML search failed', { message: htmlMsg });
       return {
         data: [],
         duration: Date.now() - start,
