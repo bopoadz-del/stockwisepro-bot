@@ -105,7 +105,7 @@ function App() {
       </div>
 
       <main>
-        <Hero onCtaClick={() => setIsAuthOpen(true)} />
+        <Hero />
         <LiveTicker />
         <LiveMarketData />
         <MarketInsights />

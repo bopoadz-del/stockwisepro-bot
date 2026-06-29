@@ -113,12 +113,6 @@ export function Navbar({ onLoginClick, user, isAuthenticated, onLogout }: Navbar
                   >
                     {t('nav.signIn')}
                   </Button>
-                  <Button
-                    onClick={onLoginClick}
-                    className="bg-gold hover:bg-gold-light text-[#0a0a0a] font-semibold"
-                  >
-                    {t('nav.startFreeTrial')}
-                  </Button>
                 </>
               )}
             </div>
@@ -192,15 +186,6 @@ export function Navbar({ onLoginClick, user, isAuthenticated, onLogout }: Navbar
                       className="w-full border-white/20 text-white"
                     >
                       {t('nav.signIn')}
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        onLoginClick();
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full bg-gold hover:bg-gold-light text-[#0a0a0a] font-semibold"
-                    >
-                      {t('nav.startFreeTrial')}
                     </Button>
                   </>
                 )}

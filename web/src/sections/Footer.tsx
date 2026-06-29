@@ -2,7 +2,7 @@ import { TrendingUp, Twitter, Linkedin, Youtube, MessageCircle } from 'lucide-re
 import { useTranslation } from '@/contexts/LanguageContext';
 
 const footerLinks = {
-  Product: ['Features', 'Stock Screener', 'Portfolios', 'Pricing', 'API'],
+  Product: ['Features', 'Stock Screener', 'Portfolios', 'API'],
   Resources: ['Blog', 'Help Center', 'Documentation', 'Community', 'Webinars'],
   Company: ['About', 'Careers', 'Press', 'Partners', 'Contact'],
   Legal: ['Terms of Service', 'Privacy Policy', 'Cookie Policy', 'Disclaimer'],

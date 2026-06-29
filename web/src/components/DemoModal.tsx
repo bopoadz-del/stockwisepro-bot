@@ -174,13 +174,18 @@ export function DemoModal({ isOpen, onClose }: DemoModalProps) {
             className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50"
           />
 
-          {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg z-50 px-4"
-          >
+          {/* Modal — centered with a flex wrapper. The previous
+              left-1/2 -translate-x-1/2 centering was silently overridden by
+              framer-motion's animated transform, leaving the modal off-screen
+              with its Previous/Next buttons clipped below the fold. max-h +
+              overflow-y-auto keeps the controls reachable on short viewports. */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-lg max-h-[90vh] overflow-y-auto pointer-events-auto"
+            >
             <div className="bg-[#141414] rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
               {/* Header */}
               <div className="flex items-center justify-between p-6 border-b border-white/10">
@@ -256,7 +261,8 @@ export function DemoModal({ isOpen, onClose }: DemoModalProps) {
                 </div>
               </div>
             </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>

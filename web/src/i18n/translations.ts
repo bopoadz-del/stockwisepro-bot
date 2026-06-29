@@ -125,6 +125,7 @@ const en: Dict = {
   'cta.title': 'Ready to Make Smarter Investment Decisions?',
   'cta.subtitle': 'Join 50,000+ investors using StockWise Pro to analyze stocks, mimic legendary portfolios, and achieve their financial goals.',
   'cta.startFreeTrial': 'Start Your Free Trial',
+  'cta.getStarted': 'Get Started',
   'cta.viewPricing': 'View Pricing',
   'cta.noCreditCard': 'No credit card required. Cancel anytime.',
 
@@ -356,6 +357,7 @@ const ar: Dict = {
   'cta.title': 'هل أنت مستعد لاتخاذ قرارات استثمارية أذكى؟',
   'cta.subtitle': 'انضم إلى أكثر من 50,000 مستثمر يستخدمون StockWise Pro لتحليل الأسهم ومحاكاة المحافظ الأسطورية وتحقيق أهدافهم المالية.',
   'cta.startFreeTrial': 'ابدأ تجربتك المجانية',
+  'cta.getStarted': 'ابدأ الآن',
   'cta.viewPricing': 'عرض الأسعار',
   'cta.noCreditCard': 'لا حاجة لبطاقة ائتمان. ألغِ في أي وقت.',
 
