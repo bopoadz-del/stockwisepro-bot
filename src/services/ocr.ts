@@ -94,67 +94,98 @@ function fuzzyMatchTicker(candidate: string): string | undefined {
   return best;
 }
 
-function looksLikeTickerContext(line: string, ticker: string): boolean {
-  // A ticker is more likely if a nearby token looks like a price or percent
-  const idx = line.toUpperCase().indexOf(ticker);
-  if (idx === -1) return false;
-  const snippet = line.slice(Math.max(0, idx - 20), idx + ticker.length + 20);
-  return /[\$\%\d]/.test(snippet);
+// UI chrome words that can appear directly under a ticker but are NOT company
+// names. Used to reject false "ticker-over-name" confirmations (e.g. "US" / "Open").
+const UI_NEXT_LINE_WORDS = new Set([
+  'open', 'orders', 'positions', 'quantity', 'value', 'last', 'cost', 'price', 'profit',
+  'loss', 'symbol', 'markets', 'watchlist', 'trade', 'total', 'balance', 'cash', 'equity',
+  'buy', 'sell', 'avgcost', 'mktvalue', 'holdings', 'overview', 'details', 'today',
+  'gainers', 'losers', 'change', 'amount', 'shares',
+]);
+
+// A line is a ticker candidate if it is a single short token that is essentially
+// all-uppercase (one lowercase OCR slip allowed, e.g. "LYv" -> "LYV").
+function tickerCandidate(line: string): string | null {
+  const t = line.trim().replace(/[^A-Za-z0-9.$]/g, '');
+  const core = t.replace(/^\$/, '').replace(/\.+$/, '');
+  if (core.length < 1 || core.length > 5) return null;
+  if (!/[A-Za-z]/.test(core)) return null;
+  if ((core.match(/[a-z]/g) || []).length > 1) return null; // mostly uppercase
+  if (!/^[A-Za-z]+\.?[A-Za-z0-9]{0,3}$/.test(core)) return null;
+  return core.toUpperCase();
+}
+
+// A line looks like a company name if it carries lowercase letters and is not a
+// number row or a piece of UI chrome. This is the signal that confirms a real
+// portfolio row (e.g. "Southern Company" under "SO").
+function looksLikeCompanyName(line: string): boolean {
+  const t = (line ?? '').trim();
+  if (!t || /^[\$\d.,%+\-\s]+$/.test(t)) return false;
+  const letters = t.replace(/[^A-Za-z]/g, '');
+  if (letters.length < 4) return false;
+  if ((t.match(/[a-z]/g) || []).length < 2) return false;
+  if (UI_NEXT_LINE_WORDS.has(letters.toLowerCase())) return false;
+  return true;
 }
 
 export function extractTickers(text: string): string[] {
   const tickers: string[] = [];
   const seen = new Set<string>();
-
-  const addTicker = (raw: string, source: string) => {
-    const candidate = normalizeTickerCandidate(raw);
-    if (!candidate || candidate.length < 1 || candidate.length > 6) return;
-    if (COMMON_WORDS.has(candidate) || FALSE_POSITIVES.has(candidate)) return;
-
-    const matched = fuzzyMatchTicker(candidate);
-    if (matched && !seen.has(matched)) {
-      seen.add(matched);
-      tickers.push(matched);
-      // logger.debug is unavailable; keep silent in hot path
+  const push = (t: string | null | undefined) => {
+    if (t && t.length >= 1 && t.length <= 6 && !seen.has(t)) {
+      seen.add(t);
+      tickers.push(t);
     }
   };
 
-  // Pattern 1: $TICKER (high confidence)
-  const dollarMatches = text.match(/\$[A-Z0-9.]{1,6}\b/gi);
+  const lines = text.split(/[\n\r]+/).map((l) => l.trim()).filter(Boolean);
+
+  // ── Pass 1 (high confidence): $TICKER cashtags ──
+  const dollarMatches = text.match(/\$[A-Za-z][A-Za-z0-9.]{0,5}\b/g);
   if (dollarMatches) {
     for (const m of dollarMatches) {
-      addTicker(m.replace('$', ''), '$prefix');
+      const cand = normalizeTickerCandidate(m.replace('$', ''));
+      if (cand && !COMMON_WORDS.has(cand) && !FALSE_POSITIVES.has(cand)) push(cand);
     }
   }
 
-  // Pattern 2: Lines that start with TICKER followed by price/percent
-  const lines = text.split(/[\n\r]+/);
-  for (const line of lines) {
-    const startMatch = line.match(/^(\b[A-Z0-9.]{1,6}\b)\s*[\$\|\-\—]/i);
-    if (startMatch) {
-      addTicker(startMatch[1], 'line-start');
+  // ── Pass 2 (high confidence): TICKER directly above its company name ──
+  // This is the dominant layout in brokerage/portfolio screenshots and the most
+  // reliable signal we have. A company name beneath the token confirms a real
+  // holding, so we trust it even if the token is a stop-word (e.g. "SO" =
+  // Southern Company) or absent from our local universe (e.g. ETFs like SIVR /
+  // IBIT / SGOL). Live scoring + FMP validate the ticker downstream. It also
+  // rejects stray single-letter OCR fragments (O / C / T / A) that have no
+  // company name under them.
+  let structuralHits = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const cand = tickerCandidate(lines[i]);
+    if (!cand || FALSE_POSITIVES.has(cand)) continue;
+    if (looksLikeCompanyName(lines[i + 1])) {
+      structuralHits++;
+      push(cand);
     }
   }
 
-  // Pattern 3: Standalone uppercase/alphanumeric 1-6 char tokens
-  // Require at least one letter and context (price/percent nearby) to reduce false positives
-  const wordMatches = text.match(/\b[A-Z]{1,6}\b/g);
-  if (wordMatches) {
-    for (const m of wordMatches) {
-      const candidate = m.toUpperCase();
-      if (candidate.length < 1 || COMMON_WORDS.has(candidate) || FALSE_POSITIVES.has(candidate)) continue;
-      if (!/^[A-Z]+$/.test(candidate)) continue;
-      if (VALID_TICKERS.has(candidate)) {
-        addTicker(candidate, 'standalone-valid');
-      } else if (candidate.length >= 2 && candidate.length <= 5) {
-        // Only consider fuzzy matches if the word is in a financial context
-        const hasContext = lines.some((line) =>
-          line.toUpperCase().includes(candidate) && looksLikeTickerContext(line, candidate)
-        );
-        if (hasContext) {
-          addTicker(candidate, 'standalone-fuzzy');
-        }
-      }
+  // ── Pass 3 (fallback): only when no structural rows were found, e.g. a bare
+  // watchlist with no company names. Universe-gated and single-letter-safe so it
+  // never re-introduces the O/C/T fragment false positives. ──
+  if (structuralHits === 0) {
+    const addFallback = (raw: string) => {
+      const cand = normalizeTickerCandidate(raw);
+      if (!cand || cand.length < 2) return; // never trust bare single letters here
+      if (COMMON_WORDS.has(cand) || FALSE_POSITIVES.has(cand)) return;
+      if (VALID_TICKERS.has(cand)) push(cand);
+      else push(fuzzyMatchTicker(cand));
+    };
+
+    for (const line of lines) {
+      const startMatch = line.match(/^(\$?[A-Z]{1,5}[A-Z0-9]?)\s*[\$\|\-\—:]/);
+      if (startMatch) addFallback(startMatch[1]);
+    }
+    const wordMatches = text.match(/\b[A-Z]{2,5}\b/g);
+    if (wordMatches) {
+      for (const m of wordMatches) addFallback(m);
     }
   }
 
@@ -169,10 +200,12 @@ export interface OCRResult {
 export async function runOCR(imagePath: string): Promise<OCRResult> {
   const worker = await createWorker('eng');
   try {
-    // Optimize for ticker recognition: uppercase letters, $, digits, and punctuation
+    // Read full mixed-case text in AUTO layout mode. The company-name line under
+    // each ticker (e.g. "Southern Company" beneath "SO") is the key disambiguation
+    // signal, so we must NOT restrict to uppercase — the old uppercase-only
+    // whitelist destroyed those lines and mangled multi-letter tickers.
     await worker.setParameters({
-      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ$0123456789.,%-/ ',
-      tessedit_pageseg_mode: PSM.SPARSE_TEXT,
+      tessedit_pageseg_mode: PSM.AUTO,
       preserve_interword_spaces: '1',
     });
     const { data: { text } } = await worker.recognize(imagePath);

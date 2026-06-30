@@ -11,3 +11,6 @@ data/*
 .env
 .DS_Store
 *.log
+
+# Tesseract OCR language data (downloaded at runtime)
+*.traineddata

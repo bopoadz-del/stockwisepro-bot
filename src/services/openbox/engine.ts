@@ -503,8 +503,14 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
       const sma50 = computeSMA(prices, 50);
       const sma200 = computeSMA(prices, 200);
       const latestPrice = prices[prices.length - 1];
-      const trendScore = (latestPrice > (sma50 ?? Infinity) ? 10 : 0)
-                       + (latestPrice > (sma200 ?? Infinity) ? 10 : 0);
+      const aboveSma50 = latestPrice > (sma50 ?? Infinity);
+      const aboveSma200 = latestPrice > (sma200 ?? Infinity);
+      // Confirmed-uptrend bonus: reward classic MA stacking (price > 50DMA > 200DMA)
+      // on top of the binary above/below checks. This lifts genuine breakouts that
+      // are merely "above both SMAs" today, and is purely structural — no beta or
+      // volatility term — so it never penalises low-beta defensives.
+      const trendAligned = aboveSma50 && aboveSma200 && sma50 !== undefined && sma200 !== undefined && sma50 > sma200;
+      const trendScore = (aboveSma50 ? 10 : 0) + (aboveSma200 ? 10 : 0) + (trendAligned ? 8 : 0);
 
       marketRaw = clamp(momScore + volScore + liqScore + rsiScore + trendScore, 0, 100);
 
@@ -569,8 +575,14 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
       const sma50 = computeSMA(prices, 50);
       const sma200 = computeSMA(prices, 200);
       const latestPrice = prices[prices.length - 1];
-      const trendScore = (latestPrice > (sma50 ?? Infinity) ? 10 : 0)
-                       + (latestPrice > (sma200 ?? Infinity) ? 10 : 0);
+      const aboveSma50 = latestPrice > (sma50 ?? Infinity);
+      const aboveSma200 = latestPrice > (sma200 ?? Infinity);
+      // Confirmed-uptrend bonus: reward classic MA stacking (price > 50DMA > 200DMA)
+      // on top of the binary above/below checks. This lifts genuine breakouts that
+      // are merely "above both SMAs" today, and is purely structural — no beta or
+      // volatility term — so it never penalises low-beta defensives.
+      const trendAligned = aboveSma50 && aboveSma200 && sma50 !== undefined && sma200 !== undefined && sma50 > sma200;
+      const trendScore = (aboveSma50 ? 10 : 0) + (aboveSma200 ? 10 : 0) + (trendAligned ? 8 : 0);
 
       marketRaw = clamp(momScore + volScore + volLiqScore + rsiScore + trendScore, 0, 100);
 
