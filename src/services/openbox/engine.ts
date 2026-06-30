@@ -882,6 +882,7 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
         dominanceBonus: dom.dominanceBonus,
       },
       breakdown,
+      isETF,
       sector: sectorRaw || undefined,
       industry: industryRaw || undefined,
     };
