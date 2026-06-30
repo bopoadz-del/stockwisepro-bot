@@ -1,7 +1,7 @@
 import { Context, Markup } from 'telegraf';
-import { BotContext, OpenBoxResult } from '../types';
+import { BotContext, OpenBoxResult, ScoreRule } from '../types';
 import { stockwise } from '../api/stockwise';
-import { computeOpenBoxScore } from '../services/openbox/engine';
+import { computeOpenBoxScore, getScoreDrivers } from '../services/openbox/engine';
 import { yahooSearch, getHistoricalPrices } from '../api/yahoo';
 import { databento } from '../api/databento';
 import { alpaca } from '../api/alpaca';
@@ -116,6 +116,25 @@ async function fetchLivePrice(ticker: string): Promise<number> {
   return 0;
 }
 
+// Render the per-metric rule breakdown as an aligned, monospaced block so the
+// effect of every metric on the score is visible at a glance.
+function formatMetricEffects(breakdown?: ScoreRule[]): string {
+  if (!breakdown || breakdown.length === 0) return '';
+  const lines: string[] = [];
+  let pillar = '';
+  for (const r of breakdown) {
+    if (r.pillar !== pillar) {
+      pillar = r.pillar;
+      lines.push((lines.length ? '\n' : '') + pillar);
+    }
+    const val = r.max > 0 ? `${r.points}/${r.max}` : `${r.points > 0 ? '+' : ''}${r.points}`;
+    const metric = r.metric.length > 17 ? r.metric.slice(0, 17) : r.metric.padEnd(17);
+    const detail = (r.detail || '').length > 8 ? (r.detail || '').slice(0, 8) : (r.detail || '').padEnd(8);
+    lines.push(` ${metric} ${detail} ${val}`);
+  }
+  return lines.join('\n');
+}
+
 function getAction(finalScore: number): string {
   if (finalScore >= 85) return 'aggressive buy';
   if (finalScore >= 70) return 'core holding';
@@ -202,6 +221,12 @@ export async function scoreCommand(ctx: Context) {
     ? `Innovation: — (weight: 15%) — redistributed to other pillars`
     : `Innovation: ${innovPct}/100 (weight: 15%)`;
 
+  const metricEffects = formatMetricEffects(openBoxData.breakdown);
+  const drivers = getScoreDrivers(openBoxData.breakdown);
+  const effectsSection = metricEffects
+    ? `\n📐 METRIC EFFECTS (points / max)\n\`\`\`\n${metricEffects}\n\`\`\`\n↑ Helped: ${drivers.boosters.join(', ') || '—'}\n↓ Hurt: ${drivers.drags.join(', ') || '—'}\n`
+    : '';
+
   const msg = `
 📊 OPENBOX SCORE: ${ticker}
 🏷 Price: ${priceStr}
@@ -215,7 +240,7 @@ Balance Sheet: ${balancePct}/100 (weight: 15%)
 Leadership: ${leadPct}/100 (weight: 15%)
 ${innovLine}
 Ethics: ${p.ethics === 10 ? 'PASS' : 'FAIL'}/10 (weight: 10%)
-
+${effectsSection}
 ⚠️ RISK FLAGS
 ${riskText}
 

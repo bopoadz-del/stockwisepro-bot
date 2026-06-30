@@ -1,5 +1,15 @@
 import { apiClient } from './client';
 
+// One scoring rule and the points it contributed to its pillar — the
+// deterministic "why" behind a score (mirrors the backend ScoreRule).
+export interface ScoreRule {
+  pillar: string;
+  metric: string;
+  detail: string;
+  points: number;
+  max: number;
+}
+
 export interface StockQuote {
   symbol: string;
   name: string;
@@ -18,6 +28,8 @@ export interface StockQuote {
   score?: number | null;
   signal?: 'buy' | 'hold' | 'sell';
   sector?: string | null;
+  breakdown?: ScoreRule[];
+  drivers?: { boosters: string[]; drags: string[] };
 }
 
 export interface KeyMetrics {

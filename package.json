@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node test/smoke.js && node test/learning.test.js && node test/e2e.test.js",
+    "test": "npm run build && node test/smoke.js && node test/ocr.test.js && node test/learning.test.js && node test/e2e.test.js",
     "test:smoke": "node test/smoke.js",
     "test:learning": "node test/learning.test.js",
     "test:e2e": "npm run build && node test/e2e.test.js",

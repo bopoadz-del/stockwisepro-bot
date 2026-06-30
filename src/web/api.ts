@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { fmp } from '../api/fmp';
 import { yahooSearch, getYahooQuote, getHistoricalPrices } from '../api/yahoo';
-import { computeOpenBoxScore } from '../services/openbox/engine';
+import { computeOpenBoxScore, getScoreDrivers } from '../services/openbox/engine';
 import { getLocalMimicAllocation, fetchMimicPrices } from '../services/mimic';
 import { getStockByTicker } from '../services/universe';
 import { logger } from '../utils/logger';
@@ -346,6 +346,8 @@ router.get('/stocks/quote/:ticker', async (req: Request, res: Response) => {
       eps: quote.eps,
       score: scoreResult?.finalScore ?? null,
       signal,
+      breakdown: scoreResult?.breakdown ?? [],
+      drivers: getScoreDrivers(scoreResult?.breakdown),
       metrics: metrics ? {
         peRatio: metrics.peRatio,
         priceToBookRatio: metrics.priceToBookRatio,
@@ -634,6 +636,8 @@ router.get('/stocks/:ticker', async (req: Request, res: Response) => {
       eps: quote.eps,
       score: scoreResult?.finalScore ?? null,
       signal,
+      breakdown: scoreResult?.breakdown ?? [],
+      drivers: getScoreDrivers(scoreResult?.breakdown),
       metrics: metrics ? {
         peRatio: metrics.peRatio,
         priceToBookRatio: metrics.priceToBookRatio,
@@ -667,6 +671,10 @@ router.get('/scores/:ticker', async (req: Request, res: Response) => {
       sector: result.sector,
       industry: result.industry,
       pillars: result.pillars,
+      breakdown: result.breakdown ?? [],
+      drivers: getScoreDrivers(result.breakdown),
+      narrative: result.narrative,
+      riskFlags: result.riskFlags,
     });
   } catch (err) {
     logger.error('Score error', { error: String(err) });
