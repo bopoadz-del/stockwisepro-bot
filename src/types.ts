@@ -63,6 +63,17 @@ export interface UserProfile {
   createdAt: string;
 }
 
+// A single scoring rule and its measured effect on the score. The breakdown is
+// the deterministic "why" behind a score: every metric is an explicit rule that
+// contributes `points` out of `max` to its pillar.
+export interface ScoreRule {
+  pillar: string;   // e.g. "Market Dynamics"
+  metric: string;   // e.g. "Momentum"
+  detail: string;   // the measured input, e.g. "6m +14%"
+  points: number;   // points this rule contributed
+  max: number;      // maximum points this rule can contribute
+}
+
 export interface OpenBoxResult {
   finalScore: number;
   pillars: {
@@ -80,6 +91,7 @@ export interface OpenBoxResult {
     peerDelta: number;
     dominanceBonus: number;
   };
+  breakdown?: ScoreRule[];
   isETF?: boolean;
   sector?: string;
   industry?: string;

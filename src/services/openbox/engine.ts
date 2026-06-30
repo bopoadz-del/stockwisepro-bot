@@ -6,11 +6,60 @@ import { checkEthics } from './ethics';
 import { computePeerDelta } from './peers';
 import { checkDominance } from './dominance';
 import { getUserWeights } from '../../db';
+import { ScoreRule } from '../../types';
 
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
 function clamp(num: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, num));
+}
+
+// Round to one decimal for display of point contributions.
+function r1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+// Format a ratio as a percentage string for the breakdown's "detail" column.
+function asPct(x: number | undefined): string {
+  if (x === undefined || !Number.isFinite(x)) return 'n/a';
+  return (x * 100).toFixed(Math.abs(x) < 0.1 ? 1 : 0) + '%';
+}
+
+// Format a large count (e.g. average volume) compactly.
+function asCompact(x: number | undefined): string {
+  if (!x || !Number.isFinite(x)) return 'n/a';
+  if (x >= 1e9) return (x / 1e9).toFixed(1) + 'B';
+  if (x >= 1e6) return (x / 1e6).toFixed(1) + 'M';
+  if (x >= 1e3) return (x / 1e3).toFixed(1) + 'K';
+  return String(Math.round(x));
+}
+
+/**
+ * Rank the scoring rules by how much each one helped or hurt relative to its own
+ * ceiling. A rule centred above its mid-point is a "booster"; below is a "drag".
+ * Adjustments (max === 0) count by signed points. Deterministic — no LLM.
+ */
+export function getScoreDrivers(
+  breakdown: ScoreRule[] | undefined,
+  limit = 3
+): { boosters: string[]; drags: string[] } {
+  if (!breakdown || breakdown.length === 0) return { boosters: [], drags: [] };
+  const scored = breakdown.map((r) => ({
+    label: r.metric,
+    // centre each rule around its mid-point; adjustments use raw signed points
+    centered: r.max > 0 ? r.points - r.max / 2 : r.points,
+  }));
+  const boosters = scored
+    .filter((s) => s.centered > 0.5)
+    .sort((a, b) => b.centered - a.centered)
+    .slice(0, limit)
+    .map((s) => s.label);
+  const drags = scored
+    .filter((s) => s.centered < -0.5)
+    .sort((a, b) => a.centered - b.centered)
+    .slice(0, limit)
+    .map((s) => s.label);
+  return { boosters, drags };
 }
 
 function calculateRSI(prices: number[]): number | undefined {
@@ -103,6 +152,7 @@ export interface OpenBoxScore {
     peerDelta: number;
     dominanceBonus: number;
   };
+  breakdown?: ScoreRule[];
   isETF?: boolean;
   sector?: string;
   industry?: string;
@@ -470,6 +520,12 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
     let leadershipRaw: number;
     let innovationRaw: number;
 
+    // Per-metric rule breakdown: every scoring rule records the points it
+    // contributed and its ceiling, so the score is fully explainable.
+    const breakdown: ScoreRule[] = [];
+    const rule = (pillar: string, metric: string, detail: string, points: number, max: number) =>
+      breakdown.push({ pillar, metric, detail, points: r1(points), max });
+
     if (isETF) {
       // ── ETF Fundamentals ──
       const er = m.expenseRatio ?? 0.005;
@@ -537,6 +593,26 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
       leadershipRaw = clamp(inceptionYear + feeCompetitive + issuerRep, 0, 100);
 
       innovationRaw = 0;
+
+      // ── ETF rule breakdown ──
+      const trendDetail = `${aboveSma50 ? '>' : '<'}50DMA, ${aboveSma200 ? '>' : '<'}200DMA`;
+      rule('Fundamentals', 'Expense ratio', asPct(er), expenseScore, 40);
+      rule('Fundamentals', 'Blended returns', asPct(blendedReturn), returnsScore, 35);
+      rule('Fundamentals', 'Volume', asCompact(m.avgVolume), volumeScore, 15);
+      rule('Fundamentals', 'Tracking / risk', `β${(m.fundBeta ?? 1).toFixed(2)}`, trackingScore, 10);
+      rule('Market Dynamics', 'Momentum', asPct(blendedReturn), momScore, 38);
+      rule('Market Dynamics', 'Volatility', `σ${(m.fundStdDev ?? 20).toFixed(0)}`, volScore, 27);
+      rule('Market Dynamics', 'Liquidity', asCompact(m.avgVolume), liqScore, 19);
+      rule('Market Dynamics', 'RSI', rsi !== undefined ? rsi.toFixed(0) : 'n/a', rsiScore, 15);
+      rule('Market Dynamics', 'Trend', trendDetail, (aboveSma50 ? 10 : 0) + (aboveSma200 ? 10 : 0), 20);
+      rule('Market Dynamics', 'Confirmed uptrend', trendAligned ? '50DMA > 200DMA' : 'not aligned', trendAligned ? 8 : 0, 8);
+      rule('Balance Sheet', 'Custody', custodyScore >= 36 ? 'physical' : 'standard', custodyScore, 36);
+      rule('Balance Sheet', 'Leverage', 'unlevered', leverageScore, 28);
+      rule('Balance Sheet', 'Transparency', transparencyScore >= 18 ? 'major issuer' : 'other', transparencyScore, 18);
+      rule('Balance Sheet', 'NAV stability', `β${(m.fundBeta ?? 1).toFixed(2)}`, navScore, 8);
+      rule('Leadership', 'Track record', inceptionYear >= 30 ? 'long' : 'medium', inceptionYear, 35);
+      rule('Leadership', 'Fee competitiveness', asPct(er), feeCompetitive, 35);
+      rule('Leadership', 'Issuer reputation', issuerRep >= 28 ? 'top-tier' : 'standard', issuerRep, 28);
 
     } else {
       // ── Stock Fundamentals ──
@@ -646,9 +722,40 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
         const moatScore = margin > 0.30 ? 28 : margin > 0.15 ? 20 : 10;
         const accelScore = revGrowth > 0.30 ? 20 : revGrowth > 0.15 ? 15 : 10;
         innovationRaw = clamp(rdScore + moatScore + accelScore, 0, 100);
+        rule('Innovation', 'R&D intensity', asPct(rdRatio), rdScore, 50);
+        rule('Innovation', 'Moat (margins)', asPct(margin), moatScore, 28);
+        rule('Innovation', 'Growth acceleration', asPct(revGrowth), accelScore, 20);
       } else {
         innovationRaw = 0;
       }
+
+      // ── Stock rule breakdown (fundamentals, market, balance, leadership) ──
+      const trendDetail = `${aboveSma50 ? '>' : '<'}50DMA, ${aboveSma200 ? '>' : '<'}200DMA`;
+      rule('Fundamentals', 'Revenue growth', asPct(revGrowth), revScore, 20);
+      rule('Fundamentals', 'Earnings growth', asPct(earnGrowth), earnScore, 10);
+      rule('Fundamentals', 'Profit margin', asPct(margin), marginScore, 20);
+      rule('Fundamentals', 'Return on equity', asPct(roe), roeScore, 20);
+      rule('Fundamentals', 'Free cash flow yield', asPct(fcfYield), fcfScore, 15);
+      rule('Fundamentals', 'P/E valuation', pe > 0 ? pe.toFixed(1) : 'n/a', peScore, 10);
+      rule('Fundamentals', 'P/B valuation', pb > 0 ? pb.toFixed(1) : 'n/a', pbScore, 5);
+      rule('Fundamentals', 'Quality (Piotroski)', `${piotroskiRaw}/9`, piotroskiRaw >= 7 ? 5 : 0, 5);
+      rule('Market Dynamics', 'Momentum', asPct(mom6m), momScore, 40);
+      rule('Market Dynamics', 'Volatility', `β${(m.beta ?? 1).toFixed(2)}`, volScore, 30);
+      rule('Market Dynamics', 'Volume / liquidity', asCompact(m.avgVolume), volLiqScore, 20);
+      rule('Market Dynamics', 'RSI', rsi !== undefined ? rsi.toFixed(0) : 'n/a', rsiScore, 15);
+      rule('Market Dynamics', 'Trend', trendDetail, (aboveSma50 ? 10 : 0) + (aboveSma200 ? 10 : 0), 20);
+      rule('Market Dynamics', 'Confirmed uptrend', trendAligned ? '50DMA > 200DMA' : 'not aligned', trendAligned ? 8 : 0, 8);
+      rule('Balance Sheet', 'Current ratio', cr > 0 ? cr.toFixed(2) : 'n/a', crScore, 25);
+      rule('Balance Sheet', 'Interest coverage', ic > 0 ? ic.toFixed(1) + 'x' : 'n/a', icScore, 25);
+      rule('Balance Sheet', 'Cash vs debt', cashDebt > 0 ? cashDebt.toFixed(2) + 'x' : 'n/a', cashScore, 25);
+      rule('Balance Sheet', 'Debt / equity', de > 0 ? de.toFixed(0) : 'n/a', deScore, 25);
+      rule('Balance Sheet', 'Solvency (Altman Z)', altmanZRaw > 0 ? altmanZRaw.toFixed(1) : 'n/a', altmanZRaw > 3 ? 5 : 0, 5);
+      rule('Leadership', 'Margin execution', asPct(margin), marginExec, 25);
+      rule('Leadership', 'Capital return', m.dividendYield ? asPct(m.dividendYield) : 'fcf', capitalReturn, 20);
+      rule('Leadership', 'Analyst target', target > 0 ? '$' + target.toFixed(0) : 'n/a', analystScore, 25);
+      rule('Leadership', 'Strategy', isTechStock && margin > 0.20 ? 'tech leader' : 'standard', strategyScore, 18);
+      rule('Leadership', 'Governance', 'baseline', governanceScore, 12);
+      rule('Leadership', 'Analyst consensus', consensusRating ?? 'n/a', consensusScore, 20);
     }
 
     // ── Weights ──
@@ -738,6 +845,14 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
 
     subtotal += peer.peerDelta + dom.dominanceBonus;
 
+    // Adjustments are signed bonuses/penalties (max = 0 flags them as such).
+    if (peer.peerDelta !== 0) {
+      rule('Adjustments', 'Peer valuation', peer.peerDelta > 0 ? 'cheaper vs peers' : 'pricier vs peers', peer.peerDelta, 0);
+    }
+    if (dom.dominanceBonus !== 0) {
+      rule('Adjustments', 'Market dominance', 'category leader', dom.dominanceBonus, 0);
+    }
+
     const finalScore = clamp(Math.round(subtotal), 0, 100);
 
     // ── Risk flags ──
@@ -766,6 +881,7 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
         peerDelta: peer.peerDelta,
         dominanceBonus: dom.dominanceBonus,
       },
+      breakdown,
       sector: sectorRaw || undefined,
       industry: industryRaw || undefined,
     };

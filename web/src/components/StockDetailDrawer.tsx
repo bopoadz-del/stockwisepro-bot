@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { stocksApi, type StockQuote, type KeyMetrics, type HistoricalPrice } from '@/lib/api/stocks';
+import { stocksApi, type StockQuote, type KeyMetrics, type HistoricalPrice, type ScoreRule } from '@/lib/api/stocks';
 import { formatCurrency, formatPercentage, formatVolume, getScoreColor } from '@/lib/utils';
 import { calculateMomentumScore } from '@/lib/scoring';
 import { mockStocks } from '@/lib/data';
@@ -256,6 +256,14 @@ export function StockDetailDrawer({ ticker, isOpen, onClose }: StockDetailDrawer
     ? { score: backendScore, breakdown: fallbackScoreData.breakdown }
     : fallbackScoreData;
   const signal = backendSignal || (scoreData.score >= 70 ? 'buy' : scoreData.score >= 40 ? 'hold' : 'sell');
+
+  // Real per-metric rule breakdown from the engine, grouped by pillar.
+  const ruleBreakdown: ScoreRule[] = quote?.breakdown ?? [];
+  const drivers = quote?.drivers;
+  const pillarGroups = ruleBreakdown.reduce((acc, r) => {
+    (acc[r.pillar] = acc[r.pillar] || []).push(r);
+    return acc;
+  }, {} as Record<string, ScoreRule[]>);
 
   return (
     <AnimatePresence>
@@ -505,26 +513,83 @@ export function StockDetailDrawer({ ticker, isOpen, onClose }: StockDetailDrawer
                       {scoreData && (
                         <div className="bg-[#1f1f1f] rounded-xl border border-white/10 p-4">
                           <h4 className="text-white font-semibold mb-4">Score Breakdown</h4>
-                          <div className="space-y-3">
-                            {Object.entries(scoreData.breakdown).map(([key, value]) => (
-                              <div key={key}>
-                                <div className="flex justify-between text-sm mb-1">
-                                  <span className="text-white/70 capitalize">
-                                    {key.replace(/([A-Z])/g, ' $1').trim()}
-                                  </span>
-                                  <span className="text-gold font-medium">{value}</span>
+
+                          {ruleBreakdown.length > 0 ? (
+                            <div className="space-y-4">
+                              {/* What helped / what hurt */}
+                              {drivers && (drivers.boosters.length > 0 || drivers.drags.length > 0) && (
+                                <div className="flex flex-wrap gap-2">
+                                  {drivers.boosters.map((b) => (
+                                    <span key={`up-${b}`} className="px-2 py-1 rounded-full text-xs bg-green-500/15 text-green-400 border border-green-500/20">
+                                      ▲ {b}
+                                    </span>
+                                  ))}
+                                  {drivers.drags.map((d) => (
+                                    <span key={`dn-${d}`} className="px-2 py-1 rounded-full text-xs bg-red-500/15 text-red-400 border border-red-500/20">
+                                      ▼ {d}
+                                    </span>
+                                  ))}
                                 </div>
-                                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                                  <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${value}%` }}
-                                    transition={{ duration: 0.8 }}
-                                    className="h-full bg-gold rounded-full"
-                                  />
+                              )}
+
+                              {/* Per-metric rules grouped by pillar */}
+                              {Object.entries(pillarGroups).map(([pillar, rules]) => (
+                                <div key={pillar}>
+                                  <div className="text-white/80 text-sm font-semibold mb-2">{pillar}</div>
+                                  <div className="space-y-2">
+                                    {rules.map((r, i) => {
+                                      const pct = r.max > 0 ? Math.max(0, Math.min(100, (r.points / r.max) * 100)) : 50;
+                                      const barColor = pct >= 60 ? 'bg-green-500' : pct >= 35 ? 'bg-gold' : 'bg-red-500';
+                                      return (
+                                        <div key={`${pillar}-${i}`}>
+                                          <div className="flex justify-between text-sm mb-1">
+                                            <span className="text-white/70">
+                                              {r.metric}
+                                              {r.detail ? <span className="text-white/40"> · {r.detail}</span> : null}
+                                            </span>
+                                            <span className="text-gold font-medium">
+                                              {r.max > 0 ? `${r.points}/${r.max}` : `${r.points > 0 ? '+' : ''}${r.points}`}
+                                            </span>
+                                          </div>
+                                          {r.max > 0 && (
+                                            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                              <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${pct}%` }}
+                                                transition={{ duration: 0.6 }}
+                                                className={`h-full rounded-full ${barColor}`}
+                                              />
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {Object.entries(scoreData.breakdown).map(([key, value]) => (
+                                <div key={key}>
+                                  <div className="flex justify-between text-sm mb-1">
+                                    <span className="text-white/70 capitalize">
+                                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                                    </span>
+                                    <span className="text-gold font-medium">{value}</span>
+                                  </div>
+                                  <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                                    <motion.div
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${value}%` }}
+                                      transition={{ duration: 0.8 }}
+                                      className="h-full bg-gold rounded-full"
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </TabsContent>
