@@ -3,7 +3,7 @@ import { getHistoricalPrices } from '../../api/yahoo';
 import { fmp, FMPKeyMetrics, FMPRating, FMPIncomeStatement, FMPBalanceSheet } from '../../api/fmp';
 import { logger } from '../../utils/logger';
 import { checkEthics } from './ethics';
-import { computePeerDelta } from './peers';
+import { computePeerDelta, scorePeRelative, scorePeBlended, scorePeROEAdjusted } from './peers';
 import { checkDominance } from './dominance';
 import { getUserWeights } from '../../db';
 import { ScoreRule } from '../../types';
@@ -11,7 +11,7 @@ import { ScoreRule } from '../../types';
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
 function clamp(num: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, num));
+  return Math.max(min, Math.min(num, max));
 }
 
 // Round to one decimal for display of point contributions.
@@ -60,6 +60,44 @@ export function getScoreDrivers(
     .slice(0, limit)
     .map((s) => s.label);
   return { boosters, drags };
+}
+
+// NEW v2.0: Multi-timeframe momentum helpers
+function computeReturn(prices: number[], days: number): number {
+  if (prices.length < days + 1) return 0;
+  const curr = prices[prices.length - 1];
+  const prev = prices[prices.length - 1 - days];
+  return prev > 0 ? (curr - prev) / prev : 0;
+}
+
+function computeLogReturns(prices: number[]): number[] {
+  const returns: number[] = [];
+  for (let i = 1; i < prices.length; i++) {
+    if (prices[i - 1] > 0 && prices[i] > 0) {
+      returns.push(Math.log(prices[i] / prices[i - 1]));
+    }
+  }
+  return returns;
+}
+
+function calculateSharpeRatio(returns: number[], riskFreeRate = 0.045): number {
+  if (returns.length < 2) return 0;
+  const excess = returns.map(r => r - riskFreeRate / 252);
+  const mean = excess.reduce((a, b) => a + b, 0) / excess.length;
+  const variance = excess.reduce((sum, r) => sum + (r - mean) ** 2, 0) / excess.length;
+  const stdDev = Math.sqrt(variance);
+  return stdDev === 0 ? 0 : (mean / stdDev) * Math.sqrt(252);
+}
+
+function calculateMaxDrawdown(prices: number[]): { maxDrawdown: number } {
+  let peak = prices[0] || 0;
+  let maxDD = 0;
+  for (const price of prices) {
+    if (price > peak) peak = price;
+    const dd = (peak - price) / peak;
+    if (dd > maxDD) maxDD = dd;
+  }
+  return { maxDrawdown: maxDD };
 }
 
 function calculateRSI(prices: number[]): number | undefined {
@@ -452,6 +490,19 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
       priceChangeYtd = safeDivide(prices[prices.length - 1] - prices[0], prices[0]);
     }
 
+    // NEW v2.0: Multi-timeframe momentum (FIX 4)
+    const mom1m = prices.length >= 22 ? computeReturn(prices, 21) : (priceChange6m ?? 0);
+    const mom3m = prices.length >= 64 ? computeReturn(prices, 63) : (priceChange6m ?? 0);
+    const mom6m = priceChange6m ?? 0;
+    const mom12m = prices.length >= 2 ? computeReturn(prices, prices.length - 1) : 0;
+    // Fama-French: skip 1m, use 2-12m
+    const mom12_1 = prices.length >= 232 ? computeReturn(prices, 231) : mom12m;
+
+    // NEW v2.0: Sharpe ratio + Max Drawdown (FIX 5)
+    const logReturns = prices.length >= 2 ? computeLogReturns(prices) : [];
+    const sharpe = logReturns.length >= 2 ? calculateSharpeRatio(logReturns) : 0;
+    const maxDD = prices.length >= 2 ? calculateMaxDrawdown(prices) : { maxDrawdown: 0 };
+
     // Build metrics object (FMP fills Yahoo gaps)
     const m = {
       price,
@@ -561,10 +612,6 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
       const latestPrice = prices[prices.length - 1];
       const aboveSma50 = latestPrice > (sma50 ?? Infinity);
       const aboveSma200 = latestPrice > (sma200 ?? Infinity);
-      // Confirmed-uptrend bonus: reward classic MA stacking (price > 50DMA > 200DMA)
-      // on top of the binary above/below checks. This lifts genuine breakouts that
-      // are merely "above both SMAs" today, and is purely structural — no beta or
-      // volatility term — so it never penalises low-beta defensives.
       const trendAligned = aboveSma50 && aboveSma200 && sma50 !== undefined && sma200 !== undefined && sma50 > sma200;
       const trendScore = (aboveSma50 ? 10 : 0) + (aboveSma200 ? 10 : 0) + (trendAligned ? 8 : 0);
 
@@ -624,13 +671,36 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
       const fcfYield = marketCap > 0 ? fcf / marketCap : 0;
       const pe = m.trailingPE ?? 0;
       const pb = m.priceToBook ?? 0;
+      const forwardPE = m.forwardPE;
+
+      // NEW v2.0: FIX 1, 2, 3 — Enhanced P/E scoring
+      let peScore: number;
+      if (roe > 0.15 && pe > 0) {
+        // FIX 3: ROE-adjusted for quality compounders (e.g. WM with 30% ROE)
+        peScore = clamp(scorePeROEAdjusted(pe, roe, sectorRaw, industryRaw) / 100 * 10, 0, 10);
+      } else if (pe > 0) {
+        // FIX 1 & 2: Sector-relative + forward P/E blending
+        peScore = clamp(scorePeBlended(pe, forwardPE, sectorRaw, industryRaw) / 100 * 10, 0, 10);
+      } else {
+        peScore = 5;
+      }
 
       const revScore = clamp(revGrowth / 0.50 * 20, 0, 20);
-      const earnScore = clamp(earnGrowth / 0.50 * 10, 0, 10);
+
+      // NEW v2.0: FIX 6 — Forward EPS growth weighting
+      const forwardEps = toNumOpt(dks?.forwardEps);
+      const trailingEps = toNumOpt(dks?.trailingEps);
+      const forwardGrowth = forwardEps && trailingEps && trailingEps !== 0
+        ? (forwardEps - trailingEps) / Math.abs(trailingEps)
+        : 0;
+      const blendedEarningsGrowth = forwardGrowth !== 0
+        ? earnGrowth * 0.4 + forwardGrowth * 0.6
+        : earnGrowth;
+      const earnScore = clamp(blendedEarningsGrowth / 0.50 * 10, 0, 10);
+
       const marginScore = clamp(margin / 0.30 * 20, 0, 20);
       const roeScore = clamp(roe / 0.30 * 20, 0, 20);
       const fcfScore = clamp((fcfYield + 0.01) / 0.05 * 15, 0, 15);
-      const peScore = pe > 0 ? clamp(100 - (pe - 10) / 40 * 100, 0, 100) * 0.10 : 5;
       const pbScore = pb > 0 ? clamp(100 - (pb - 1) / 30 * 100, 0, 100) * 0.05 : 5;
 
       fundamentalsRaw = clamp(revScore + earnScore + marginScore + roeScore + fcfScore + peScore + pbScore, 0, 100);
@@ -638,29 +708,31 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
       if (piotroskiRaw >= 7) fundamentalsRaw = Math.min(fundamentalsRaw + 5, 100);
 
       // ── Stock Market ──
-      const mom6m = m.priceChange6m ?? 0;
-      const momScore = clamp((mom6m + 0.4) / 0.8 * 40, 0, 40);
-      const volScore = clamp(100 - (m.beta ?? 1) / 3 * 100, 0, 100) * 0.30;
-      const volLiqScore = clamp((m.avgVolume ?? 0) / 10_000_000 * 20, 0, 20);
+      // NEW v2.0: FIX 4 — Multi-timeframe momentum (1m/3m/6m/12m composite)
+      const compositeMomentum = mom1m * 0.10 + mom3m * 0.20 + mom6m * 0.30 + mom12_1 * 0.40;
+      const momScore = clamp((compositeMomentum + 0.4) / 0.8 * 30, 0, 30);
+
+      const volScore = clamp(100 - (m.beta ?? 1) / 3 * 100, 0, 100) * 0.20;
+      const volLiqScore = clamp((m.avgVolume ?? 0) / 10_000_000 * 15, 0, 15);
 
       const rsi = prices.length >= 15 ? calculateRSI(prices) : undefined;
       const rsiScore = rsi !== undefined
         ? clamp((rsi - 30) / 40 * 100, 0, 100) * 0.15
         : 5;
 
+      // NEW v2.0: FIX 5 — Sharpe ratio + Max drawdown
+      const sharpeScore = clamp(sharpe / 2.5 * 100 * 0.10, 0, 10);
+      const ddScore = clamp(100 - maxDD.maxDrawdown * 200, 0, 100) * 0.10;
+
       const sma50 = computeSMA(prices, 50);
       const sma200 = computeSMA(prices, 200);
       const latestPrice = prices[prices.length - 1];
       const aboveSma50 = latestPrice > (sma50 ?? Infinity);
       const aboveSma200 = latestPrice > (sma200 ?? Infinity);
-      // Confirmed-uptrend bonus: reward classic MA stacking (price > 50DMA > 200DMA)
-      // on top of the binary above/below checks. This lifts genuine breakouts that
-      // are merely "above both SMAs" today, and is purely structural — no beta or
-      // volatility term — so it never penalises low-beta defensives.
       const trendAligned = aboveSma50 && aboveSma200 && sma50 !== undefined && sma200 !== undefined && sma50 > sma200;
       const trendScore = (aboveSma50 ? 10 : 0) + (aboveSma200 ? 10 : 0) + (trendAligned ? 8 : 0);
 
-      marketRaw = clamp(momScore + volScore + volLiqScore + rsiScore + trendScore, 0, 100);
+      marketRaw = clamp(momScore + sharpeScore + ddScore + volScore + volLiqScore + rsiScore + trendScore, 0, 100);
 
       // ── Stock Balance ──
       const cr = m.currentRatio ?? 0;
@@ -702,7 +774,6 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
         'application software', 'advertising', 'media',
       ].some(s => sector.includes(s) || industry.includes(s));
 
-      // Telecom/communication stocks are NOT tech-innovation stocks
       const isCommStock = ['communication', 'telecom', 'wireless', 'telecommunications']
         .some(s => sector.includes(s) || industry.includes(s));
 
@@ -712,7 +783,6 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
       leadershipRaw = clamp(marginExec + capitalReturn + analystScore + strategyScore + governanceScore + consensusScore, 0, 100);
 
       // ── Stock Innovation ──
-
       if (isTechStock && !isCommStock) {
         const rd = m.rdExpense ?? 0;
         const rdRatio = rev > 0 ? rd / rev : 0;
@@ -729,19 +799,22 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
         innovationRaw = 0;
       }
 
-      // ── Stock rule breakdown (fundamentals, market, balance, leadership) ──
+      // ── Stock rule breakdown ──
       const trendDetail = `${aboveSma50 ? '>' : '<'}50DMA, ${aboveSma200 ? '>' : '<'}200DMA`;
       rule('Fundamentals', 'Revenue growth', asPct(revGrowth), revScore, 20);
-      rule('Fundamentals', 'Earnings growth', asPct(earnGrowth), earnScore, 10);
+      rule('Fundamentals', 'Earnings growth', `trailing ${asPct(earnGrowth)}${forwardGrowth !== 0 ? ` / forward ${asPct(forwardGrowth)}` : ''}`, earnScore, 10);
       rule('Fundamentals', 'Profit margin', asPct(margin), marginScore, 20);
       rule('Fundamentals', 'Return on equity', asPct(roe), roeScore, 20);
       rule('Fundamentals', 'Free cash flow yield', asPct(fcfYield), fcfScore, 15);
-      rule('Fundamentals', 'P/E valuation', pe > 0 ? pe.toFixed(1) : 'n/a', peScore, 10);
+      rule('Fundamentals', 'P/E valuation', `trailing ${pe.toFixed(1)}${forwardPE ? ` / forward ${forwardPE.toFixed(1)}` : ''}${sectorRaw ? ` (${sectorRaw})` : ''}`, peScore, 10);
       rule('Fundamentals', 'P/B valuation', pb > 0 ? pb.toFixed(1) : 'n/a', pbScore, 5);
       rule('Fundamentals', 'Quality (Piotroski)', `${piotroskiRaw}/9`, piotroskiRaw >= 7 ? 5 : 0, 5);
-      rule('Market Dynamics', 'Momentum', asPct(mom6m), momScore, 40);
-      rule('Market Dynamics', 'Volatility', `β${(m.beta ?? 1).toFixed(2)}`, volScore, 30);
-      rule('Market Dynamics', 'Volume / liquidity', asCompact(m.avgVolume), volLiqScore, 20);
+      // NEW v2.0: FIX 4, 5 breakdown
+      rule('Market Dynamics', 'Momentum (1m/3m/6m/12m)', `${(mom1m*100).toFixed(0)}%/${(mom3m*100).toFixed(0)}%/${(mom6m*100).toFixed(0)}%/${(mom12_1*100).toFixed(0)}%`, momScore, 30);
+      rule('Market Dynamics', 'Sharpe ratio', sharpe.toFixed(2), sharpeScore, 10);
+      rule('Market Dynamics', 'Max drawdown', `${(maxDD.maxDrawdown*100).toFixed(1)}%`, ddScore, 10);
+      rule('Market Dynamics', 'Volatility', `β${(m.beta ?? 1).toFixed(2)}`, volScore, 20);
+      rule('Market Dynamics', 'Volume / liquidity', asCompact(m.avgVolume), volLiqScore, 15);
       rule('Market Dynamics', 'RSI', rsi !== undefined ? rsi.toFixed(0) : 'n/a', rsiScore, 15);
       rule('Market Dynamics', 'Trend', trendDetail, (aboveSma50 ? 10 : 0) + (aboveSma200 ? 10 : 0), 20);
       rule('Market Dynamics', 'Confirmed uptrend', trendAligned ? '50DMA > 200DMA' : 'not aligned', trendAligned ? 8 : 0, 8);
@@ -783,12 +856,10 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
     if (telegramId) {
       try {
         const uw = getUserWeights(telegramId);
-        // Map user's weight categories to OpenBox pillars
         const userFundamentals = (uw.valuation + uw.profitability + uw.growth) / 3;
         const userMarket = uw.momentum;
         const userBalance = uw.financial_health;
 
-        // Scale defaults by user's preference relative to 50 (midpoint)
         const scale = (val: number) => Math.max(0.2, Math.min(3.0, val / 50));
 
         if (isETF || innovationRaw === 0) {
@@ -811,7 +882,6 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
           };
         }
 
-        // Normalize to sum ~100
         const total = Object.values(weights).reduce((a, b) => a + b, 0);
         if (total > 0) {
           const factor = 100 / total;
@@ -845,7 +915,6 @@ export async function computeOpenBoxScore(ticker: string, telegramId?: number): 
 
     subtotal += peer.peerDelta + dom.dominanceBonus;
 
-    // Adjustments are signed bonuses/penalties (max = 0 flags them as such).
     if (peer.peerDelta !== 0) {
       rule('Adjustments', 'Peer valuation', peer.peerDelta > 0 ? 'cheaper vs peers' : 'pricier vs peers', peer.peerDelta, 0);
     }
