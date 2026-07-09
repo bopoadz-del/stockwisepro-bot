@@ -42,8 +42,8 @@ export async function handleScreenshot(ctx: Context) {
 
     await ctx.replyWithChatAction('typing');
 
-    // Run OCR
-    const { tickers, rawText } = await runOCR(tmpPath);
+    // Run OCR (now with confusion correction + optional Cloud Vision)
+    const { tickers, rawText, corrections } = await runOCR(tmpPath);
 
     if (!rawText || rawText.trim().length === 0) {
       await ctx.reply('🤖 Could not read any text from the image. Try a clearer screenshot.');
@@ -55,7 +55,8 @@ export async function handleScreenshot(ctx: Context) {
       await ctx.reply(
         '🤖 No ticker symbols found in the image.\n\n' +
         'I look for text like *AAPL*, *$TSLA*, etc. Try a clearer screenshot of your portfolio.\n\n' +
-        `_Raw text I read:_\n\`\`\`\n${rawPreview}\n\`\`\``
+        `_Raw text I read:_\n` +
+        `\`\`\`${rawPreview}\`\`\``
       );
       return;
     }
@@ -80,9 +81,16 @@ export async function handleScreenshot(ctx: Context) {
       return `${i + 1}. *${r.ticker}* — ❌ Could not score`;
     });
 
+    // NEW: Show OCR corrections if any were made
+    let correctionText = '';
+    if (corrections && corrections.length > 0) {
+      correctionText = '\n\n📝 _OCR corrections:_\n' + corrections.map(c => `  ${c}`).join('\n');
+    }
+
     await ctx.replyWithMarkdown(
       `📸 *Screenshot parsed — ${tickers.length} ticker(s) found:*\n\n` +
-      `${lines.join('\n')}\n\n` +
+      `${lines.join('\n')}` +
+      `${correctionText}\n\n` +
       `_Use /score <ticker> for detailed analysis._`
     );
   } catch (err) {
