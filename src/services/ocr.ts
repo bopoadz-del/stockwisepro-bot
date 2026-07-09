@@ -5,6 +5,12 @@
  * - PDD -> J8, IBIT -> I8IT, SGOL -> SG0L, XEL -> XE1, SO -> S0
  * - Added Google Cloud Vision API as primary (much more accurate)
  * - Tesseract.js is now fallback with enhanced post-processing
+ * 
+ * FIX v2: tickerCandidate now extracts first word only — was concatenating 
+ * numbers from brokerage table lines (e.g. "XEL 3,249.20" -> "XEL32492081")
+ * 
+ * FIX v3: Pass 3 fallback now runs always — was skipped when structural
+ * pass found >0 tickers, causing tickers without company name lines to be missed.
  */
 
 import { createWorker, PSM } from 'tesseract.js';
@@ -217,9 +223,18 @@ const UI_NEXT_LINE_WORDS = new Set([
   'gainers', 'losers', 'change', 'amount', 'shares',
 ]);
 
+// FIX v2: Extract first word only — brokerage table lines have ticker followed by numbers
+// e.g. "XEL              3,249.20 81.23" → first word = "XEL" ✓
+// OLD: "XEL 3,249.20" → stripped all whitespace → "XEL32492081" ✗ (too long)
 function tickerCandidate(line: string): string | null {
-  const t = line.trim().replace(/[^A-Za-z0-9.$]/g, '');
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+  
+  // Extract first token (ticker is always first word in brokerage tables)
+  const firstToken = trimmed.split(/[\s\t]+/)[0];
+  const t = firstToken.replace(/[^A-Za-z0-9.$]/g, '');
   const core = t.replace(/^\$/, '').replace(/\.+$/, '');
+  
   if (core.length < 1 || core.length > 5) return null;
   if (!/[A-Za-z]/.test(core)) return null;
   if ((core.match(/[a-z]/g) || []).length > 1) return null;
@@ -283,27 +298,27 @@ export function extractTickers(text: string): OCRResult {
     }
   }
 
-  // Pass 3: Fallback word matches
-  if (structuralHits === 0) {
-    const addFallback = (raw: string) => {
-      const cand = normalizeTickerCandidate(raw);
-      if (!cand || cand.length < 2) return;
-      if (COMMON_WORDS.has(cand) || FALSE_POSITIVES.has(cand)) return;
-      if (VALID_TICKERS.has(cand)) push(cand, 'fallback-valid');
-      else push(cand, 'fallback-fuzzy');
-    };
+  // FIX v3: Pass 3 now runs ALWAYS (not just when structuralHits === 0)
+  // This catches tickers that don't have a company name line after them
+  // (e.g. truncated OCR, or tickers at the end of the list)
+  const addFallback = (raw: string) => {
+    const cand = normalizeTickerCandidate(raw);
+    if (!cand || cand.length < 2) return;
+    if (COMMON_WORDS.has(cand) || FALSE_POSITIVES.has(cand)) return;
+    if (VALID_TICKERS.has(cand)) push(cand, 'fallback-valid');
+    else push(cand, 'fallback-fuzzy');
+  };
 
-    for (const line of lines) {
-      const startMatch = line.match(/^(\$?[A-Z]{1,5}[A-Z0-9]?)\s*[\$\|\-\—:]/);
-      if (startMatch) addFallback(startMatch[1]);
-    }
-    const wordMatches = text.match(/\b[A-Z]{2,5}\b/g);
-    if (wordMatches) {
-      for (const m of wordMatches) addFallback(m);
-    }
+  for (const line of lines) {
+    const startMatch = line.match(/^(\$?[A-Z]{1,5}[A-Z0-9]?)\s*[\$\|\-\—:]/);
+    if (startMatch) addFallback(startMatch[1]);
+  }
+  const wordMatches = text.match(/\b[A-Z]{2,5}\b/g);
+  if (wordMatches) {
+    for (const m of wordMatches) addFallback(m);
   }
 
-  // NEW: Pass 4 - Known correction patterns
+  // Pass 4: Known correction patterns
   // Catches J8->PDD even when no other signal is present
   for (const line of lines) {
     const tokens = line.split(/\s+/);
