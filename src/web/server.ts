@@ -8,6 +8,7 @@ import { config } from '../config';
 import { logger } from '../utils/logger';
 import { redis } from '../services/cache';
 import apiRouter from './api';
+import whatsappRouter from './whatsapp';
 
 const WEB_DIST = '/app/web-dist';
 
@@ -62,11 +63,14 @@ export function createWebServer() {
 
   // Health check
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), whatsapp: 'enabled' });
   });
 
   // API routes
   app.use('/api', apiRouter);
+
+  // WhatsApp Twilio webhook
+  app.use('/api/whatsapp', whatsappRouter);
 
   // Static files — serve built React SPA
   app.use(express.static(WEB_DIST));
