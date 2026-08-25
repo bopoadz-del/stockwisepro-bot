@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: stockwisepro-bot
+    name: stockwisepro-bot-web
     runtime: docker
     plan: standard
     healthCheckPath: /health
@@ -30,7 +30,7 @@ services:
       - key: WEBSITE_URL
         fromService:
           type: web
-          name: stockwisepro-bot
+          name: stockwisepro-bot-web
           property: host
       - key: OLLAMA_URL
         value: https://ollama.com
