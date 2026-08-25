@@ -393,9 +393,30 @@ router.get('/stocks/quotes', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Provide 1–20 symbols' });
       return;
     }
-    const results = (await Promise.all(
+    const quotes = (await Promise.all(
       symbols.map(sym => fetchQuoteWithFallback(sym))
     )).filter(Boolean);
+
+    // Carry the real OpenBox score, exactly as /stocks/screener does. This is
+    // the endpoint the website's search box uses, and without a score the
+    // client had nothing to show — so it invented a neutral 50, which read as
+    // a genuine verdict. Same concurrency limit to avoid Yahoo 429s.
+    const scoreEntries = await mapWithConcurrency(
+      quotes.map(q => q.symbol as string),
+      4,
+      getScreenerScore
+    );
+
+    const results = quotes.map((quote, i) => {
+      const scoreEntry = scoreEntries[i];
+      return {
+        ...quote,
+        score: scoreEntry?.score ?? null,
+        signal: scoreEntry?.signal ?? null,
+        sector: scoreEntry?.sector ?? null,
+      };
+    });
+
     res.json(results);
   } catch (err) {
     logger.error('Batch quotes error', { error: String(err) });
@@ -460,7 +481,8 @@ router.get('/stocks/screener', async (_req: Request, res: Response) => {
       return {
         ...quote,
         score: scoreEntry?.score ?? null,
-        signal: scoreEntry?.signal ?? 'hold',
+        // null, not 'hold' — a scoring failure is not a recommendation
+        signal: scoreEntry?.signal ?? null,
         sector: scoreEntry?.sector ?? null,
       };
     });

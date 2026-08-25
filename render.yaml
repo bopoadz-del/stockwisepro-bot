@@ -27,11 +27,14 @@ services:
         sync: false
       - key: WEB_CORS_ORIGINS
         sync: false
+      # `fromService ... property: host` resolved to the bare service name
+      # "stockwisepro-bot-web" rather than a hostname, which normalises to
+      # https://stockwisepro-bot-web — a URL with no TLD. It is only read by
+      # the bot's /start and /profile buttons, so it stayed invisible while the
+      # bot was off and would have shipped a dead link the moment a token was
+      # added. The hostname is stable and owned, so state it outright.
       - key: WEBSITE_URL
-        fromService:
-          type: web
-          name: stockwisepro-bot-web
-          property: host
+        value: https://stockwisepro-bot-web.onrender.com
       - key: OLLAMA_URL
         value: https://ollama.com
       - key: OLLAMA_MODEL

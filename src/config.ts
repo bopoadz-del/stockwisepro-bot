@@ -12,7 +12,16 @@ const alertInterval = Number.isNaN(parsedInterval) ? 5 : Math.min(Math.max(parse
 function normalizeWebsiteUrl(raw?: string): string {
   const value = (raw || '').trim().replace(/\/+$/, '');
   if (!value) return '';
-  return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+  const url = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+
+  // A host with no dot is not reachable — Render's `property: host` was
+  // observed yielding the bare service name, which turned into
+  // "https://stockwisepro-bot-web". Prefer no button over a dead one; that is
+  // what returning '' does at both call sites.
+  const host = url.replace(/^https?:\/\//i, '').split(/[/?#]/)[0];
+  if (!host.includes('.')) return '';
+
+  return url;
 }
 
 export const config = {
