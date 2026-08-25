@@ -69,9 +69,16 @@ async function main() {
         'Step 3: TELEGRAM_BOT_TOKEN is not set — skipping the Telegram bot entirely. ' +
         'The web server and API are running. Set TELEGRAM_BOT_TOKEN to enable the bot.'
       );
+      // The live score feed drives the website's hero card, not just Telegram.
+      // startLiveFeedService takes the bot optionally and null-guards every send,
+      // so it runs here and the card gets data even with no bot configured.
+      logger.info('Starting live score feed service (no bot; web only)...');
+      const liveFeedOnly = startLiveFeedService();
+
       const shutdownWebOnly = (signal: string) => {
         logger.info(`Shutting down (${signal})...`);
         flushAnalytics();
+        liveFeedOnly.stop();
         webServer.close();
       };
       process.once('SIGINT', () => shutdownWebOnly('SIGINT'));
