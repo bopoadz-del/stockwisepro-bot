@@ -46,6 +46,39 @@ async function main() {
     }
     logger.info('Step 2b: Market data adapters OK');
 
+    // The web server is started before the bot and does not depend on it. It used
+    // to start at Step 7, after Telegraf was constructed at Step 3 — and Telegraf
+    // throws on an empty token, so a missing token meant the outer catch called
+    // process.exit(1) and the website never came up at all.
+    logger.info('Step 2c: Starting web server (independent of the bot)...');
+    const webApp = createWebServer();
+    const webServer = webApp.listen(config.port, () => {
+      logger.info(`Web server listening on port ${config.port}`);
+    });
+
+    // Global crash handlers for silent failures
+    process.on('uncaughtException', (err) => {
+      logger.error('Uncaught exception', { error: err.message, stack: err.stack });
+    });
+    process.on('unhandledRejection', (reason) => {
+      logger.error('Unhandled rejection', { error: String(reason) });
+    });
+
+    if (!config.telegramToken) {
+      logger.warn(
+        'Step 3: TELEGRAM_BOT_TOKEN is not set — skipping the Telegram bot entirely. ' +
+        'The web server and API are running. Set TELEGRAM_BOT_TOKEN to enable the bot.'
+      );
+      const shutdownWebOnly = (signal: string) => {
+        logger.info(`Shutting down (${signal})...`);
+        flushAnalytics();
+        webServer.close();
+      };
+      process.once('SIGINT', () => shutdownWebOnly('SIGINT'));
+      process.once('SIGTERM', () => shutdownWebOnly('SIGTERM'));
+      return;
+    }
+
     logger.info('Step 3: Creating Telegraf bot...');
     const bot = new Telegraf<BotContext>(config.telegramToken);
     logger.info('Step 3: Bot instance created');
@@ -93,20 +126,6 @@ async function main() {
     logger.info('Step 6c: Starting live score feed service...');
     const liveFeedTask = startLiveFeedService(bot);
     logger.info('Step 6c: Live score feed service started');
-
-    logger.info('Step 7: Starting web server...');
-    const webApp = createWebServer();
-    const webServer = webApp.listen(config.port, () => {
-      logger.info(`Web server listening on port ${config.port}`);
-    });
-
-    // Global crash handlers for silent failures
-    process.on('uncaughtException', (err) => {
-      logger.error('Uncaught exception', { error: err.message, stack: err.stack });
-    });
-    process.on('unhandledRejection', (reason) => {
-      logger.error('Unhandled rejection', { error: String(reason) });
-    });
 
     logger.info('Step 8: Launching bot...');
     let launchRetries = 0;

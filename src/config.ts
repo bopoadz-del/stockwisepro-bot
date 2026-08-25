@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import { logger } from './utils/logger';
 
 dotenv.config();
 
@@ -43,15 +44,20 @@ export const config = {
   ollamaApiKey: process.env.OLLAMA_API_KEY || '',
 };
 
+// A missing or malformed Telegram token disables the bot; it does not stop the
+// process. index.ts already treats bot.launch() failure as survivable — it starts
+// the web server at Step 7, before launching at Step 8, and logs and continues on
+// 401. Throwing here contradicted that: it killed the process at import, so an
+// unset or revoked token took the whole website down with the bot.
 if (!config.telegramToken) {
-  throw new Error('TELEGRAM_BOT_TOKEN is required');
-}
-
-// Basic Telegram bot token format validation: digits:alphanumeric
-if (!/^\d+:[A-Za-z0-9_-]+$/.test(config.telegramToken)) {
-  throw new Error(
+  logger.warn(
+    'TELEGRAM_BOT_TOKEN is not set. The Telegram bot is disabled; the web server ' +
+    'and API still start. Set it in the environment to enable the bot.'
+  );
+} else if (!/^\d+:[A-Za-z0-9_-]+$/.test(config.telegramToken)) {
+  logger.warn(
     'TELEGRAM_BOT_TOKEN appears to be malformed. Expected format: <numbers>:<alphanumeric-string>. ' +
-    'Please verify your token from @BotFather.'
+    'The Telegram bot will not start; verify your token from @BotFather. The web server still starts.'
   );
 }
 
