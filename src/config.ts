@@ -6,6 +6,14 @@ dotenv.config();
 const parsedInterval = parseInt(process.env.ALERT_CHECK_INTERVAL_MINUTES || '5', 10);
 const alertInterval = Number.isNaN(parsedInterval) ? 5 : Math.min(Math.max(parsedInterval, 1), 60);
 
+// Render's blueprint `fromService ... property: host` yields a bare hostname with
+// no scheme, so accept both that and a fully-qualified URL.
+function normalizeWebsiteUrl(raw?: string): string {
+  const value = (raw || '').trim().replace(/\/+$/, '');
+  if (!value) return '';
+  return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+}
+
 export const config = {
   telegramToken: process.env.TELEGRAM_BOT_TOKEN || '',
   stockwiseApiBaseUrl: process.env.STOCKWISE_API_BASE_URL || 'https://stockwise-pro-api.onrender.com',
@@ -29,7 +37,7 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || '',
   sessionSecret: process.env.SESSION_SECRET || process.env.JWT_SECRET || '',
   webCorsOrigins: (process.env.WEB_CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean),
-  websiteUrl: process.env.WEBSITE_URL || 'https://stockwisepro-bot-pzi2.onrender.com',
+  websiteUrl: normalizeWebsiteUrl(process.env.WEBSITE_URL),
   ollamaUrl: (process.env.OLLAMA_URL || '').replace(/\/$/, ''),
   ollamaModel: process.env.OLLAMA_MODEL || 'llama3.1',
   ollamaApiKey: process.env.OLLAMA_API_KEY || '',
