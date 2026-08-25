@@ -36,8 +36,11 @@ interface StockResult {
   change: number;
   changePercent: number;
   marketCap: number;
-  score: number;
-  signal: 'buy' | 'hold' | 'sell';
+  // null when the backend could not score this symbol. Never substitute a
+  // number here: on a page that renders BUY/HOLD next to it, an invented
+  // score is indistinguishable from a real verdict.
+  score: number | null;
+  signal: 'buy' | 'hold' | 'sell' | null;
   sector?: string;
   sparklineData?: number[];
   volume?: number;
@@ -87,9 +90,11 @@ function formatQuoteToResult(quote: StockQuote | null | undefined): StockResult 
     volume: typeof quote.volume === 'number' ? quote.volume : 0,
     avgVolume: typeof quote.avgVolume === 'number' ? quote.avgVolume : (typeof quote.volume === 'number' ? quote.volume : 0),
   };
-  // Use backend OpenBox score when available; otherwise neutral 50
-  const score = typeof quote.score === 'number' ? quote.score : 50;
-  const signal = quote.signal || getSignalFromScore(score);
+  // Unknown stays unknown. This previously defaulted to 50, so a searched
+  // ticker rendered "50 / HOLD" while its detail drawer showed the real score
+  // — the same symbol giving two different answers.
+  const score = typeof quote.score === 'number' ? quote.score : null;
+  const signal = quote.signal ?? (score !== null ? getSignalFromScore(score) : null);
   return {
     ticker: formatTickerForDisplay(safe.symbol),
     name: safe.name,
@@ -219,9 +224,15 @@ export function StockScreener({ onSelectStock, isAuthenticated: _isAuthenticated
         case 'change':
           comparison = a.changePercent - b.changePercent;
           break;
-        case 'score':
-          comparison = a.score - b.score;
+        case 'score': {
+          // Unscored rows sink to the bottom either way, rather than sorting
+          // as if they were zero.
+          if (a.score === null && b.score === null) comparison = 0;
+          else if (a.score === null) comparison = sortDirection === 'asc' ? 1 : -1;
+          else if (b.score === null) comparison = sortDirection === 'asc' ? -1 : 1;
+          else comparison = a.score - b.score;
           break;
+        }
         case 'marketCap':
           comparison = a.marketCap - b.marketCap;
           break;
@@ -480,14 +491,26 @@ export function StockScreener({ onSelectStock, isAuthenticated: _isAuthenticated
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-3">
-                            <ScoreVisualizer score={stock.score} size="sm" showLabel={false} />
-                            <span className={`font-bold ${getScoreColor(stock.score)}`}>
-                              {stock.score}
-                            </span>
+                            {stock.score === null ? (
+                              <span className="font-bold text-white/40" title={t('screener.scoreUnavailable')}>
+                                —
+                              </span>
+                            ) : (
+                              <>
+                                <ScoreVisualizer score={stock.score} size="sm" showLabel={false} />
+                                <span className={`font-bold ${getScoreColor(stock.score)}`}>
+                                  {stock.score}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          <SignalBadge signal={stock.signal} size="sm" />
+                          {stock.signal === null ? (
+                            <span className="text-white/40">—</span>
+                          ) : (
+                            <SignalBadge signal={stock.signal} size="sm" />
+                          )}
                         </TableCell>
                       </motion.tr>
                     ))

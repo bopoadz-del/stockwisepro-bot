@@ -26,7 +26,7 @@ export interface StockQuote {
   yearHigh: number;
   eps: number;
   score?: number | null;
-  signal?: 'buy' | 'hold' | 'sell';
+  signal?: 'buy' | 'hold' | 'sell' | null;
   sector?: string | null;
   breakdown?: ScoreRule[];
   drivers?: { boosters: string[]; drags: string[] };
