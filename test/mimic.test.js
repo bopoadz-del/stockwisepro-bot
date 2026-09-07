@@ -6,6 +6,10 @@
 
 const assert = require('assert');
 
+process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '123456:TESTTESTTESTTESTTESTTESTTESTTESTTEST';
+process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'test-secret-test-secret-test-secret';
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
+
 const {
   getLocalMimicAllocation,
   getHardcodedMimicAllocation,
