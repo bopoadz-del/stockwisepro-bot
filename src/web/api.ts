@@ -3,7 +3,7 @@ import multer from 'multer';
 import { fmp } from '../api/fmp';
 import { yahooSearch, getYahooQuote, getHistoricalPrices } from '../api/yahoo';
 import { computeOpenBoxScore, getScoreDrivers } from '../services/openbox/engine';
-import { getLocalMimicAllocation, fetchMimicPrices } from '../services/mimic';
+import { getLocalMimicAllocation, fetchMimicPrices, allocateMimicBudget } from '../services/mimic';
 import { getStockByTicker } from '../services/universe';
 import { logger } from '../utils/logger';
 import {
@@ -775,26 +775,24 @@ router.post('/portfolio/mimic', async (req: Request, res: Response) => {
       return;
     }
 
-    // Fetch current prices for holdings
     const prices = await fetchMimicPrices(allocation.holdings);
+    const priced = allocateMimicBudget(allocation.holdings, bgt, prices);
 
-    const holdings = allocation.holdings.map(h => {
-      const price = prices.get(h.ticker) || 100;
-      const budgetAllocation = bgt * (h.percentage / 100);
-      const shares = Math.floor(budgetAllocation / price);
+    const holdings = priced.holdings.map(h => {
       const stock = getStockByTicker(h.ticker);
       return {
         ticker: h.ticker,
         name: stock?.name || h.ticker,
         allocation: h.percentage,
-        price,
-        shares,
-        value: shares * price,
+        price: h.price,
+        shares: h.shares,
+        value: h.value,
+        quoted: h.quoted,
       };
     });
 
-    const totalValue = holdings.reduce((sum, h) => sum + h.value, 0);
-    const cashRemaining = bgt - totalValue;
+    const totalValue = priced.totalAllocated;
+    const cashRemaining = priced.residualCash;
 
     res.json({
       investor: investorId,
@@ -803,6 +801,7 @@ router.post('/portfolio/mimic', async (req: Request, res: Response) => {
       holdings,
       totalValue,
       cashRemaining,
+      unquotedTickers: priced.unquotedTickers,
       ethicsApplied: allocation.ethicsApplied,
       replacedTickers: allocation.replacedTickers || [],
     });
