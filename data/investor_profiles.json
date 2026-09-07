@@ -240,6 +240,238 @@
         "dividend",
         "aggressive"
       ]
+    },
+    "burry": {
+      "name": "Michael Burry",
+      "style": "Deep Value",
+      "description": "Concentrated contrarian bets in undervalued cyclicals, healthcare, and China ADRs.",
+      "sectorTargets": {
+        "Healthcare": 30,
+        "Financials": 20,
+        "Technology": 20,
+        "Consumer Discretionary": 15,
+        "Communication Services": 15
+      },
+      "criteria": {
+        "peMax": 18,
+        "pbMax": 2.5,
+        "roeMin": 0.06,
+        "debtToEquityMax": 1.2,
+        "dividendPreferred": false,
+        "marketCapMin": "mid"
+      },
+      "coreHoldings": [
+        "JD",
+        "BABA",
+        "GOOGL",
+        "CVS",
+        "CI"
+      ],
+      "excludeSectors": [],
+      "preferredStyles": [
+        "value",
+        "aggressive",
+        "mid-cap"
+      ]
+    },
+    "ackman": {
+      "name": "Bill Ackman",
+      "style": "Activist",
+      "description": "High-conviction concentrated investments in quality businesses with durable moats.",
+      "sectorTargets": {
+        "Consumer Discretionary": 50,
+        "Technology": 20,
+        "Industrials": 15,
+        "Real Estate": 15
+      },
+      "criteria": {
+        "peMax": 40,
+        "pbMax": 12,
+        "roeMin": 0.1,
+        "debtToEquityMax": 1.5,
+        "dividendPreferred": false,
+        "marketCapMin": "large"
+      },
+      "coreHoldings": [
+        "HLT",
+        "CMG",
+        "QSR",
+        "LOW",
+        "GOOGL"
+      ],
+      "excludeSectors": [],
+      "preferredStyles": [
+        "growth",
+        "mega-cap",
+        "aggressive"
+      ]
+    },
+    "soros": {
+      "name": "George Soros",
+      "style": "Global Macro",
+      "description": "Macro allocation across US equity, international, rates, and currency-sensitive assets.",
+      "sectorTargets": {
+        "Financials": 30,
+        "Technology": 25,
+        "Consumer Discretionary": 15,
+        "Communication Services": 10,
+        "Healthcare": 10,
+        "Energy": 10
+      },
+      "criteria": {
+        "peMax": 40,
+        "pbMax": 10,
+        "roeMin": 0.05,
+        "debtToEquityMax": 2.0,
+        "dividendPreferred": false,
+        "marketCapMin": "mid"
+      },
+      "coreHoldings": [
+        "QQQ",
+        "SPY",
+        "IWM",
+        "EEM",
+        "TLT"
+      ],
+      "excludeSectors": [],
+      "preferredStyles": [
+        "aggressive",
+        "mega-cap",
+        "international"
+      ]
+    },
+    "druckenmiller": {
+      "name": "Stanley Druckenmiller",
+      "style": "Concentrated Growth",
+      "description": "Concentrated high-conviction growth in technology and healthcare leaders.",
+      "sectorTargets": {
+        "Technology": 55,
+        "Communication Services": 20,
+        "Consumer Discretionary": 15,
+        "Healthcare": 10
+      },
+      "criteria": {
+        "peMax": 50,
+        "pbMax": 15,
+        "roeMin": 0.12,
+        "debtToEquityMax": 1.5,
+        "dividendPreferred": false,
+        "marketCapMin": "large"
+      },
+      "coreHoldings": [
+        "NVDA",
+        "MSFT",
+        "GOOGL",
+        "AMZN",
+        "META"
+      ],
+      "excludeSectors": [],
+      "preferredStyles": [
+        "growth",
+        "AI-focused",
+        "mega-cap",
+        "aggressive"
+      ]
+    },
+    "marks": {
+      "name": "Howard Marks",
+      "style": "Credit / Distressed",
+      "description": "Credit-first allocation with high-yield, senior loans, and a small equity sleeve.",
+      "sectorTargets": {
+        "Financials": 50,
+        "Energy": 10,
+        "Industrials": 10,
+        "Consumer Staples": 10,
+        "Healthcare": 10,
+        "Technology": 10
+      },
+      "criteria": {
+        "peMax": 20,
+        "pbMax": 3,
+        "roeMin": 0.06,
+        "debtToEquityMax": 1.5,
+        "dividendPreferred": true,
+        "marketCapMin": "mid"
+      },
+      "coreHoldings": [
+        "HYG",
+        "JNK",
+        "BKLN",
+        "SPY",
+        "BAC"
+      ],
+      "excludeSectors": [],
+      "preferredStyles": [
+        "value",
+        "dividend",
+        "safe"
+      ]
+    },
+    "simons": {
+      "name": "Jim Simons",
+      "style": "Quantitative",
+      "description": "Diversified mega-cap basket spanning technology, healthcare, and financials.",
+      "sectorTargets": {
+        "Technology": 35,
+        "Healthcare": 20,
+        "Consumer Discretionary": 15,
+        "Financials": 15,
+        "Communication Services": 15
+      },
+      "criteria": {
+        "peMax": 35,
+        "pbMax": 10,
+        "roeMin": 0.1,
+        "debtToEquityMax": 1.2,
+        "dividendPreferred": false,
+        "marketCapMin": "large"
+      },
+      "coreHoldings": [
+        "NVDA",
+        "META",
+        "AMZN",
+        "GOOGL",
+        "MSFT"
+      ],
+      "excludeSectors": [],
+      "preferredStyles": [
+        "growth",
+        "mega-cap",
+        "AI-focused"
+      ]
+    },
+    "icahn": {
+      "name": "Carl Icahn",
+      "style": "Activist",
+      "description": "Activist concentrated book in energy, industrials, and holding-company vehicles.",
+      "sectorTargets": {
+        "Energy": 35,
+        "Industrials": 25,
+        "Utilities": 15,
+        "Technology": 15,
+        "Financials": 10
+      },
+      "criteria": {
+        "peMax": 25,
+        "pbMax": 4,
+        "roeMin": 0.05,
+        "debtToEquityMax": 2.0,
+        "dividendPreferred": true,
+        "marketCapMin": "mid"
+      },
+      "coreHoldings": [
+        "IEP",
+        "CVI",
+        "OXY",
+        "SWX",
+        "XRX"
+      ],
+      "excludeSectors": [],
+      "preferredStyles": [
+        "value",
+        "aggressive",
+        "dividend"
+      ]
     }
   }
 }

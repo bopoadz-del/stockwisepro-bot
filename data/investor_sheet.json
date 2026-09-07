@@ -73,7 +73,9 @@
         "HMC",
         "NSANY",
         "RNO",
-        "VWAGY"
+        "VWAGY",
+        "QSR",
+        "CMG"
       ]
     },
     "Consumer Staples": {
@@ -146,7 +148,9 @@
         "FANG",
         "SHEL",
         "BP",
-        "TTE"
+        "TTE",
+        "CVI",
+        "NFE"
       ]
     },
     "Financials": {
@@ -204,7 +208,18 @@
         "SAN",
         "HSBC",
         "UBS",
-        "CS"
+        "CS",
+        "TLT",
+        "IEF",
+        "HYG",
+        "JNK",
+        "SJNK",
+        "BKLN",
+        "LQD",
+        "EMB",
+        "EEM",
+        "GLD",
+        "IEP"
       ]
     },
     "Healthcare": {
@@ -298,7 +313,8 @@
         "X",
         "CLF",
         "SIEGY",
-        "AIR"
+        "AIR",
+        "CP"
       ]
     },
     "Materials": {
@@ -349,7 +365,8 @@
         "EXR",
         "DLR",
         "IRM",
-        "ARE"
+        "ARE",
+        "HHH"
       ]
     },
     "Technology": {
@@ -424,7 +441,8 @@
         "TSM",
         "ASML",
         "SAP",
-        "SONY"
+        "SONY",
+        "XRX"
       ]
     },
     "Utilities": {
@@ -444,7 +462,8 @@
         "ES",
         "VST",
         "NRG",
-        "CEG"
+        "CEG",
+        "SWX"
       ]
     },
     "style_safe": {
@@ -1864,7 +1883,21 @@
         "QQQ",
         "IWM",
         "XLF",
-        "KRE"
+        "KRE",
+        "TLT",
+        "IEF",
+        "GLD",
+        "SLV",
+        "EEM",
+        "FXI",
+        "EWJ",
+        "HYG",
+        "JNK",
+        "SJNK",
+        "BKLN",
+        "LQD",
+        "EMB",
+        "UUP"
       ]
     },
     "style_meme": {
@@ -2117,6 +2150,216 @@
         "core_weight": 40,
         "max_per_stock": 25,
         "min_holdings": 6
+      },
+      "replacement": {
+        "strategy": "style_match",
+        "candidates": 3
+      }
+    },
+    "burry": {
+      "name": "Michael Burry",
+      "style": "Deep Value",
+      "description": "Concentrated contrarian bets in undervalued cyclicals, healthcare, and China ADRs.",
+      "formula": {
+        "type": "sector",
+        "sectors": {
+          "Healthcare": 30,
+          "Financials": 20,
+          "Technology": 20,
+          "Consumer Discretionary": 15,
+          "Communication Services": 15
+        },
+        "risk_profile": "deep_value",
+        "core_holdings": [
+          "JD",
+          "BABA",
+          "GOOGL",
+          "CVS",
+          "CI"
+        ],
+        "core_weight": 40,
+        "max_per_stock": 20,
+        "min_holdings": 6
+      },
+      "replacement": {
+        "strategy": "style_match",
+        "candidates": 3
+      }
+    },
+    "ackman": {
+      "name": "Bill Ackman",
+      "style": "Activist",
+      "description": "High-conviction concentrated investments in quality businesses with durable moats.",
+      "formula": {
+        "type": "sector",
+        "sectors": {
+          "Consumer Discretionary": 50,
+          "Technology": 20,
+          "Industrials": 15,
+          "Real Estate": 15
+        },
+        "risk_profile": "aggressive",
+        "core_holdings": [
+          "HLT",
+          "CMG",
+          "QSR",
+          "LOW",
+          "GOOGL"
+        ],
+        "core_weight": 40,
+        "max_per_stock": 20,
+        "min_holdings": 5
+      },
+      "replacement": {
+        "strategy": "style_match",
+        "candidates": 3
+      }
+    },
+    "soros": {
+      "name": "George Soros",
+      "style": "Global Macro",
+      "description": "Macro allocation across US equity, international, rates, and currency-sensitive assets.",
+      "formula": {
+        "type": "sector",
+        "sectors": {
+          "Financials": 30,
+          "Technology": 25,
+          "Consumer Discretionary": 15,
+          "Communication Services": 10,
+          "Healthcare": 10,
+          "Energy": 10
+        },
+        "risk_profile": "aggressive",
+        "core_holdings": [
+          "QQQ",
+          "SPY",
+          "IWM",
+          "EEM",
+          "TLT"
+        ],
+        "core_weight": 40,
+        "max_per_stock": 20,
+        "min_holdings": 6
+      },
+      "replacement": {
+        "strategy": "style_match",
+        "candidates": 3
+      }
+    },
+    "druckenmiller": {
+      "name": "Stanley Druckenmiller",
+      "style": "Concentrated Growth",
+      "description": "Concentrated high-conviction growth in technology and healthcare leaders.",
+      "formula": {
+        "type": "sector",
+        "sectors": {
+          "Technology": 55,
+          "Communication Services": 20,
+          "Consumer Discretionary": 15,
+          "Healthcare": 10
+        },
+        "risk_profile": "aggressive",
+        "core_holdings": [
+          "NVDA",
+          "MSFT",
+          "GOOGL",
+          "AMZN",
+          "META"
+        ],
+        "core_weight": 40,
+        "max_per_stock": 20,
+        "min_holdings": 5
+      },
+      "replacement": {
+        "strategy": "style_match",
+        "candidates": 3
+      }
+    },
+    "marks": {
+      "name": "Howard Marks",
+      "style": "Credit / Distressed",
+      "description": "Credit-first allocation with high-yield, senior loans, and a small equity sleeve.",
+      "formula": {
+        "type": "sector",
+        "sectors": {
+          "Financials": 50,
+          "Energy": 10,
+          "Industrials": 10,
+          "Consumer Staples": 10,
+          "Healthcare": 10,
+          "Technology": 10
+        },
+        "risk_profile": "conservative",
+        "core_holdings": [
+          "HYG",
+          "JNK",
+          "BKLN",
+          "SPY",
+          "BAC"
+        ],
+        "core_weight": 40,
+        "max_per_stock": 20,
+        "min_holdings": 6
+      },
+      "replacement": {
+        "strategy": "style_match",
+        "candidates": 3
+      }
+    },
+    "simons": {
+      "name": "Jim Simons",
+      "style": "Quantitative",
+      "description": "Diversified mega-cap basket spanning technology, healthcare, and financials.",
+      "formula": {
+        "type": "sector",
+        "sectors": {
+          "Technology": 35,
+          "Healthcare": 20,
+          "Consumer Discretionary": 15,
+          "Financials": 15,
+          "Communication Services": 15
+        },
+        "risk_profile": "balanced",
+        "core_holdings": [
+          "NVDA",
+          "META",
+          "AMZN",
+          "GOOGL",
+          "MSFT"
+        ],
+        "core_weight": 40,
+        "max_per_stock": 15,
+        "min_holdings": 8
+      },
+      "replacement": {
+        "strategy": "style_match",
+        "candidates": 3
+      }
+    },
+    "icahn": {
+      "name": "Carl Icahn",
+      "style": "Activist",
+      "description": "Activist concentrated book in energy, industrials, and holding-company vehicles.",
+      "formula": {
+        "type": "sector",
+        "sectors": {
+          "Energy": 35,
+          "Industrials": 25,
+          "Utilities": 15,
+          "Technology": 15,
+          "Financials": 10
+        },
+        "risk_profile": "aggressive",
+        "core_holdings": [
+          "IEP",
+          "CVI",
+          "OXY",
+          "SWX",
+          "XRX"
+        ],
+        "core_weight": 40,
+        "max_per_stock": 25,
+        "min_holdings": 5
       },
       "replacement": {
         "strategy": "style_match",

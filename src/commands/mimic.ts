@@ -3,18 +3,16 @@ import { BotContext } from '../types';
 import { stockwise } from '../api/stockwise';
 import { userSafeError } from '../utils/logger';
 import { logger } from '../utils/logger';
-import { getLocalMimicAllocation, findReplacement, fetchMimicPrices, MimicResult } from '../services/mimic';
+import {
+  getLocalMimicAllocation,
+  fetchMimicPrices,
+  allocateMimicBudget,
+  getMimicInvestorName,
+  MIMIC_INVESTORS,
+  MimicResult,
+} from '../services/mimic';
 import { findReplacements } from '../services/screener';
 import { loadCongressTraders } from '../services/universe';
-
-const INVESTORS = [
-  { id: 'buffett', name: 'Warren Buffett', style: 'Value' },
-  { id: 'dalio', name: 'Ray Dalio', style: 'All Weather' },
-  { id: 'wood', name: 'Cathie Wood', style: 'Growth/ Innovation' },
-  { id: 'lynch', name: 'Peter Lynch', style: 'Growth at Reasonable Price' },
-  { id: 'graham', name: 'Benjamin Graham', style: 'Deep Value' },
-  { id: 'templeton', name: 'John Templeton', style: 'Contrarian' },
-];
 
 const CONGRESS_TRADERS = Object.entries(loadCongressTraders()).map(([id, t]) => ({
   id: `congress:${id}`,
@@ -40,11 +38,11 @@ export async function mimicCommand(ctx: Context) {
   const telegramId = ctx.from?.id || 0;
   pendingMimic.delete(telegramId);
 
-  const investorButtons = INVESTORS.map(inv => [
+  const investorButtons = MIMIC_INVESTORS.map(inv => [
     Markup.button.callback(`${inv.name} (${inv.style})`, `mimic_select:${inv.id}`)
   ]);
 
-  const congressButtons = CONGRESS_TRADERS.slice(0, 4).map(t => [
+  const congressButtons = CONGRESS_TRADERS.map(t => [
     Markup.button.callback(`🏛️ ${t.name} (${t.style})`, `mimic_select:${t.id}`)
   ]);
 
@@ -64,7 +62,7 @@ export async function handleMimicCallback(ctx: BotContext) {
   const isCongress = investorId.startsWith('congress:');
   const cleanId = isCongress ? investorId.replace('congress:', '') : investorId;
 
-  const name = INVESTORS.find(i => i.id === cleanId)?.name
+  const name = getMimicInvestorName(investorId)
     || loadCongressTraders()[cleanId]?.name
     || 'Unknown';
 
@@ -188,42 +186,30 @@ export async function runMimicFromAmount(ctx: Context, amountText: string) {
     return;
   }
 
-  // Fetch prices for all holdings — with 15s timeout to avoid hanging on API failures
-  let priceMap: Map<string, number | null>;
-  try {
-    priceMap = await Promise.race([
-      fetchMimicPrices(holdings, telegramId),
-      new Promise<Map<string, number | null>>((_, reject) =>
-        setTimeout(() => reject(new Error('Price fetch timeout')), 15000)
-      )
-    ]);
-  } catch {
-    // If prices fail entirely, show allocation without share counts
-    priceMap = new Map();
-    for (const h of holdings) {
-      priceMap.set(h.ticker, null);
-    }
+  const priced = await priceMimicHoldings(holdings, telegramId, amount);
+  if (priced.quotedCount === 0) {
+    await ctx.replyWithMarkdown(
+      `⚠️ *Live quotes unavailable*\n\n` +
+      `Could not fetch real prices for *${investorName}*. ` +
+      `Share counts are not estimated. Try again in a moment.\n\n` +
+      `💵 *Investment:* $${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}\n` +
+      `💰 *Residual cash:* $${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} (unpriced)\n\n` +
+      `*Target weights:*\n` +
+      holdings.map((h: any) => {
+        const ticker = h.ticker || h.symbol || '?';
+        const pct = parseFloat(h.percentage ?? h.weight ?? 0);
+        return `• *${ticker}* — ${pct.toFixed(1)}%`;
+      }).join('\n')
+    );
+    return;
   }
 
-  let totalAllocated = 0;
-  const lines = holdings.map((h: any) => {
-    const ticker = h.ticker || h.symbol || '?';
-    const pct = parseFloat(h.percentage ?? h.weight ?? 0);
-    const dollarAmount = amount * (pct / 100);
-    totalAllocated += dollarAmount;
-
-    const price = priceMap.get(ticker);
-    let detail = '';
-    if (price && price > 0) {
-      const shares = dollarAmount / price;
-      const sharesStr = shares >= 1 ? shares.toFixed(2) : shares.toFixed(4);
-      detail = `${sharesStr} shares @ $${price.toFixed(2)}`;
-    } else {
-      detail = `$${dollarAmount.toFixed(2)}`;
+  const lines = priced.holdings.map(h => {
+    const pctStr = `${h.percentage.toFixed(1)}%`;
+    if (h.quoted && h.price) {
+      return `• *${h.ticker}* — ${pctStr} → ${h.shares} shares @ $${h.price.toFixed(2)}`;
     }
-
-    const pctStr = typeof pct === 'number' ? `${pct.toFixed(1)}%` : `${pct}`;
-    return `• *${ticker}* — ${pctStr} → ${detail}`;
+    return `• *${h.ticker}* — ${pctStr} → no live quote (held as cash)`;
   });
 
   let msg =
@@ -236,8 +222,12 @@ export async function runMimicFromAmount(ctx: Context, amountText: string) {
   }
   msg += `\n💵 *Investment:* $${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}\n\n` +
     `*Suggested allocation:*\n${lines.join('\n')}\n\n` +
-    `*Total Allocated:* ~$${totalAllocated.toFixed(2)}\n\n` +
-    `_Reply with \`remove AAPL\` to auto-swap with a style-matched alternative._`;
+    `*Total Allocated:* $${priced.totalAllocated.toLocaleString(undefined, { maximumFractionDigits: 2 })}\n` +
+    `*Residual cash:* $${priced.residualCash.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  if (priced.unquotedTickers.length > 0) {
+    msg += `\n_No live quote for ${priced.unquotedTickers.join(', ')} — those dollars stay as cash._`;
+  }
+  msg += `\n\n_Reply with \`remove AAPL\` to auto-swap with a style-matched alternative._`;
 
   await ctx.replyWithMarkdown(msg);
 }
@@ -321,32 +311,13 @@ async function sendReplacementPortfolio(
   const investorName = getInvestorName(investorId);
   const holdings = mimicResult.holdings;
 
-  // Fetch prices for all holdings — with 15s timeout
-  let priceMap: Map<string, number | null>;
-  try {
-    priceMap = await Promise.race([
-      fetchMimicPrices(holdings, telegramId),
-      new Promise<Map<string, number | null>>((_, reject) =>
-        setTimeout(() => reject(new Error('Price fetch timeout')), 15000)
-      )
-    ]);
-  } catch {
-    priceMap = new Map();
-    for (const h of holdings) {
-      priceMap.set(h.ticker, null);
+  const priced = await priceMimicHoldings(holdings, telegramId);
+  const lines = priced.holdings.map(h => {
+    const pctStr = `${h.percentage.toFixed(1)}%`;
+    if (h.quoted && h.price) {
+      return `• *${h.ticker}* — ${pctStr} @ $${h.price.toFixed(2)}`;
     }
-  }
-
-  const lines = holdings.map((h: any) => {
-    const ticker = h.ticker || h.symbol || '?';
-    const pct = parseFloat(h.percentage ?? h.weight ?? 0);
-    const price = priceMap.get(ticker);
-    let detail = '';
-    if (price && price > 0) {
-      detail = `@ $${price.toFixed(2)}`;
-    }
-    const pctStr = typeof pct === 'number' ? `${pct.toFixed(1)}%` : `${pct}`;
-    return `• *${ticker}* — ${pctStr} ${detail}`;
+    return `• *${h.ticker}* — ${pctStr} — no live quote`;
   });
 
   let msg = `🔄 *Updated ${investorName} Portfolio*\n`;
@@ -403,10 +374,32 @@ export async function handleReplaceCancelCallback(ctx: Context) {
   await ctx.editMessageText('❌ Replacement cancelled.');
 }
 
+async function priceMimicHoldings(
+  holdings: Array<{ ticker: string; percentage: number }>,
+  telegramId: number,
+  amount: number = 10000
+) {
+  let priceMap: Map<string, number | null>;
+  try {
+    priceMap = await Promise.race([
+      fetchMimicPrices(holdings, telegramId),
+      new Promise<Map<string, number | null>>((_, reject) =>
+        setTimeout(() => reject(new Error('Price fetch timeout')), 15000)
+      )
+    ]);
+  } catch {
+    priceMap = new Map();
+    for (const h of holdings) {
+      priceMap.set(h.ticker, null);
+    }
+  }
+  return allocateMimicBudget(holdings, amount, priceMap);
+}
+
 function getInvestorName(investorId: string): string {
   if (investorId.startsWith('congress:')) {
     const id = investorId.replace('congress:', '');
     return loadCongressTraders()[id]?.name || 'Unknown Trader';
   }
-  return INVESTORS.find(i => i.id === investorId)?.name || 'Unknown Investor';
+  return getMimicInvestorName(investorId) || 'Unknown Investor';
 }

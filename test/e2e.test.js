@@ -635,6 +635,7 @@ async function runMimicTests() {
     assert.ok(reply.includes('Warren Buffett'), 'should mention investor');
     assert.ok(reply.includes('$10,000'), 'should show investment amount');
     assert.ok(reply.includes('AAPL'), 'should show holdings');
+    assert.ok(reply.includes('Residual cash'), 'should report residual cash');
   });
 
   await test('invalid amount shows retry message and keeps pending', async () => {
